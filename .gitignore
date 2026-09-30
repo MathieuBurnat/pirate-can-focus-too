@@ -32,3 +32,8 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Android Studio / Kotlin
+.idea/
+*.iml
+.kotlin/
