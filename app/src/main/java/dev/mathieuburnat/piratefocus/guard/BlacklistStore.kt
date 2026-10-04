@@ -30,5 +30,13 @@ class BlacklistStore(context: Context) {
             "com.ss.android.ugc.trill", // TikTok (certaines régions)
             "com.reddit.frontpage",
         )
+
+        /** Noms lisibles pour les applis par défaut, même quand elles ne sont pas installées. */
+        val KNOWN_LABELS = mapOf(
+            "com.instagram.android" to "Instagram",
+            "com.zhiliaoapp.musically" to "TikTok",
+            "com.ss.android.ugc.trill" to "TikTok (Asie)",
+            "com.reddit.frontpage" to "Reddit",
+        )
     }
 }

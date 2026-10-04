@@ -82,7 +82,6 @@ fun PixelPirate(phase: Phase, modifier: Modifier = Modifier, size: Dp = 192.dp) 
         // Déplacement par pixel entier pour garder un rendu bien "pixel art".
         val offsetY = when (phase) {
             Phase.FOCUS -> (bob * 2).toInt() * pixel
-            Phase.SUNK -> 1 * pixel
             else -> 0f
         }
         drawSprite(sprite, pixel, Offset(pixel, pixel + offsetY))

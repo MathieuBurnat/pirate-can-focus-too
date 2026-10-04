@@ -23,7 +23,10 @@ accompagne l'utilisateur, avec une interface entièrement en **police monospace*
 - Le projet est ouvert dans **Android Studio sous Windows** (`C:\0_projects\pirate-can-focus-too`).
 - `git` et `gh` sont installés dans **WSL (Ubuntu)**, pas dans PowerShell :
   lancer les commandes git via `wsl -e bash -lc "cd /mnt/c/0_projects/pirate-can-focus-too && git ..."`.
-- Le build se fait depuis Android Studio (le wrapper Gradle est régénéré par Android Studio au premier sync si `gradlew` manque).
+- Le build se fait depuis Android Studio, ou avec `gradlew.bat` en utilisant le JDK 21 d'Android Studio
+  (`$env:JAVA_HOME="$env:USERPROFILE\.jdks\jbr-21.0.11"`). Gradle 8.11.1 refuse le JDK 25.
+- Le téléphone de test (Galaxy A55) et un émulateur sont accessibles via `adb`.
+- Les captures du README sont dans `docs/screenshots/` (prises sur l'émulateur).
 - Fins de ligne : `.gitattributes` force LF dans le dépôt.
 
 ## Organisation du code

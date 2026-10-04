@@ -73,7 +73,7 @@ fun SettingsScreen(onBack: () -> Unit) {
 
     // Les applis de la liste noire d'abord, puis le reste par ordre alphabétique.
     val installedPackages = installedApps.map { it.packageName }.toSet()
-    val missing = blacklist.filter { it !in installedPackages }.map { AppEntry(it, it, installed = false) }
+    val missing = blacklist.filter { it !in installedPackages }.map { AppEntry(it, BlacklistStore.KNOWN_LABELS[it] ?: it, installed = false) }
     var query by remember { mutableStateOf("") }
     // Un seul toast à la fois, même si on coche vite plusieurs applis.
     var toast by remember { mutableStateOf<Toast?>(null) }
