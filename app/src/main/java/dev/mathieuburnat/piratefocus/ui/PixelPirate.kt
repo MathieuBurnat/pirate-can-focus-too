@@ -13,12 +13,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.mathieuburnat.piratefocus.focus.Phase
 
 /** Un caractère = un pixel. '.' = transparent. */
-private val palette = mapOf(
+internal val palette = mapOf(
+    'T' to Color(0xFF5C3A1E), // mât
+    'H' to Color(0xFF6B4423), // coque
     'K' to Color(0xFF1B1B1B), // chapeau
     'W' to Color(0xFFF2E8CF), // tête de mort du chapeau
     'R' to Color(0xFFD64545), // bandana
@@ -82,15 +85,20 @@ fun PixelPirate(phase: Phase, modifier: Modifier = Modifier, size: Dp = 192.dp) 
             Phase.SUNK -> 1 * pixel
             else -> 0f
         }
-        sprite.forEachIndexed { y, line ->
-            line.forEachIndexed { x, char ->
-                val color = palette[char] ?: return@forEachIndexed
-                drawRect(
-                    color = color,
-                    topLeft = Offset((x + 1) * pixel, (y + 1) * pixel + offsetY),
-                    size = Size(pixel, pixel),
-                )
-            }
+        drawSprite(sprite, pixel, Offset(pixel, pixel + offsetY))
+    }
+}
+
+/** Dessine une grille de caractères, un carré par pixel. */
+internal fun DrawScope.drawSprite(sprite: List<String>, pixel: Float, origin: Offset) {
+    sprite.forEachIndexed { y, line ->
+        line.forEachIndexed { x, char ->
+            val color = palette[char] ?: return@forEachIndexed
+            drawRect(
+                color = color,
+                topLeft = Offset(origin.x + x * pixel, origin.y + y * pixel),
+                size = Size(pixel, pixel),
+            )
         }
     }
 }

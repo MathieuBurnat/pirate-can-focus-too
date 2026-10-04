@@ -98,6 +98,8 @@ fun FocusScreen(
                 style = MaterialTheme.typography.displayLarge,
             )
             Text(asciiProgress(timer.progress), style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(8.dp))
+            PixelShip(phase = timer.phase, progress = timer.progress)
             Waves(animated = timer.phase == Phase.FOCUS)
 
             Spacer(Modifier.weight(1f))
