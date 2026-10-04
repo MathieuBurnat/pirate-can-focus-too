@@ -19,7 +19,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -42,7 +46,7 @@ class CaughtActivity : ComponentActivity() {
         setContent {
             PirateFocusTheme {
                 BackHandler { backToShip() }
-                val quote = remember { PirateQuotes.caught(appName) }
+                var quote by remember { mutableStateOf(PirateQuotes.caught(appName)) }
                 Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
                     Column(
                         modifier = Modifier.safeDrawingPadding().padding(24.dp),
@@ -53,7 +57,12 @@ class CaughtActivity : ComponentActivity() {
                         Spacer(Modifier.height(16.dp))
                         PixelPirate(phase = Phase.SUNK)
                         Spacer(Modifier.height(16.dp))
-                        Text("« $quote »", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "« $quote »",
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.clickable { quote = PirateQuotes.caught(appName, current = quote) },
+                        )
                         Spacer(Modifier.height(32.dp))
                         Button(onClick = ::backToShip, shape = RectangleShape, modifier = Modifier.fillMaxWidth()) {
                             Text("> RETOUR AU NAVIRE")

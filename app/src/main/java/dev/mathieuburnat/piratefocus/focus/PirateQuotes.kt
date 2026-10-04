@@ -71,11 +71,27 @@ object PirateQuotes {
         "Mille sabords ! Range-moi ce {app} avant que je le jette par-dessus bord.",
         "Tu cherches le trésor dans {app} ? Il n'y est pas. Il est dans ta tâche.",
         "Abordage repoussé ! {app} attendra la fin de la traversée.",
+        "Pris la main dans le coffre ! {app} est sous scellés, moussaillon.",
+        "{app} ? Je l'ai enfermé dans la cale. Avec les rats.",
+        "Tu croyais que je dormais ? Un pirate ne dort que d'un œil. L'autre a un cache.",
+        "Alerte au mât ! Un moussaillon tente de déserter vers {app} !",
+        "{app} n'a jamais rapporté un seul doublon. Moi si. Réfléchis.",
+        "Encore {app} ? La planche est cirée, tu veux l'essayer ?",
+        "Hé ! On ne quitte pas le navire pour aller voir des vidéos de chats.",
+        "{app} te fait les yeux doux. C'est un piège, matelot, un piège !",
+        "Le kraken a avalé {app}. Il le recrachera à la fin de la traversée.",
+        "Demi-tour, capitaine de pacotille ! {app} est en eaux interdites.",
+        "J'ai jeté {app} dans le Triangle des Bermudes. Désolé, pas désolé.",
+        "Même le perroquet sait que {app} peut attendre. Et il a un cerveau de petit pois.",
+        "Tentative d'évasion repérée ! Retourne ramer, matelot.",
+        "{app} ? Pfff. Les vrais pirates font défiler des cartes au trésor.",
     )
 
     /** Ce que dit le capitaine quand il te surprend sur une appli interdite. */
-    fun caught(appName: String, random: Random = Random.Default): String =
-        caught.random(random).replace("{app}", appName)
+    fun caught(appName: String, current: String? = null, random: Random = Random.Default): String {
+        val lines = caught.map { it.replace("{app}", appName) }
+        return lines.filter { it != current }.ifEmpty { lines }.random(random)
+    }
 
     /** Une réplique au hasard pour la phase, différente de [current] si possible. */
     fun randomFor(phase: Phase, current: String? = null, random: Random = Random.Default): String {

@@ -3,6 +3,7 @@ package dev.mathieuburnat.piratefocus.ui
 import android.Manifest
 import android.content.Intent
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -74,6 +75,8 @@ fun SettingsScreen(onBack: () -> Unit) {
     val installedPackages = installedApps.map { it.packageName }.toSet()
     val missing = blacklist.filter { it !in installedPackages }.map { AppEntry(it, it, installed = false) }
     var query by remember { mutableStateOf("") }
+    // Un seul toast à la fois, même si on coche vite plusieurs applis.
+    var toast by remember { mutableStateOf<Toast?>(null) }
     val needle = query.normalized()
     val entries = (installedApps + missing)
         .filter { needle.isEmpty() || needle in it.label.normalized() || needle in it.packageName.lowercase() }
@@ -136,7 +139,12 @@ fun SettingsScreen(onBack: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { blacklist = store.toggle(app.packageName) }
+                            .clickable {
+                                blacklist = store.toggle(app.packageName)
+                                toast?.cancel()
+                                toast = Toast.makeText(context, "Paramètre sauvegardé, capitaine !", Toast.LENGTH_SHORT)
+                                    .also { it.show() }
+                            }
                             .padding(vertical = 8.dp),
                     ) {
                         Text(
