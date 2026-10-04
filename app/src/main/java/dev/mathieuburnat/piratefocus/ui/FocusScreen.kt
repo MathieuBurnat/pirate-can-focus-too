@@ -11,13 +11,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,7 +27,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -152,6 +149,7 @@ private fun Actions(
             }
             if (askingCustom) {
                 CustomDurationDialog(
+                    initial = timer.focusMinutes,
                     onConfirm = { minutes ->
                         onSelectDuration(minutes)
                         askingCustom = false
@@ -179,27 +177,23 @@ private fun DurationButton(label: String, selected: Boolean, onClick: () -> Unit
 }
 
 @Composable
-private fun CustomDurationDialog(onConfirm: (Int) -> Unit, onDismiss: () -> Unit) {
-    var input by remember { mutableStateOf("") }
-    val minutes = input.toIntOrNull()?.takeIf { it in FocusTimer.MIN_MINUTES..FocusTimer.MAX_MINUTES }
+private fun CustomDurationDialog(initial: Int, onConfirm: (Int) -> Unit, onDismiss: () -> Unit) {
+    var minutes by remember { mutableIntStateOf(initial) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RectangleShape,
         title = { Text("Traversée sur mesure") },
         text = {
-            OutlinedTextField(
-                value = input,
-                onValueChange = { input = it.filter(Char::isDigit).take(3) },
-                label = { Text("minutes (${FocusTimer.MIN_MINUTES}-${FocusTimer.MAX_MINUTES})") },
-                singleLine = true,
-                isError = input.isNotEmpty() && minutes == null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = RectangleShape,
+            MinutesWheel(
+                range = FocusTimer.MIN_MINUTES..FocusTimer.MAX_MINUTES,
+                initial = initial,
+                onValueChange = { minutes = it },
+                modifier = Modifier.fillMaxWidth(),
             )
         },
         confirmButton = {
-            TextButton(onClick = { minutes?.let(onConfirm) }, enabled = minutes != null) { Text("CAP !") }
+            TextButton(onClick = { onConfirm(minutes) }) { Text("CAP !") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("ANNULER") }

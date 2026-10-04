@@ -36,7 +36,8 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   ├── FocusViewModel.kt    # état de l'écran, boucle de décompte
 │   └── PirateQuotes.kt      # répliques du capitaine selon la phase
 └── ui/
-    ├── FocusScreen.kt       # écran principal
+    ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
+    ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes
     ├── PixelPirate.kt       # le capitaine, dessiné pixel par pixel sur un Canvas
     └── theme/Theme.kt       # couleurs "mer de nuit" + typo monospace partout
 ```
