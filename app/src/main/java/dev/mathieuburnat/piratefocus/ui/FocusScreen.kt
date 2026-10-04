@@ -144,7 +144,7 @@ fun FocusScreen(
 
 @Composable
 private fun QuoteBubble(quote: String, onClick: () -> Unit) {
-    Text(
+    TypewriterText(
         text = "« $quote »",
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.bodyMedium,

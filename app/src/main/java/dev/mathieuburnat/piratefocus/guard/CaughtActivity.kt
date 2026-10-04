@@ -33,6 +33,7 @@ import dev.mathieuburnat.piratefocus.MainActivity
 import dev.mathieuburnat.piratefocus.focus.Phase
 import dev.mathieuburnat.piratefocus.focus.PirateQuotes
 import dev.mathieuburnat.piratefocus.ui.PixelPirate
+import dev.mathieuburnat.piratefocus.ui.TypewriterText
 import dev.mathieuburnat.piratefocus.ui.theme.PirateFocusTheme
 
 /** L'écran qui surgit quand on ouvre une appli interdite en pleine traversée. */
@@ -57,7 +58,7 @@ class CaughtActivity : ComponentActivity() {
                         Spacer(Modifier.height(16.dp))
                         PixelPirate(phase = Phase.SUNK)
                         Spacer(Modifier.height(16.dp))
-                        Text(
+                        TypewriterText(
                             "« $quote »",
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.bodyLarge,
