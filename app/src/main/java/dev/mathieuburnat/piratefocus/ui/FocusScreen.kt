@@ -2,6 +2,7 @@ package dev.mathieuburnat.piratefocus.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,7 @@ import dev.mathieuburnat.piratefocus.ui.theme.PirateFocusTheme
 import kotlinx.coroutines.delay
 
 private val durations = listOf(5, 10, 30)
+private const val QUOTE_ROTATION_MS = 20_000L
 
 @Composable
 fun FocusRoute(viewModel: FocusViewModel = viewModel()) {
@@ -58,6 +60,7 @@ fun FocusRoute(viewModel: FocusViewModel = viewModel()) {
         onSetSail = viewModel::setSail,
         onAbandon = viewModel::abandonShip,
         onBackToPort = viewModel::backToPort,
+        onNewQuote = viewModel::newQuote,
     )
 }
 
@@ -68,9 +71,19 @@ fun FocusScreen(
     onSetSail: () -> Unit,
     onAbandon: () -> Unit,
     onBackToPort: () -> Unit,
+    onNewQuote: () -> Unit,
 ) {
     val timer = state.timer
     KeepScreenOn(enabled = timer.phase == Phase.FOCUS)
+
+    // Au port et en escale, le capitaine papote : nouvelle réplique régulièrement.
+    val chatty = timer.phase == Phase.IDLE || timer.phase == Phase.BREAK
+    LaunchedEffect(chatty) {
+        while (chatty) {
+            delay(QUOTE_ROTATION_MS)
+            onNewQuote()
+        }
+    }
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(
@@ -87,7 +100,7 @@ fun FocusScreen(
 
             Spacer(Modifier.height(12.dp))
             PixelPirate(phase = timer.phase)
-            QuoteBubble(state.quote)
+            QuoteBubble(state.quote, onClick = onNewQuote)
 
             Spacer(Modifier.weight(1f))
             Text(phaseLabel(timer.phase), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
@@ -109,7 +122,7 @@ fun FocusScreen(
 }
 
 @Composable
-private fun QuoteBubble(quote: String) {
+private fun QuoteBubble(quote: String, onClick: () -> Unit) {
     Text(
         text = "« $quote »",
         textAlign = TextAlign.Center,
@@ -117,6 +130,7 @@ private fun QuoteBubble(quote: String) {
         modifier = Modifier
             .fillMaxWidth()
             .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground), RectangleShape)
+            .clickable(onClick = onClick)
             .padding(12.dp),
     )
 }
@@ -265,6 +279,7 @@ private fun FocusScreenPreview() {
             onSetSail = {},
             onAbandon = {},
             onBackToPort = {},
+            onNewQuote = {},
         )
     }
 }

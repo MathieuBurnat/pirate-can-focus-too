@@ -40,6 +40,11 @@ class FocusViewModel : ViewModel() {
         transition(FocusTimer::backToPort)
     }
 
+    /** Le capitaine change de réplique (au port, en escale, ou quand on tape sur la bulle). */
+    fun newQuote() {
+        _uiState.update { it.copy(quote = PirateQuotes.randomFor(it.timer.phase, current = it.quote)) }
+    }
+
     private fun startTicking() {
         ticker?.cancel()
         ticker = viewModelScope.launch {
