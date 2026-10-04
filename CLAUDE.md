@@ -39,13 +39,18 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   ├── GuardPermissions.kt  # accès aux données d'utilisation + affichage par-dessus
 │   ├── FocusGuardService.kt # service au premier plan qui surveille l'appli ouverte
 │   └── CaughtActivity.kt    # le capitaine surgit sur une appli interdite
+├── journal/                 # journal secret (7 taps sur le menu) : sport contre boissons
+│   ├── Journal.kt           # compteurs et verdict du capitaine (logique pure, testée)
+│   ├── JournalQuotes.kt     # insultes, réactions par boisson, interventions tous les 5 verres
+│   └── JournalViewModel.kt  # en mémoire seulement : remis à zéro à chaque lancement
 ├── focus/
 │   ├── FocusTimer.kt        # logique pure du minuteur (testée unitairement)
 │   ├── FocusViewModel.kt    # état de l'écran, boucle de décompte
 │   └── PirateQuotes.kt      # répliques du capitaine selon la phase
 └── ui/
     ├── PirateApp.kt         # navigation : menu, focus, paramètres
-    ├── MenuScreen.kt        # menu de démarrage (le journal viendra plus tard)
+    ├── MenuScreen.kt        # menu de démarrage (journal grisé, déverrouillé après 7 taps)
+    ├── JournalScreen.kt     # muscles VS bouteilles, capitaine pompette si ça boit trop
     ├── SettingsScreen.kt    # autorisations du gardien + liste noire
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes

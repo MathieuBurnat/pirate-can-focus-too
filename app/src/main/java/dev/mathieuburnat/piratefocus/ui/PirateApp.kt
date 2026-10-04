@@ -12,14 +12,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.mathieuburnat.piratefocus.focus.FocusViewModel
 import dev.mathieuburnat.piratefocus.guard.GuardPermissions
+import dev.mathieuburnat.piratefocus.journal.JournalViewModel
 
-private enum class Screen { MENU, FOCUS, SETTINGS }
+private enum class Screen { MENU, FOCUS, JOURNAL, SETTINGS }
 
 /** Racine de l'app : le menu de pirate et la navigation entre les écrans. */
 @Composable
-fun PirateApp(viewModel: FocusViewModel = viewModel()) {
+fun PirateApp(viewModel: FocusViewModel = viewModel(), journalViewModel: JournalViewModel = viewModel()) {
     val context = LocalContext.current
     var screen by rememberSaveable { mutableStateOf(Screen.MENU) }
+    // Le journal secret se déverrouille à chaque lancement (7 coups sur la porte).
+    var journalUnlocked by rememberSaveable { mutableStateOf(false) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val phase = state.timer.phase
 
@@ -34,10 +37,14 @@ fun PirateApp(viewModel: FocusViewModel = viewModel()) {
     when (screen) {
         Screen.MENU -> MenuScreen(
             phase = phase,
+            journalUnlocked = journalUnlocked,
             onFocus = { screen = Screen.FOCUS },
+            onUnlockJournal = { journalUnlocked = true },
+            onJournal = { screen = Screen.JOURNAL },
             onSettings = { screen = Screen.SETTINGS },
         )
         Screen.FOCUS -> FocusRoute(viewModel, guardReady = guardReady, onMenu = { screen = Screen.MENU })
+        Screen.JOURNAL -> JournalScreen(journalViewModel, onBack = { screen = Screen.MENU })
         Screen.SETTINGS -> SettingsScreen(onBack = { screen = Screen.MENU })
     }
 }

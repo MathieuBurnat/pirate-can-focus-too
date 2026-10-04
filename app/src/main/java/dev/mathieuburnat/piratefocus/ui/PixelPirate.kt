@@ -14,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.mathieuburnat.piratefocus.focus.Phase
@@ -32,6 +33,7 @@ internal val palette = mapOf(
     'B' to Color(0xFF7A4A21), // barbe
     'G' to Color(0xFFF4C542), // boucle d'oreille en or
     'X' to Color(0xFF7FB7D9), // larme (naufrage)
+    'C' to Color(0xFFF28B82), // joues roses (pompette)
 )
 
 private val captain = listOf(
@@ -63,9 +65,23 @@ private val sunkCaptain = captain.mapIndexed { row, line ->
     }
 }
 
+/** Version pompette : joues roses, nez rouge, grand sourire. */
+private val tipsyCaptain = captain.mapIndexed { row, line ->
+    when (row) {
+        9 -> "..SCPSSRRSSSCS.G"
+        11 -> "..BSSSMMMMMSSB.."
+        else -> line
+    }
+}
+
+/** [tipsy] : le capitaine a un coup dans le nez et tangue même à quai. */
 @Composable
-fun PixelPirate(phase: Phase, modifier: Modifier = Modifier, size: Dp = 192.dp) {
-    val sprite = if (phase == Phase.SUNK) sunkCaptain else captain
+fun PixelPirate(phase: Phase, modifier: Modifier = Modifier, size: Dp = 192.dp, tipsy: Boolean = false) {
+    val sprite = when {
+        tipsy -> tipsyCaptain
+        phase == Phase.SUNK -> sunkCaptain
+        else -> captain
+    }
 
     // Le capitaine tangue quand il est en mer.
     val transition = rememberInfiniteTransition(label = "tangage")
@@ -76,7 +92,8 @@ fun PixelPirate(phase: Phase, modifier: Modifier = Modifier, size: Dp = 192.dp) 
         label = "bob",
     )
 
-    Canvas(modifier = modifier.size(size)) {
+    val tilt = if (tipsy) (bob - 0.5f) * 14f else 0f
+    Canvas(modifier = modifier.size(size).graphicsLayer { rotationZ = tilt }) {
         val columns = sprite.maxOf { it.length }
         val pixel = this.size.minDimension / (columns + 2)
         // Déplacement par pixel entier pour garder un rendu bien "pixel art".
