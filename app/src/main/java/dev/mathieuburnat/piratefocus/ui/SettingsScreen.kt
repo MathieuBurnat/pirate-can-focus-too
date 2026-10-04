@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -34,6 +36,7 @@ import dev.mathieuburnat.piratefocus.guard.BlacklistStore
 import dev.mathieuburnat.piratefocus.guard.GuardPermissions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.text.Normalizer
 
 private data class AppEntry(val packageName: String, val label: String, val installed: Boolean)
 
@@ -70,7 +73,10 @@ fun SettingsScreen(onBack: () -> Unit) {
     // Les applis de la liste noire d'abord, puis le reste par ordre alphabétique.
     val installedPackages = installedApps.map { it.packageName }.toSet()
     val missing = blacklist.filter { it !in installedPackages }.map { AppEntry(it, it, installed = false) }
+    var query by remember { mutableStateOf("") }
+    val needle = query.normalized()
     val entries = (installedApps + missing)
+        .filter { needle.isEmpty() || needle in it.label.normalized() || needle in it.packageName.lowercase() }
         .sortedWith(compareByDescending<AppEntry> { it.packageName in blacklist }.thenBy { it.label.lowercase() })
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
@@ -100,7 +106,28 @@ fun SettingsScreen(onBack: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             Text("-- Liste noire (${blacklist.size}) --", style = MaterialTheme.typography.titleSmall)
             Text("Coche les applis interdites pendant une traversée.", style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("> chercher une appli...") },
+                singleLine = true,
+                shape = RectangleShape,
+                textStyle = MaterialTheme.typography.bodyLarge,
+                trailingIcon = if (query.isNotEmpty()) {
+                    { Text("[x]", modifier = Modifier.clickable { query = "" }.padding(8.dp)) }
+                } else {
+                    null
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (entries.isEmpty() && installedApps.isNotEmpty()) {
+                Text(
+                    "Aucune appli de ce nom à l'horizon, moussaillon.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(vertical = 12.dp),
+                )
+            }
 
             LazyColumn(Modifier.fillMaxWidth()) {
                 items(entries, key = { it.packageName }) { app ->
@@ -127,6 +154,10 @@ fun SettingsScreen(onBack: () -> Unit) {
         }
     }
 }
+
+/** Minuscules sans accents, pour que « reglages » trouve « Réglages ». */
+private fun String.normalized(): String =
+    Normalizer.normalize(trim().lowercase(), Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
 
 @Composable
 private fun PermissionRow(label: String, granted: Boolean, onRequest: () -> Unit) {
