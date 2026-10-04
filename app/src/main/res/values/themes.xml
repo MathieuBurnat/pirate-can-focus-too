@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PirateFocus" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/sea_night</item>
+        <item name="android:statusBarColor">@color/sea_night</item>
+        <item name="android:navigationBarColor">@color/sea_night</item>
+    </style>
+    <color name="sea_night">#FF0B1A2E</color>
+</resources>
