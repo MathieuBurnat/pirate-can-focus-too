@@ -39,7 +39,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes
     ├── PixelPirate.kt       # le capitaine + palette et drawSprite() partagés
-    ├── PixelShip.kt         # le navire qui traverse l'écran au fil de la session
+    ├── PixelShip.kt         # le navire, centré, qui tangue pendant que les vagues défilent
     └── theme/Theme.kt       # couleurs "mer de nuit" + typo monospace partout
 ```
 

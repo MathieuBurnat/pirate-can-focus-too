@@ -2,7 +2,6 @@ package dev.mathieuburnat.piratefocus.ui
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -32,16 +31,9 @@ private val ship = listOf(
     "..HHHHHHHHHHHH..",
 )
 
-/** Le navire traverse l'écran de gauche à droite au fil de la session. */
+/** Le navire reste au centre et tangue : ce sont les vagues qui défilent sous lui. */
 @Composable
-fun PixelShip(phase: Phase, progress: Float, modifier: Modifier = Modifier, pixelSize: Dp = 3.dp) {
-    val target = when (phase) {
-        Phase.FOCUS -> progress
-        Phase.BREAK -> 1f // amarré au port d'arrivée
-        Phase.IDLE, Phase.SUNK -> 0f
-    }
-    val position by animateFloatAsState(target, animationSpec = tween(900), label = "cap")
-
+fun PixelShip(phase: Phase, modifier: Modifier = Modifier, pixelSize: Dp = 3.dp) {
     val transition = rememberInfiniteTransition(label = "houle")
     val swell by transition.animateFloat(
         initialValue = 0f,
@@ -54,7 +46,7 @@ fun PixelShip(phase: Phase, progress: Float, modifier: Modifier = Modifier, pixe
     Canvas(modifier = modifier.fillMaxWidth().height(pixelSize * (rows + 2))) {
         val pixel = pixelSize.toPx()
         val shipWidth = ship.maxOf { it.length } * pixel
-        val x = position * (size.width - shipWidth)
+        val x = ((size.width - shipWidth) / 2 / pixel).toInt() * pixel
         val y = when (phase) {
             Phase.FOCUS -> (swell * 2).toInt() * pixel
             Phase.SUNK -> 6 * pixel // à moitié sous l'eau
