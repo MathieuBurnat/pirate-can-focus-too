@@ -63,6 +63,20 @@ object PirateQuotes {
         ),
     )
 
+    private val caught = listOf(
+        "{app} ? En pleine traversée ? Ah non, moussaillon. Ah non.",
+        "Halte ! {app} est une sirène, et tu allais plonger.",
+        "Je t'ai vu ouvrir {app}. Le perroquet aussi. Il est déçu.",
+        "{app}, c'est le Triangle des Bermudes du temps libre. Demi-tour !",
+        "Mille sabords ! Range-moi ce {app} avant que je le jette par-dessus bord.",
+        "Tu cherches le trésor dans {app} ? Il n'y est pas. Il est dans ta tâche.",
+        "Abordage repoussé ! {app} attendra la fin de la traversée.",
+    )
+
+    /** Ce que dit le capitaine quand il te surprend sur une appli interdite. */
+    fun caught(appName: String, random: Random = Random.Default): String =
+        caught.random(random).replace("{app}", appName)
+
     /** Une réplique au hasard pour la phase, différente de [current] si possible. */
     fun randomFor(phase: Phase, current: String? = null, random: Random = Random.Default): String {
         val pool = quotes.getValue(phase)

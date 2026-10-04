@@ -30,12 +30,20 @@ accompagne l'utilisateur, avec une interface entièrement en **police monospace*
 
 ```
 app/src/main/java/dev/mathieuburnat/piratefocus/
-├── MainActivity.kt          # point d'entrée, garde l'écran allumé pendant le focus
+├── MainActivity.kt          # point d'entrée, démarre/arrête le gardien selon la phase
+├── guard/
+│   ├── BlacklistStore.kt    # liste noire (défaut : Instagram, TikTok, Reddit)
+│   ├── GuardPermissions.kt  # accès aux données d'utilisation + affichage par-dessus
+│   ├── FocusGuardService.kt # service au premier plan qui surveille l'appli ouverte
+│   └── CaughtActivity.kt    # le capitaine surgit sur une appli interdite
 ├── focus/
 │   ├── FocusTimer.kt        # logique pure du minuteur (testée unitairement)
 │   ├── FocusViewModel.kt    # état de l'écran, boucle de décompte
 │   └── PirateQuotes.kt      # répliques du capitaine selon la phase
 └── ui/
+    ├── PirateApp.kt         # navigation : menu, focus, paramètres
+    ├── MenuScreen.kt        # menu de démarrage (le journal viendra plus tard)
+    ├── SettingsScreen.kt    # autorisations du gardien + liste noire
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes
     ├── PixelPirate.kt       # le capitaine + palette et drawSprite() partagés

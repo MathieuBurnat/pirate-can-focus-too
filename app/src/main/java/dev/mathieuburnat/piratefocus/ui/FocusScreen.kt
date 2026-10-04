@@ -52,10 +52,12 @@ private val durations = listOf(5, 10, 30)
 private const val QUOTE_ROTATION_MS = 20_000L
 
 @Composable
-fun FocusRoute(viewModel: FocusViewModel = viewModel()) {
+fun FocusRoute(viewModel: FocusViewModel, guardReady: Boolean, onMenu: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     FocusScreen(
         state = state,
+        guardReady = guardReady,
+        onMenu = onMenu,
         onSelectDuration = viewModel::selectDuration,
         onSetSail = viewModel::setSail,
         onAbandon = viewModel::abandonShip,
@@ -67,6 +69,8 @@ fun FocusRoute(viewModel: FocusViewModel = viewModel()) {
 @Composable
 fun FocusScreen(
     state: FocusUiState,
+    guardReady: Boolean,
+    onMenu: () -> Unit,
     onSelectDuration: (Int) -> Unit,
     onSetSail: () -> Unit,
     onAbandon: () -> Unit,
@@ -92,6 +96,15 @@ fun FocusScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Text(
+                "< MENU",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .clickable(onClick = onMenu)
+                    .padding(vertical = 4.dp),
+            )
             Text("=== PIRATE FOCUS ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
             Text(
                 "doublons: %04d | traversées: %d".format(timer.doubloons, timer.voyages),
@@ -116,6 +129,14 @@ fun FocusScreen(
             Waves(animated = timer.phase == Phase.FOCUS)
 
             Spacer(Modifier.weight(1f))
+            if (!guardReady && timer.phase == Phase.IDLE) {
+                Text(
+                    "! gardien endormi : autorise-le dans Paramètres",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
             Actions(timer, onSelectDuration, onSetSail, onAbandon, onBackToPort)
         }
     }
@@ -274,6 +295,8 @@ private fun asciiProgress(progress: Float, width: Int = 20): String {
 private fun FocusScreenPreview() {
     PirateFocusTheme {
         FocusScreen(
+            guardReady = true,
+            onMenu = {},
             state = FocusUiState(FocusState(phase = Phase.FOCUS, remainingSeconds = 754, doubloons = 42, voyages = 3), PirateQuotes.randomFor(Phase.FOCUS)),
             onSelectDuration = {},
             onSetSail = {},
