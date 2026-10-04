@@ -16,10 +16,10 @@ enum class Phase {
 
 data class FocusState(
     val phase: Phase = Phase.IDLE,
-    val focusMinutes: Int = 25,
+    val focusMinutes: Int = 30,
     val breakMinutes: Int = 5,
-    val remainingSeconds: Int = 25 * 60,
-    val totalSeconds: Int = 25 * 60,
+    val remainingSeconds: Int = 30 * 60,
+    val totalSeconds: Int = 30 * 60,
     val doubloons: Int = 0,
     val voyages: Int = 0,
 ) {
@@ -31,9 +31,13 @@ data class FocusState(
 /** Logique pure du minuteur, sans dépendance Android. */
 object FocusTimer {
 
+    const val MIN_MINUTES = 1
+    const val MAX_MINUTES = 180
+
     fun selectDuration(state: FocusState, minutes: Int): FocusState {
         if (state.phase != Phase.IDLE) return state
-        return state.copy(focusMinutes = minutes, remainingSeconds = minutes * 60, totalSeconds = minutes * 60)
+        val safeMinutes = minutes.coerceIn(MIN_MINUTES, MAX_MINUTES)
+        return state.copy(focusMinutes = safeMinutes, remainingSeconds = safeMinutes * 60, totalSeconds = safeMinutes * 60)
     }
 
     fun setSail(state: FocusState): FocusState {

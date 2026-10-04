@@ -11,18 +11,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -43,7 +50,7 @@ import dev.mathieuburnat.piratefocus.focus.PirateQuotes
 import dev.mathieuburnat.piratefocus.ui.theme.PirateFocusTheme
 import kotlinx.coroutines.delay
 
-private val durations = listOf(15, 25, 50)
+private val durations = listOf(5, 10, 30)
 
 @Composable
 fun FocusRoute(viewModel: FocusViewModel = viewModel()) {
@@ -125,15 +132,32 @@ private fun Actions(
 ) {
     when (timer.phase) {
         Phase.IDLE -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            var askingCustom by remember { mutableStateOf(false) }
+            val isCustom = timer.focusMinutes !in durations
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 durations.forEach { minutes ->
-                    val selected = minutes == timer.focusMinutes
-                    OutlinedButton(
+                    DurationButton(
+                        label = "$minutes",
+                        selected = minutes == timer.focusMinutes,
                         onClick = { onSelectDuration(minutes) },
-                        shape = RectangleShape,
-                        border = BorderStroke(2.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground),
-                    ) { Text(if (selected) "[$minutes]" else " $minutes ") }
+                        modifier = Modifier.weight(1f),
+                    )
                 }
+                DurationButton(
+                    label = if (isCustom) "${timer.focusMinutes}" else ":",
+                    selected = isCustom,
+                    onClick = { askingCustom = true },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (askingCustom) {
+                CustomDurationDialog(
+                    onConfirm = { minutes ->
+                        onSelectDuration(minutes)
+                        askingCustom = false
+                    },
+                    onDismiss = { askingCustom = false },
+                )
             }
             Spacer(Modifier.height(8.dp))
             PirateButton("> LEVER L'ANCRE", onSetSail)
@@ -142,6 +166,45 @@ private fun Actions(
         Phase.BREAK -> PirateButton("> REPRENDRE LA MER", onBackToPort)
         Phase.SUNK -> PirateButton("> RECONSTRUIRE LE NAVIRE", onBackToPort)
     }
+}
+
+@Composable
+private fun DurationButton(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = RectangleShape,
+        border = BorderStroke(2.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground),
+        modifier = modifier,
+    ) { Text(if (selected) "[$label]" else label, maxLines = 1) }
+}
+
+@Composable
+private fun CustomDurationDialog(onConfirm: (Int) -> Unit, onDismiss: () -> Unit) {
+    var input by remember { mutableStateOf("") }
+    val minutes = input.toIntOrNull()?.takeIf { it in FocusTimer.MIN_MINUTES..FocusTimer.MAX_MINUTES }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RectangleShape,
+        title = { Text("Traversée sur mesure") },
+        text = {
+            OutlinedTextField(
+                value = input,
+                onValueChange = { input = it.filter(Char::isDigit).take(3) },
+                label = { Text("minutes (${FocusTimer.MIN_MINUTES}-${FocusTimer.MAX_MINUTES})") },
+                singleLine = true,
+                isError = input.isNotEmpty() && minutes == null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = RectangleShape,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { minutes?.let(onConfirm) }, enabled = minutes != null) { Text("CAP !") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("ANNULER") }
+        },
+    )
 }
 
 @Composable

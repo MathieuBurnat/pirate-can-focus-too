@@ -22,7 +22,14 @@ class FocusTimerTest {
         state = FocusTimer.tick(state)
 
         assertEquals(Phase.IDLE, state.phase)
-        assertEquals(25 * 60, state.remainingSeconds)
+        assertEquals(30 * 60, state.remainingSeconds)
+    }
+
+    @Test
+    fun `une durée sur mesure est bornée`() {
+        assertEquals(45, FocusTimer.selectDuration(FocusState(), 45).focusMinutes)
+        assertEquals(FocusTimer.MAX_MINUTES, FocusTimer.selectDuration(FocusState(), 999).focusMinutes)
+        assertEquals(FocusTimer.MIN_MINUTES, FocusTimer.selectDuration(FocusState(), 0).focusMinutes)
     }
 
     @Test
@@ -36,7 +43,7 @@ class FocusTimerTest {
     @Test
     fun `les longues traversées ont un bonus`() {
         assertEquals(60, FocusTimer.rewardFor(50))
-        assertEquals(25, FocusTimer.rewardFor(25))
+        assertEquals(30, FocusTimer.rewardFor(30))
     }
 
     @Test
