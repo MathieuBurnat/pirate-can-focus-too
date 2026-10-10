@@ -1,0 +1,4 @@
+# Copier en .dev.vars pour `npm run dev`.
+# Sans clé Resend, DEV_LOG_CODES=1 affiche les codes de connexion dans la console au lieu de les envoyer.
+DEV_LOG_CODES=1
+# RESEND_API_KEY=re_xxx

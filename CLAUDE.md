@@ -66,6 +66,8 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── VersionFooter.kt     # version discrète en bas des pages (0.1.<nb de commits>)
     ├── PixelShip.kt         # le navire, centré, qui tangue pendant que les vagues défilent
     └── theme/Theme.kt       # couleurs "mer de nuit" + typo monospace partout
+
+backend/                     # API Cloudflare (Worker + D1) pour les comptes et la synchro, voir backend/README.md
 ```
 
 ## Conventions

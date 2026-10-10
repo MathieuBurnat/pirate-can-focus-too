@@ -1,0 +1,22 @@
+{
+  // L'API du capitaine : un Worker Cloudflare et sa base D1.
+  "name": "pirate-can-focus-too-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pirate-db",
+      // Remplacer par l'id affiché par `npx wrangler d1 create pirate-db`.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // Identifiants OAuth Google acceptés (séparés par des virgules) : le client Android et le client Web.
+    "GOOGLE_CLIENT_IDS": "",
+    // Expéditeur des codes de connexion (domaine vérifié chez Resend).
+    "EMAIL_FROM": "Le Capitaine <capitaine@example.com>"
+  }
+  // Secret à définir avec `npx wrangler secret put RESEND_API_KEY`.
+}
