@@ -37,15 +37,14 @@ CREATE TABLE email_codes (
 );
 
 -- Le journal de bord : une ligne par séance, verre ou traversée (même id que sur le téléphone).
+-- Ajout seulement : ce qui est écrit est écrit, mouahaha.
 CREATE TABLE logs (
   id TEXT PRIMARY KEY,
   pirate_id TEXT NOT NULL REFERENCES pirates(id),
   entry TEXT NOT NULL,
   at TEXT NOT NULL,
   note TEXT,
-  -- 1 : ligne rayée sur le téléphone.
-  deleted INTEGER NOT NULL DEFAULT 0,
-  updated_at TEXT NOT NULL
+  synced_at TEXT NOT NULL
 );
 CREATE INDEX logs_pirate ON logs(pirate_id);
 CREATE INDEX logs_at ON logs(at);

@@ -24,7 +24,7 @@ Supprimer un compte efface l'identité, les sessions et les petits mots du journ
 | `GET /me` | ✓ | Pseudo, visibilité, type de compte |
 | `PATCH /me` `{name?, public?}` | ✓ | Change le pseudo ou la visibilité publique |
 | `DELETE /me` | ✓ | Supprime le compte (anonymisation) |
-| `POST /sync` `{logs, chest?}` | ✓ | Envoie les lignes (avec `deleted` pour les ratures) et le coffre, reçoit tout en retour |
+| `POST /sync` `{logs, chest?}` | ✓ | Envoie les nouvelles lignes et le coffre, reçoit tout en retour. Journal en ajout seulement : rien n'est modifié ni effacé |
 | `GET /crew` | | Les pirates publics et leur journal du dernier mois |
 
 Le jeton se passe en `Authorization: Bearer <jeton>`.

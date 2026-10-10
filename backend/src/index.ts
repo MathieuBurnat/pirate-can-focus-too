@@ -209,22 +209,21 @@ interface LogLine {
   entry: string;
   at: string;
   note: string | null;
-  deleted: boolean;
 }
 
 function cleanLog(value: unknown): LogLine {
   const log = (value ?? {}) as Record<string, unknown>;
-  const { id, entry, at, note, deleted } = log;
+  const { id, entry, at, note } = log;
   if (typeof id !== "string" || id.length === 0 || id.length > 64) throw new HttpError(400, "Ligne sans id valide");
   if (typeof entry !== "string" || !ENTRIES.has(entry)) throw new HttpError(400, `Entrée inconnue : ${String(entry)}`);
   if (typeof at !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(at) || at.length > 40) throw new HttpError(400, "Date invalide");
   if (note != null && (typeof note !== "string" || note.length > 80)) throw new HttpError(400, "Petit mot de 80 caractères maximum");
-  return { id, entry, at, note: (note as string | null | undefined) || null, deleted: deleted === true };
+  return { id, entry, at, note: (note as string | null | undefined) || null };
 }
 
 /**
- * Le téléphone envoie ses lignes (nouvelles, modifiées ou rayées) et son coffre ;
- * il reçoit en retour tout ce que le Worker connaît de ce pirate.
+ * Le téléphone envoie ses lignes et son coffre ; il reçoit en retour tout ce que le Worker connaît de ce pirate.
+ * Le journal est en ajout seulement : une ligne déjà connue n'est jamais modifiée ni effacée.
  */
 async function sync(env: Env, request: Request, pirateId: string) {
   const data = await body(request);
@@ -234,12 +233,8 @@ async function sync(env: Env, request: Request, pirateId: string) {
 
   const statements = logs.map((log) =>
     env.DB.prepare(
-      // Une ligne appartenant à un autre pirate n'est jamais écrasée.
-      `INSERT INTO logs (id, pirate_id, entry, at, note, deleted, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(id) DO UPDATE SET entry = excluded.entry, at = excluded.at, note = excluded.note,
-         deleted = excluded.deleted, updated_at = excluded.updated_at
-       WHERE logs.pirate_id = excluded.pirate_id`,
-    ).bind(log.id, pirateId, log.entry, log.at, log.note, log.deleted ? 1 : 0, now),
+      `INSERT INTO logs (id, pirate_id, entry, at, note, synced_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`,
+    ).bind(log.id, pirateId, log.entry, log.at, log.note, now),
   );
 
   const chest = data.chest as Record<string, unknown> | undefined;
@@ -259,15 +254,12 @@ async function sync(env: Env, request: Request, pirateId: string) {
   if (statements.length > 0) await env.DB.batch(statements);
 
   const [stored, coffre] = await env.DB.batch([
-    env.DB.prepare("SELECT id, entry, at, note, deleted FROM logs WHERE pirate_id = ? ORDER BY at DESC").bind(pirateId),
+    env.DB.prepare("SELECT id, entry, at, note FROM logs WHERE pirate_id = ? ORDER BY at DESC").bind(pirateId),
     env.DB.prepare("SELECT doubloons, voyages FROM chests WHERE pirate_id = ?").bind(pirateId),
   ]);
   const chestRow = (coffre.results[0] as { doubloons: number; voyages: number } | undefined) ?? { doubloons: 0, voyages: 0 };
   return json({
-    logs: (stored.results as { id: string; entry: string; at: string; note: string | null; deleted: number }[]).map((row) => ({
-      ...row,
-      deleted: row.deleted === 1,
-    })),
+    logs: stored.results,
     chest: chestRow,
   });
 }
@@ -279,7 +271,7 @@ async function crew(env: Env) {
   const since = new Date(Date.now() - CREW_DAYS * 86_400_000).toISOString().slice(0, 10);
   const { results } = await env.DB.prepare(
     `SELECT p.id, p.name, l.entry, l.at, l.note FROM logs l JOIN pirates p ON p.id = l.pirate_id
-     WHERE p.public = 1 AND l.deleted = 0 AND l.at >= ? ORDER BY l.at DESC LIMIT 5000`,
+     WHERE p.public = 1 AND l.at >= ? ORDER BY l.at DESC LIMIT 5000`,
   )
     .bind(since)
     .all<{ id: string; name: string; entry: string; at: string; note: string | null }>();

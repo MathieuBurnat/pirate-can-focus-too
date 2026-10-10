@@ -175,7 +175,7 @@ describe("mon compte", () => {
 });
 
 describe("synchronisation", () => {
-  it("garde les lignes, applique les ratures et ne fait que grossir le coffre", async () => {
+  it("garde les lignes pour toujours et ne fait que grossir le coffre", async () => {
     const { token } = await emailLogin("sync@navire.fr");
     const at = "2026-10-10T21:30:15.123";
     let response = await api("/sync", {
@@ -190,11 +190,13 @@ describe("synchronisation", () => {
     });
     expect(response.status).toBe(200);
 
-    response = await api("/sync", { token, json: { logs: [{ id: "b", entry: "VIN", at, deleted: true }], chest: { doubloons: 30, voyages: 1 } } });
+    // Réécrire une ligne déjà notée ne change rien : ce qui est écrit est écrit.
+    response = await api("/sync", { token, json: { logs: [{ id: "b", entry: "ABDOS", at }], chest: { doubloons: 30, voyages: 1 } } });
     const data = await response.json<any>();
     expect(data.chest).toEqual({ doubloons: 120, voyages: 4 });
-    expect(data.logs.find((l: any) => l.id === "b").deleted).toBe(true);
-    expect(data.logs.find((l: any) => l.id === "a")).toMatchObject({ entry: "GRIMPE", note: "bloc 6a", deleted: false });
+    expect(data.logs).toHaveLength(2);
+    expect(data.logs.find((l: any) => l.id === "b").entry).toBe("VIN");
+    expect(data.logs.find((l: any) => l.id === "a")).toMatchObject({ entry: "GRIMPE", note: "bloc 6a" });
   });
 
   it("n'écrase jamais la ligne d'un autre pirate", async () => {
