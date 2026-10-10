@@ -24,7 +24,7 @@ Supprimer un compte efface l'identité, les sessions et les petits mots du journ
 | `POST /auth/google` `{idToken, name?}` | | Connexion avec un ID token Google |
 | `POST /auth/logout` | ✓ | Révoque le jeton |
 | `GET /me` | ✓ | Pseudo, visibilité, type de compte |
-| `PATCH /me` `{name?, public?}` | ✓ | Change le pseudo ou la visibilité publique |
+| `PATCH /me` (ou `POST /me`) `{name?, public?}` | ✓ | Change le pseudo ou la visibilité publique |
 | `DELETE /me` | ✓ | Supprime le compte (anonymisation) |
 | `POST /sync` `{logs, chest?}` | ✓ | Envoie les nouvelles lignes et le coffre, reçoit tout en retour. Journal en ajout seulement : rien n'est modifié ni effacé |
 | `GET /crew` | | Les pirates publics et leur journal du dernier mois |

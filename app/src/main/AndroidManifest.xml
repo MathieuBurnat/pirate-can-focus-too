@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- La sauvegarde chez le Worker Cloudflare (seulement avec un compte gratuit). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Lister les applis installées pour composer la liste noire. -->
     <queries>
         <intent>

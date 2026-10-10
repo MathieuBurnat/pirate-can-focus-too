@@ -16,8 +16,8 @@ accompagne l'utilisateur, avec une interface entièrement en **police monospace*
 - Kotlin, Jetpack Compose (Material 3), une seule Activity.
 - Gradle Kotlin DSL + catalogue de versions (`gradle/libs.versions.toml`).
 - `minSdk 26`, `targetSdk`/`compileSdk 35`, JVM 17.
-- Pas de dépendance réseau ni de backend pour l'instant : tout est local (journal et doublons sauvegardés sur le téléphone).
-  La sauvegarde sur Cloudflare (Worker + D1) est en cours : issue #8.
+- Sans compte, tout est local (journal et doublons sauvegardés sur le téléphone). Avec un compte gratuit,
+  journal et coffre sont synchronisés avec le Worker Cloudflare de `backend/` (issue #8).
 
 ## Environnement du développeur
 
@@ -34,7 +34,14 @@ accompagne l'utilisateur, avec une interface entièrement en **police monospace*
 
 ```
 app/src/main/java/dev/mathieuburnat/piratefocus/
-├── MainActivity.kt          # point d'entrée, démarre/arrête le gardien selon la phase
+├── MainActivity.kt          # point d'entrée, démarre/arrête le gardien selon la phase, synchro avec le Worker
+├── account/
+│   ├── Account.kt           # le compte tel que le téléphone le connaît (anonyme ou compte gratuit)
+│   ├── AccountStore.kt      # compte rangé dans les SharedPreferences (pseudo, jeton)
+│   ├── AccountViewModel.kt  # bienvenue, code email, mon compte, synchro
+│   ├── AccountQuotes.kt     # textes du capitaine sur les comptes (avertissement sans compte...)
+│   ├── PirateApi.kt         # client de l'API backend/ (HttpURLConnection + org.json)
+│   └── PirateNames.kt       # pseudos de pirate tirés au sort (logique pure, testée)
 ├── guard/
 │   ├── BlacklistStore.kt    # liste noire (défaut : Instagram, TikTok, Reddit)
 │   ├── GuardPermissions.kt  # accès aux données d'utilisation + affichage par-dessus
@@ -47,6 +54,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   ├── LogBook.kt           # où ranger le journal (interface ; Forgetful pour les tests)
 │   ├── JournalStore.kt      # LogBook sur le téléphone : fichier journal.tsv (écriture atomique)
 │   ├── JournalCodec.kt      # journal <-> texte, une ligne par entrée (logique pure, testée)
+│   ├── JournalSync.kt       # fusion du journal du téléphone et du Worker (logique pure, testée)
 │   └── Crew.kt              # [dev] équipage imaginaire, scores jour/semaine/mois
 ├── focus/
 │   ├── FocusTimer.kt        # logique pure du minuteur (testée unitairement)
@@ -59,6 +67,9 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── JournalScreen.kt     # BISCOTOS VS TAVERNE (toucher un camp ouvre ses activités, commentées par une petite tête du capitaine), capitaine pompette si ça boit trop
     ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (classement [dev])
     ├── SettingsScreen.kt    # autorisations du gardien + liste noire
+    ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
+    ├── AccountScreen.kt     # « Mon compte » : pseudo, données publiques, déconnexion, suppression
+    ├── AccountForms.kt      # formulaire du compte gratuit (email puis code), avertissement sans compte
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes
     ├── PixelPirate.kt       # le capitaine + palette et drawSprite() partagés

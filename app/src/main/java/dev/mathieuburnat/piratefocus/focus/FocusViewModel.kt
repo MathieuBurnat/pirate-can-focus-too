@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -36,6 +38,11 @@ class FocusViewModel(private val chest: ChestStore? = null) : ViewModel() {
             }
         }
     }
+
+    private val _voyageDone = MutableSharedFlow<Int>(extraBufferCapacity = 8)
+
+    /** Une traversée vient de se terminer (durée en minutes) : de quoi l'inscrire au journal de bord. */
+    val voyageDone: SharedFlow<Int> = _voyageDone
 
     private var ticker: Job? = null
 
@@ -73,12 +80,19 @@ class FocusViewModel(private val chest: ChestStore? = null) : ViewModel() {
         }
     }
 
+    /** Le coffre venu du Worker : on garde le plus gros butin (sans inventer de traversée au journal). */
+    fun mergeChest(doubloons: Int, voyages: Int) = _uiState.update {
+        it.copy(timer = it.timer.copy(doubloons = maxOf(it.timer.doubloons, doubloons), voyages = maxOf(it.timer.voyages, voyages)))
+    }
+
     /** Applique une transition et change de réplique quand la phase change. */
     private fun transition(change: (FocusState) -> FocusState) {
+        val before = _uiState.value.timer
         _uiState.update { current ->
             val next = change(current.timer)
             val quote = if (next.phase != current.timer.phase) PirateQuotes.randomFor(next.phase) else current.quote
             FocusUiState(timer = next, quote = quote)
         }
+        if (before.phase == Phase.FOCUS && _uiState.value.timer.phase == Phase.BREAK) _voyageDone.tryEmit(before.focusMinutes)
     }
 }

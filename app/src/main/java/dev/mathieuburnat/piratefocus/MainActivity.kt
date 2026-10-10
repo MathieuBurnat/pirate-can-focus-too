@@ -8,6 +8,8 @@ import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import dev.mathieuburnat.piratefocus.account.AccountStore
+import dev.mathieuburnat.piratefocus.account.AccountViewModel
 import dev.mathieuburnat.piratefocus.focus.ChestStore
 import dev.mathieuburnat.piratefocus.focus.FocusViewModel
 import dev.mathieuburnat.piratefocus.focus.Phase
@@ -17,20 +19,24 @@ import dev.mathieuburnat.piratefocus.ui.PirateApp
 import dev.mathieuburnat.piratefocus.ui.theme.PirateFocusTheme
 import dev.mathieuburnat.piratefocus.journal.JournalStore
 import dev.mathieuburnat.piratefocus.journal.JournalViewModel
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    // Les deux ViewModels reçoivent leur coffre et leur journal rangés sur le téléphone.
+    // Les ViewModels reçoivent leur coffre, leur journal et leur compte rangés sur le téléphone.
     private val focusViewModel: FocusViewModel by viewModels {
         viewModelFactory { initializer { FocusViewModel(ChestStore(application)) } }
     }
     private val journalViewModel: JournalViewModel by viewModels {
         viewModelFactory { initializer { JournalViewModel(JournalStore(application)) } }
+    }
+    private val accountViewModel: AccountViewModel by viewModels {
+        viewModelFactory { initializer { AccountViewModel(AccountStore(application)) } }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,17 +54,39 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Chaque traversée terminée s'inscrit au journal de bord (drop(1) : on ignore l'état déjà connu).
+        // Chaque traversée terminée s'inscrit au journal de bord.
         lifecycleScope.launch {
-            focusViewModel.uiState.map { it.timer }.distinctUntilChangedBy { it.voyages }.drop(1).collect { timer ->
-                journalViewModel.logVoyage(timer.focusMinutes)
-            }
+            focusViewModel.voyageDone.collect { minutes -> journalViewModel.logVoyage(minutes) }
         }
+
+        // Avec un compte gratuit, journal et coffre partent chez le Worker peu après chaque changement
+        // (et à la connexion) ; ce qu'il connaît d'autre revient sur le téléphone.
+        lifecycleScope.launch { syncWithWorker() }
 
         setContent {
             PirateFocusTheme {
-                PirateApp(focusViewModel, journalViewModel)
+                PirateApp(focusViewModel, journalViewModel, accountViewModel)
             }
         }
+    }
+
+    @OptIn(FlowPreview::class)
+    private suspend fun syncWithWorker() {
+        combine(
+            accountViewModel.uiState.map { it.account.token }.distinctUntilChanged(),
+            journalViewModel.uiState.map { it.myLogs }.distinctUntilChanged(),
+            focusViewModel.uiState.map { it.timer.doubloons to it.timer.voyages }.distinctUntilChanged(),
+        ) { token, logs, chest -> Triple(token, logs, chest) }
+            .debounce(SYNC_DELAY_MS)
+            .collect { (token, logs, chest) ->
+                if (token == null) return@collect
+                val result = accountViewModel.sync(logs, chest.first, chest.second) ?: return@collect
+                journalViewModel.mergeRemote(result.logs)
+                focusViewModel.mergeChest(result.doubloons, result.voyages)
+            }
+    }
+
+    private companion object {
+        const val SYNC_DELAY_MS = 2_000L
     }
 }

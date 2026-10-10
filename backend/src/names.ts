@@ -33,9 +33,9 @@ export function formerPirateName(): string {
   return `${pick(FORMER)} n°${String(number).padStart(3, "0")}`;
 }
 
-/** Un pseudo choisi : 2 à 32 caractères, espaces superflus retirés. Null s'il ne convient pas. */
+/** Un pseudo choisi : 2 à 48 caractères, espaces superflus retirés. Null s'il ne convient pas. */
 export function cleanPirateName(name: unknown): string | null {
   if (typeof name !== "string") return null;
   const cleaned = name.replace(/\s+/g, " ").trim();
-  return cleaned.length >= 2 && cleaned.length <= 32 ? cleaned : null;
+  return cleaned.length >= 2 && cleaned.length <= 48 ? cleaned : null;
 }

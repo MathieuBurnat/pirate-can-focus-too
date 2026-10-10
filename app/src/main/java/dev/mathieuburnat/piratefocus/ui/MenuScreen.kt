@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import dev.mathieuburnat.piratefocus.account.AccountQuotes
 import dev.mathieuburnat.piratefocus.focus.Phase
 import dev.mathieuburnat.piratefocus.journal.JournalQuotes
 
@@ -39,15 +40,34 @@ private const val KNOCKS_TO_UNLOCK = 7
 fun MenuScreen(
     phase: Phase,
     journalUnlocked: Boolean,
+    signedIn: Boolean,
     onFocus: () -> Unit,
     onUnlockJournal: () -> Unit,
     onJournal: () -> Unit,
     onSettings: () -> Unit,
+    onAccount: () -> Unit,
 ) {
     val context = LocalContext.current
     var knocks by remember { mutableIntStateOf(0) }
     var toast by remember { mutableStateOf<Toast?>(null) }
     var showUnlock by remember { mutableStateOf(false) }
+    var showNoAccount by remember { mutableStateOf(false) }
+
+    if (showNoAccount) {
+        AlertDialog(
+            onDismissRequest = { showNoAccount = false },
+            shape = RectangleShape,
+            title = { Text("☠ PAS DE COMPTE ☠") },
+            text = { Text(AccountQuotes.NO_ACCOUNT_WARNING, style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showNoAccount = false
+                    onAccount()
+                }) { Text("COMPTE GRATUIT") }
+            },
+            dismissButton = { TextButton(onClick = { showNoAccount = false }) { Text("COMPRIS") } },
+        )
+    }
 
     if (showUnlock) {
         AlertDialog(
@@ -99,12 +119,23 @@ fun MenuScreen(
                 })
             }
             MenuItem("3. PARAMÈTRES", onClick = onSettings)
+            if (signedIn) {
+                MenuItem("4. MON COMPTE", onClick = onAccount)
+            } else {
+                // Sans compte, le butin ne vit que sur ce téléphone : le capitaine le rappelle.
+                Text(
+                    "[!] pas de compte : butin non sauvegardé",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.clickable { showNoAccount = true }.padding(vertical = 12.dp),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun MenuItem(label: String, onClick: () -> Unit, dimmed: Boolean = false) {
+internal fun MenuItem(label: String, onClick: () -> Unit, dimmed: Boolean = false) {
     Text(
         text = "> $label",
         style = MaterialTheme.typography.titleMedium,

@@ -151,6 +151,9 @@ describe("mon compte", () => {
     const response = await api("/me", { method: "PATCH", token, json: { name: "Cuistot Gaston", public: false } });
     expect(await response.json()).toMatchObject({ name: "Cuistot Gaston", public: false });
     expect((await api("/me", { method: "PATCH", token, json: { name: "x" } })).status).toBe(400);
+    // L'app Android passe par POST (HttpURLConnection ne sait pas faire PATCH).
+    const viaPost = await api("/me", { method: "POST", token, json: { public: true } });
+    expect(await viaPost.json()).toMatchObject({ name: "Cuistot Gaston", public: true });
   });
 
   it("la suppression efface l'identité et les petits mots, mais garde l'ancien matelot au classement", async () => {

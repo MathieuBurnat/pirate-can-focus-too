@@ -172,7 +172,7 @@ async function updateMe(env: Env, request: Request, pirateId: string) {
   const data = await body(request);
   if (data.name !== undefined) {
     const name = cleanPirateName(data.name);
-    if (!name) throw new HttpError(400, "Pseudo de 2 à 32 caractères attendu");
+    if (!name) throw new HttpError(400, "Pseudo de 2 à 48 caractères attendu");
     await env.DB.prepare("UPDATE pirates SET name = ? WHERE id = ?").bind(name, pirateId).run();
   }
   if (data.public !== undefined) {
@@ -305,6 +305,7 @@ async function route(request: Request, env: Env): Promise<Response> {
     case "GET /me":
       return json(await me(env, await pirateOf(env, request)));
     case "PATCH /me":
+    case "POST /me": // HttpURLConnection (Android) ne sait pas envoyer de PATCH
       return updateMe(env, request, await pirateOf(env, request));
     case "DELETE /me":
       return deleteMe(env, await pirateOf(env, request));

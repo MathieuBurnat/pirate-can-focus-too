@@ -120,6 +120,14 @@ class JournalViewModel(private val store: LogBook = LogBook.Forgetful) : ViewMod
         state.copy(journal = journal, myLogs = myLogs, quote = quoteFor(state, journal), dialogLine = JournalQuotes.ERASED, pending = null)
     }
 
+    /** Les lignes venues du Worker (autre téléphone, réinstallation) rejoignent le journal. */
+    fun mergeRemote(remote: List<LogEntry>) = _uiState.update { state ->
+        val merged = JournalSync.merge(state.myLogs, remote)
+        if (merged == state.myLogs) return@update state
+        val journal = JournalState.today(merged, LocalDate.now())
+        state.copy(journal = journal, myLogs = merged, quote = quoteFor(state, journal))
+    }
+
     fun newQuote() = _uiState.update {
         it.copy(quote = JournalQuotes.verdict(it.journal.verdict, current = it.quote))
     }

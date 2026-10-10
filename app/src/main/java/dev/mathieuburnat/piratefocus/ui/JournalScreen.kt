@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.mathieuburnat.piratefocus.BuildConfig
 import dev.mathieuburnat.piratefocus.focus.Phase
 import dev.mathieuburnat.piratefocus.journal.Entry
 import dev.mathieuburnat.piratefocus.journal.JournalViewModel
@@ -72,7 +73,8 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit, onCrew: () ->
             count = journal::count,
             onAdd = viewModel::add,
             onInsist = viewModel::insist,
-            onRemove = viewModel::remove,
+            // Rayer une ligne : réservé aux versions de développement. En vrai, ce qui est écrit est écrit.
+            onRemove = if (BuildConfig.DEBUG) viewModel::remove else { _ -> },
             onDismiss = viewModel::close,
         )
     }
@@ -315,7 +317,8 @@ private fun AddDialog(
                 // (elle est centrée, elle bougerait sinon) et rien ne glisse sous le doigt.
                 if (pending == null) Spacer(Modifier.height(INSIST_HEIGHT))
                 Text(
-                    "Le mot (facultatif) part avec le prochain point. Appui long pour rayer une ligne.",
+                    "Le mot (facultatif) part avec le prochain point. " +
+                        if (BuildConfig.DEBUG) "Appui long pour rayer une ligne." else "Ce qui est écrit est écrit.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp),
                 )
