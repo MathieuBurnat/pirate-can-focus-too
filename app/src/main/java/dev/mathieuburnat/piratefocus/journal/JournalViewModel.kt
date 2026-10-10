@@ -17,6 +17,8 @@ data class JournalUiState(
     val refused: Boolean = false,
     /** Grande intervention à afficher en pop-up. */
     val popup: String? = null,
+    /** Coco le perroquet débarque (trop de verres dans la soirée). */
+    val parrot: String? = null,
 )
 
 /** Les compteurs vivent en mémoire : ils repartent à zéro à chaque lancement de l'app. */
@@ -40,13 +42,18 @@ class JournalViewModel : ViewModel() {
             return@update state.copy(dialogLine = JournalQuotes.refusal(), refused = true)
         }
         val journal = state.journal.add(entry)
-        val popup = if (entry.side == Side.BOISSON) JournalQuotes.intervention(journal.total(Side.BOISSON)) else null
+        val drinks = journal.total(Side.BOISSON)
+        val isDrink = entry.side == Side.BOISSON
+        // Coco le perroquet a la priorité sur le capitaine.
+        val parrot = if (isDrink && JournalRules.parrotAppears(drinks)) JournalQuotes.parrot(drinks) else null
+        val popup = if (isDrink && parrot == null) JournalQuotes.intervention(drinks) else null
         state.copy(
             journal = journal,
             quote = quoteFor(state, journal),
             dialogLine = if (state.refused) JournalQuotes.giveIn() else JournalQuotes.reaction(entry),
             refused = false,
             popup = popup,
+            parrot = parrot,
         )
     }
 
@@ -60,6 +67,8 @@ class JournalViewModel : ViewModel() {
     }
 
     fun dismissPopup() = _uiState.update { it.copy(popup = null) }
+
+    fun dismissParrot() = _uiState.update { it.copy(parrot = null) }
 
     /** Le capitaine change d'avis seulement quand le verdict change. */
     private fun quoteFor(state: JournalUiState, journal: JournalState): String =

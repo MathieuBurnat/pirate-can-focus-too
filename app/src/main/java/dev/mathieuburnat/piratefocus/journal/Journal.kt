@@ -39,6 +39,12 @@ object JournalRules {
     /** Le capitaine refuse un verre de plus au-delà de la limite, sauf si on insiste (second tap). */
     fun refuses(entry: Entry, journal: JournalState, insisting: Boolean): Boolean =
         entry.side == Side.BOISSON && journal.total(Side.BOISSON) >= DRINK_LIMIT && !insisting
+
+    /** À partir de ce nombre de verres dans la soirée, Coco le perroquet débarque. */
+    const val PARROT_LIMIT = 8
+
+    /** Coco surgit au 8e verre, puis tous les 4 verres (12, 16...). */
+    fun parrotAppears(drinks: Int): Boolean = drinks >= PARROT_LIMIT && (drinks - PARROT_LIMIT) % 4 == 0
 }
 
 /** Le carnet de bord du jour (remis à zéro à chaque lancement, pour l'instant). */

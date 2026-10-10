@@ -79,6 +79,25 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit, onCrew: () ->
         )
     }
 
+    state.parrot?.let { message ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissParrot,
+            shape = RectangleShape,
+            title = { Text("🦜 COCO LE PERROQUET", color = MaterialTheme.colorScheme.error) },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    PixelParrot()
+                    TypewriterText(
+                        message,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = viewModel::dismissParrot) { Text("OUI COCO") } },
+        )
+    }
+
     val tipsy = journal.verdict == Verdict.EPONGE || journal.verdict == Verdict.PILIER_DE_TAVERNE
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {

@@ -45,6 +45,11 @@ class JournalTest {
     }
 
     @Test
+    fun `Coco débarque au huitième verre puis tous les quatre`() {
+        assertEquals(listOf(8, 12, 16), (1..17).filter(JournalRules::parrotAppears))
+    }
+
+    @Test
     fun `le capitaine intervient tous les cinq verres`() {
         assertNull(JournalQuotes.intervention(4))
         assertNotNull(JournalQuotes.intervention(5))

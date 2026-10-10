@@ -174,6 +174,20 @@ object JournalQuotes {
         return (reactions.getValue(entry) + general).random(random)
     }
 
+    private val parrotLines = listOf(
+        "Mon coco, tu vas devenir fou ! Squaaawk !",
+        "Squaaawk ! {n} verres ! {n} ! Coco sait compter, lui !",
+        "Coco a vu des capitaines couler pour moins que ça ! Rrrah !",
+        "De l'eau, mon coco ! DE L'EAU ! Squawk !",
+        "Coco appelle les secours ! Coco appelle ta mère ! Squaaawk !",
+        "Rrrr... Mon coco tangue plus que le navire. Coco a le mal de mer.",
+        "Coco répète tout : « encore un dernier, encore un dernier »... Squawk !",
+    )
+
+    /** Ce que crie Coco le perroquet quand la soirée déraille. */
+    fun parrot(drinks: Int, random: Random = Random.Default): String =
+        parrotLines.random(random).replace("{n}", "$drinks")
+
     /** Tous les 5 verres, le capitaine intervient en personne. */
     fun intervention(drinks: Int, random: Random = Random.Default): String? =
         if (drinks > 0 && drinks % 5 == 0) interventions.random(random).replace("{n}", "$drinks") else null
