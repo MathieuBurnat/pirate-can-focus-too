@@ -190,15 +190,22 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun AudiencePicker(audience: Audience, onSelect: (Audience) -> Unit) {
     var open by remember { mutableStateOf(false) }
-    Box(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-        Text(
-            "-- ${audience.label} ▾ --",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
+    val color = MaterialTheme.colorScheme.primary
+    // Centré et encadré, avec un gros triangle : on comprend tout de suite que ça se déroule.
+    Box(Modifier.fillMaxWidth().padding(bottom = 12.dp), contentAlignment = Alignment.Center) {
+      // Boîte interne : le menu s'ouvre juste sous le sélecteur, pas contre le bord gauche.
+      Box {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .border(BorderStroke(2.dp, color), RectangleShape)
                 .clickable { open = true }
-                .padding(vertical = 4.dp),
-        )
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+        ) {
+            Text(audience.label, style = MaterialTheme.typography.titleSmall, color = color)
+            Spacer(Modifier.width(12.dp))
+            Text(if (open) "▲" else "▼", style = MaterialTheme.typography.titleSmall, color = color)
+        }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = RectangleShape) {
             Audience.entries.forEach { option ->
                 DropdownMenuItem(
@@ -210,6 +217,7 @@ private fun AudiencePicker(audience: Audience, onSelect: (Audience) -> Unit) {
                 )
             }
         }
+      }
     }
 }
 
