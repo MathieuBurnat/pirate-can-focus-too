@@ -11,6 +11,8 @@ const SESSION_DAYS = 180;
 const CODE_MINUTES = 10;
 const CODE_COOLDOWN_SECONDS = 60;
 const CODE_MAX_ATTEMPTS = 5;
+/** Codes envoyés au plus par appareil (IP) et par heure, toutes adresses confondues. */
+const CODES_PER_IP_PER_HOUR = 10;
 const SYNC_MAX_LOGS = 500;
 const CREW_DAYS = 31;
 
@@ -99,12 +101,27 @@ function cleanEmail(value: unknown): string {
   return email;
 }
 
+/** Freine qui voudrait arroser des inconnus de codes : 10 envois par heure et par IP. */
+async function checkSendQuota(env: Env, request: Request) {
+  const ipHash = await sha256(`ip:${request.headers.get("CF-Connecting-IP") ?? "inconnue"}`);
+  const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+  const [, recent] = await env.DB.batch([
+    env.DB.prepare("DELETE FROM email_sends WHERE created_at < ?").bind(hourAgo),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM email_sends WHERE ip_hash = ?").bind(ipHash),
+  ]);
+  if (((recent.results[0] as { n: number }).n ?? 0) >= CODES_PER_IP_PER_HOUR) {
+    throw new HttpError(429, "Trop de pigeons voyageurs envoyés, reviens dans une heure");
+  }
+  await env.DB.prepare("INSERT INTO email_sends (ip_hash, created_at) VALUES (?, ?)").bind(ipHash, nowIso()).run();
+}
+
 async function emailStart(env: Env, request: Request) {
   const email = cleanEmail((await body(request)).email);
   const pending = await env.DB.prepare("SELECT created_at FROM email_codes WHERE email = ?").bind(email).first<{ created_at: string }>();
   if (pending && Date.now() - Date.parse(pending.created_at) < CODE_COOLDOWN_SECONDS * 1000) {
     throw new HttpError(429, "Un code vient déjà de partir, patience moussaillon");
   }
+  await checkSendQuota(env, request);
   const code = randomCode();
   await env.DB.prepare(
     `INSERT INTO email_codes (email, code_hash, attempts, created_at, expires_at) VALUES (?, ?, 0, ?, ?)

@@ -17,7 +17,7 @@ Supprimer un compte efface l'identité, les sessions et les petits mots du journ
 
 | Route | Jeton | Rôle |
 |---|---|---|
-| `POST /auth/email/start` `{email}` | | Envoie un code à 6 chiffres (valable 10 min, 1 envoi par minute) |
+| `POST /auth/email/start` `{email}` | | Envoie un code à 6 chiffres (valable 10 min, 1 envoi par minute par adresse, 10 par heure par IP) |
 | `POST /auth/email/verify` `{email, code, name?}` | | Connexion ; crée le pirate au premier passage (5 essais par code) |
 | `POST /auth/google` `{idToken, name?}` | | Connexion avec un ID token Google |
 | `POST /auth/logout` | ✓ | Révoque le jeton |

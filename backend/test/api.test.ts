@@ -33,6 +33,8 @@ const api = (path: string, init: RequestInit & { token?: string; json?: unknown 
   SELF.fetch(`https://api.test${path}`, {
     method: init.method ?? (init.json ? "POST" : "GET"),
     headers: {
+      // Chaque appel vient d'un appareil différent, pour ne pas buter sur la limite d'envois par IP.
+      "CF-Connecting-IP": `198.51.100.${Math.floor(Math.random() * 250)}-${crypto.randomUUID()}`,
       ...(init.json ? { "Content-Type": "application/json" } : {}),
       ...(init.token ? { Authorization: `Bearer ${init.token}` } : {}),
     },
@@ -95,6 +97,18 @@ describe("connexion par code email", () => {
   it("ne renvoie pas un code dans la minute", async () => {
     await api("/auth/email/start", { json: { email: "barbe@noire.fr" } });
     expect((await api("/auth/email/start", { json: { email: "barbe@noire.fr" } })).status).toBe(429);
+  });
+
+  it("limite les envois par appareil, toutes adresses confondues", async () => {
+    const from = (email: string) =>
+      SELF.fetch("https://api.test/auth/email/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.7" },
+        body: JSON.stringify({ email }),
+      });
+    for (let i = 0; i < 10; i++) expect((await from(`victime${i}@mer.fr`)).status).toBe(200);
+    expect((await from("victime10@mer.fr")).status).toBe(429);
+    expect(sentCodes.length).toBe(10);
   });
 
   it("refuse une adresse invalide", async () => {
