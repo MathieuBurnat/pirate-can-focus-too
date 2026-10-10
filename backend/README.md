@@ -7,7 +7,7 @@ Sans compte, l'app n'appelle jamais cette API : tout reste sur le téléphone.
 
 - `pirates` : pseudo, visibilité publique. Aucune donnée personnelle.
 - `identities` : email ou identifiant Google, rattaché à un pirate. **Séparé** des statistiques.
-- `logs`, `chests` : journal de bord et coffre, rattachés au pirate.
+- `exploits`, `chests` : journal de bord (chaque séance, verre ou traversée) et coffre, rattachés au pirate.
 - `sessions`, `email_codes` : jetons et codes de connexion (seules leurs empreintes SHA-256 sont gardées).
 
 Supprimer un compte efface l'identité, les sessions et les petits mots du journal. Le pirate devient

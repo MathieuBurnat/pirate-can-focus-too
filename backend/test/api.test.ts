@@ -205,7 +205,7 @@ describe("synchronisation", () => {
     const at = new Date().toISOString();
     await api("/sync", { token: anne.token, json: { logs: [{ id: "commun", entry: "ABDOS", at }] } });
     await api("/sync", { token: jack.token, json: { logs: [{ id: "commun", entry: "BIERE", at }] } });
-    const row = await env.DB.prepare("SELECT entry FROM logs WHERE id = 'commun'").first("entry");
+    const row = await env.DB.prepare("SELECT entry FROM exploits WHERE id = 'commun'").first("entry");
     expect(row).toBe("ABDOS");
   });
 

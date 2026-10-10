@@ -190,7 +190,7 @@ async function deleteMe(env: Env, pirateId: string) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM identities WHERE pirate_id = ?").bind(pirateId),
     env.DB.prepare("DELETE FROM sessions WHERE pirate_id = ?").bind(pirateId),
-    env.DB.prepare("UPDATE logs SET note = NULL WHERE pirate_id = ?").bind(pirateId),
+    env.DB.prepare("UPDATE exploits SET note = NULL WHERE pirate_id = ?").bind(pirateId),
     env.DB.prepare("UPDATE pirates SET name = ?, former = 1 WHERE id = ?").bind(formerPirateName(), pirateId),
   ]);
   return json({ deleted: true });
@@ -233,7 +233,7 @@ async function sync(env: Env, request: Request, pirateId: string) {
 
   const statements = logs.map((log) =>
     env.DB.prepare(
-      `INSERT INTO logs (id, pirate_id, entry, at, note, synced_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`,
+      `INSERT INTO exploits (id, pirate_id, entry, at, note, synced_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`,
     ).bind(log.id, pirateId, log.entry, log.at, log.note, now),
   );
 
@@ -254,7 +254,7 @@ async function sync(env: Env, request: Request, pirateId: string) {
   if (statements.length > 0) await env.DB.batch(statements);
 
   const [stored, coffre] = await env.DB.batch([
-    env.DB.prepare("SELECT id, entry, at, note FROM logs WHERE pirate_id = ? ORDER BY at DESC").bind(pirateId),
+    env.DB.prepare("SELECT id, entry, at, note FROM exploits WHERE pirate_id = ? ORDER BY at DESC").bind(pirateId),
     env.DB.prepare("SELECT doubloons, voyages FROM chests WHERE pirate_id = ?").bind(pirateId),
   ]);
   const chestRow = (coffre.results[0] as { doubloons: number; voyages: number } | undefined) ?? { doubloons: 0, voyages: 0 };
@@ -270,7 +270,7 @@ async function sync(env: Env, request: Request, pirateId: string) {
 async function crew(env: Env) {
   const since = new Date(Date.now() - CREW_DAYS * 86_400_000).toISOString().slice(0, 10);
   const { results } = await env.DB.prepare(
-    `SELECT p.id, p.name, l.entry, l.at, l.note FROM logs l JOIN pirates p ON p.id = l.pirate_id
+    `SELECT p.id, p.name, l.entry, l.at, l.note FROM exploits l JOIN pirates p ON p.id = l.pirate_id
      WHERE p.public = 1 AND l.at >= ? ORDER BY l.at DESC LIMIT 5000`,
   )
     .bind(since)

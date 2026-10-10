@@ -38,7 +38,7 @@ CREATE TABLE email_codes (
 
 -- Le journal de bord : une ligne par séance, verre ou traversée (même id que sur le téléphone).
 -- Ajout seulement : ce qui est écrit est écrit, mouahaha.
-CREATE TABLE logs (
+CREATE TABLE exploits (
   id TEXT PRIMARY KEY,
   pirate_id TEXT NOT NULL REFERENCES pirates(id),
   entry TEXT NOT NULL,
@@ -46,8 +46,8 @@ CREATE TABLE logs (
   note TEXT,
   synced_at TEXT NOT NULL
 );
-CREATE INDEX logs_pirate ON logs(pirate_id);
-CREATE INDEX logs_at ON logs(at);
+CREATE INDEX exploits_pirate ON exploits(pirate_id);
+CREATE INDEX exploits_at ON exploits(at);
 
 -- Le coffre : doublons et traversées.
 CREATE TABLE chests (
