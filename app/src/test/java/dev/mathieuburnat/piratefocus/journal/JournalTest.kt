@@ -35,6 +35,16 @@ class JournalTest {
     }
 
     @Test
+    fun `passé trois verres le capitaine refuse sauf si on insiste`() {
+        val twoDrinks = journal(Entry.BIERE, Entry.VIN)
+        val threeDrinks = twoDrinks.add(Entry.COCKTAIL)
+        assertEquals(false, JournalRules.refuses(Entry.BIERE, twoDrinks, insisting = false))
+        assertEquals(true, JournalRules.refuses(Entry.BIERE, threeDrinks, insisting = false))
+        assertEquals(false, JournalRules.refuses(Entry.BIERE, threeDrinks, insisting = true))
+        assertEquals(false, JournalRules.refuses(Entry.GRIMPE, threeDrinks, insisting = false))
+    }
+
+    @Test
     fun `le capitaine intervient tous les cinq verres`() {
         assertNull(JournalQuotes.intervention(4))
         assertNotNull(JournalQuotes.intervention(5))

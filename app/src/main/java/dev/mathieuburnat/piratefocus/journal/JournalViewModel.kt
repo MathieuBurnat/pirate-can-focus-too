@@ -13,6 +13,8 @@ data class JournalUiState(
     val adding: Side? = null,
     /** Ce que dit la petite tête du capitaine dans la fenêtre d'ajout. */
     val dialogLine: String = "",
+    /** Le capitaine vient de refuser un verre : il crie, et il cédera au prochain tap. */
+    val refused: Boolean = false,
     /** Grande intervention à afficher en pop-up. */
     val popup: String? = null,
 )
@@ -23,24 +25,31 @@ class JournalViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(JournalUiState())
     val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
 
-    fun open(side: Side) = _uiState.update { it.copy(adding = side, dialogLine = JournalQuotes.greeting(side)) }
+    fun open(side: Side) = _uiState.update {
+        it.copy(adding = side, dialogLine = JournalQuotes.greeting(side), refused = false)
+    }
 
     fun close() = _uiState.update { it.copy(adding = null) }
 
     fun add(entry: Entry) = _uiState.update { state ->
+        // Passé le quota, le capitaine refuse le verre... sauf si on insiste.
+        if (JournalRules.refuses(entry, state.journal, insisting = state.refused)) {
+            return@update state.copy(dialogLine = JournalQuotes.refusal(), refused = true)
+        }
         val journal = state.journal.add(entry)
         val popup = if (entry.side == Side.BOISSON) JournalQuotes.intervention(journal.total(Side.BOISSON)) else null
         state.copy(
             journal = journal,
             quote = quoteFor(state, journal),
-            dialogLine = JournalQuotes.reaction(entry),
+            dialogLine = if (state.refused) JournalQuotes.giveIn() else JournalQuotes.reaction(entry),
+            refused = false,
             popup = popup,
         )
     }
 
     fun remove(entry: Entry) = _uiState.update { state ->
         val journal = state.journal.remove(entry)
-        state.copy(journal = journal, quote = quoteFor(state, journal), dialogLine = JournalQuotes.ERASED)
+        state.copy(journal = journal, quote = quoteFor(state, journal), dialogLine = JournalQuotes.ERASED, refused = false)
     }
 
     fun newQuote() = _uiState.update {

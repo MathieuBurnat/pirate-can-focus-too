@@ -32,6 +32,15 @@ enum class Verdict {
     SPORTIF,
 }
 
+object JournalRules {
+    /** Au-delà de ce nombre de verres, le capitaine fait barrage. */
+    const val DRINK_LIMIT = 3
+
+    /** Le capitaine refuse un verre de plus au-delà de la limite, sauf si on insiste (second tap). */
+    fun refuses(entry: Entry, journal: JournalState, insisting: Boolean): Boolean =
+        entry.side == Side.BOISSON && journal.total(Side.BOISSON) >= DRINK_LIMIT && !insisting
+}
+
 /** Le carnet de bord du jour (remis à zéro à chaque lancement, pour l'instant). */
 data class JournalState(val counts: Map<Entry, Int> = emptyMap()) {
 

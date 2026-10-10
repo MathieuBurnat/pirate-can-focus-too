@@ -1,6 +1,13 @@
 package dev.mathieuburnat.piratefocus.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -54,6 +61,7 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit) {
         AddDialog(
             side = side,
             captainLine = state.dialogLine,
+            shouting = state.refused,
             count = journal::count,
             onAdd = viewModel::add,
             onRemove = viewModel::remove,
@@ -151,12 +159,27 @@ private fun ScoreBox(side: Side, total: Int, onClick: () -> Unit, modifier: Modi
 private fun AddDialog(
     side: Side,
     captainLine: String,
+    shouting: Boolean,
     count: (Entry) -> Int,
     onAdd: (Entry) -> Unit,
     onRemove: (Entry) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val color = side.color()
+    val alarm = MaterialTheme.colorScheme.error
+
+    // Quand le capitaine refuse un verre, sa bulle tremble de colère.
+    val shake = remember { Animatable(0f) }
+    LaunchedEffect(captainLine, shouting) {
+        if (shouting) {
+            repeat(4) {
+                shake.animateTo(8f, tween(40))
+                shake.animateTo(-8f, tween(40))
+            }
+            shake.animateTo(0f, tween(40))
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RectangleShape,
@@ -173,11 +196,20 @@ private fun AddDialog(
                     )
                     TypewriterText(
                         text = captainLine,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = if (shouting) {
+                            MaterialTheme.typography.titleMedium.copy(color = alarm, fontWeight = FontWeight.Bold)
+                        } else {
+                            MaterialTheme.typography.bodySmall
+                        },
+                        charDelayMs = if (shouting) 8 else 18,
                         modifier = Modifier
                             .weight(1f)
+                            .offset { IntOffset(shake.value.roundToInt(), 0) }
                             .heightIn(min = 72.dp)
-                            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface), RectangleShape)
+                            .border(
+                                BorderStroke(if (shouting) 3.dp else 1.dp, if (shouting) alarm else MaterialTheme.colorScheme.onSurface),
+                                RectangleShape,
+                            )
                             .padding(8.dp),
                     )
                 }

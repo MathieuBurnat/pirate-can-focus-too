@@ -103,6 +103,27 @@ object JournalQuotes {
         ),
     )
 
+    private val refusals = listOf(
+        "NON ! PAS ENCORE !",
+        "NON. PAS. ENCORE.",
+        "HALTE ! PAS ENCORE, MOUSSAILLON !",
+        "NON NON NON ! PAS ENCORE !",
+        "PAS ENCORE, J'AI DIT !",
+    )
+
+    private val givingIn = listOf(
+        "Bon... d'accord. Mais je note tout, hein.",
+        "Pfff. Tu es plus têtu qu'une mule de Tortuga. Noté.",
+        "Très bien. Mais demain, c'est cent pompes.",
+        "Je cède, mais le perroquet te juge.",
+    )
+
+    /** Le capitaine fait barrage (affiché en grand et en rouge). */
+    fun refusal(random: Random = Random.Default): String = refusals.random(random)
+
+    /** On a insisté : le capitaine cède en ronchonnant. */
+    fun giveIn(random: Random = Random.Default): String = givingIn.random(random)
+
     /** Ce que dit la petite tête du capitaine en ouvrant un camp. */
     fun greeting(side: Side, random: Random = Random.Default): String = greetings.getValue(side).random(random)
 
