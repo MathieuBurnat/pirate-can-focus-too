@@ -50,7 +50,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 └── ui/
     ├── PirateApp.kt         # navigation : menu, focus, paramètres
     ├── MenuScreen.kt        # menu de démarrage (journal grisé, déverrouillé après 7 taps)
-    ├── JournalScreen.kt     # muscles VS bouteilles, capitaine pompette si ça boit trop
+    ├── JournalScreen.kt     # BISCOTOS VS TAVERNE (un total par camp + bouton AJOUTER), capitaine pompette si ça boit trop
     ├── SettingsScreen.kt    # autorisations du gardien + liste noire
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes

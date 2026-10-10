@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -70,6 +71,16 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit) {
         )
     }
 
+    var adding by remember { mutableStateOf(false) }
+    if (adding) {
+        AddDialog(
+            count = journal::count,
+            onAdd = viewModel::add,
+            onRemove = viewModel::remove,
+            onDismiss = { adding = false },
+        )
+    }
+
     val tipsy = journal.verdict == Verdict.EPONGE || journal.verdict == Verdict.PILIER_DE_TAVERNE
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
@@ -106,32 +117,19 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit) {
 
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Tally(
-                    title = "MUSCLES",
-                    side = Side.SPORT,
-                    total = journal.total(Side.SPORT),
-                    color = MaterialTheme.colorScheme.secondary,
-                    count = journal::count,
-                    onAdd = viewModel::add,
-                    onRemove = viewModel::remove,
-                    modifier = Modifier.weight(1f),
-                )
+                ScoreBox(BISCOTOS, journal.total(Side.SPORT), MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
                 Text("VS", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterVertically))
-                Tally(
-                    title = "BOUTEILLES",
-                    side = Side.BOISSON,
-                    total = journal.total(Side.BOISSON),
-                    color = MaterialTheme.colorScheme.primary,
-                    count = journal::count,
-                    onAdd = viewModel::add,
-                    onRemove = viewModel::remove,
-                    modifier = Modifier.weight(1f),
-                )
+                ScoreBox(TAVERNE, journal.total(Side.BOISSON), MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Button(onClick = { adding = true }, shape = RectangleShape, modifier = Modifier.fillMaxWidth()) {
+                Text("> AJOUTER", style = MaterialTheme.typography.labelLarge)
             }
 
             Spacer(Modifier.height(16.dp))
             Text(
-                "Appui long pour rayer une ligne.\n📊 Des statistiques étendues seront bientôt disponibles.",
+                "📊 Des statistiques étendues seront bientôt disponibles.",
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -140,12 +138,58 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit) {
     }
 }
 
+private const val BISCOTOS = "BISCOTOS"
+private const val TAVERNE = "TAVERNE"
+
+/** La grande case du score d'un camp. */
+@Composable
+private fun ScoreBox(title: String, total: Int, color: Color, modifier: Modifier = Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .border(BorderStroke(2.dp, color), RectangleShape)
+            .padding(vertical = 12.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.labelLarge, color = color)
+        Text("%02d".format(total), fontSize = 56.sp, fontWeight = FontWeight.Bold, color = color)
+        Text("points", style = MaterialTheme.typography.bodySmall, color = color)
+    }
+}
+
+/** Toutes les cases, pour noter ce que tu as fait (ou bu). */
+@Composable
+private fun AddDialog(
+    count: (Entry) -> Int,
+    onAdd: (Entry) -> Unit,
+    onRemove: (Entry) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RectangleShape,
+        title = { Text("Qu'as-tu fait, moussaillon ?") },
+        text = {
+            Column {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Tally(BISCOTOS, Side.SPORT, MaterialTheme.colorScheme.secondary, count, onAdd, onRemove, Modifier.weight(1f))
+                    Tally(TAVERNE, Side.BOISSON, MaterialTheme.colorScheme.primary, count, onAdd, onRemove, Modifier.weight(1f))
+                }
+                Text(
+                    "Appui long pour rayer une ligne.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("TERMINÉ") } },
+    )
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Tally(
     title: String,
     side: Side,
-    total: Int,
     color: Color,
     count: (Entry) -> Int,
     onAdd: (Entry) -> Unit,
@@ -154,7 +198,6 @@ private fun Tally(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
         Text(title, style = MaterialTheme.typography.labelLarge, color = color)
-        Text("%02d".format(total), fontSize = 48.sp, fontWeight = FontWeight.Bold, color = color)
         Entry.entries.filter { it.side == side }.forEach { entry ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

@@ -36,17 +36,17 @@ object JournalQuotes {
         ),
         Verdict.PILIER_DE_TAVERNE to listOf(
             "Plus de verres que de séances... Pilier de taverne, va !",
-            "Les bouteilles mènent au score, crabe ramolli. Va grimper un mât !",
+            "La taverne mène au score, crabe ramolli. Va grimper un mât !",
             "Ton foie réclame une mutinerie, et je le soutiens.",
             "Tu bois plus vite que tu ne rames, sardine dessalée.",
         ),
         Verdict.EQUILIBRE to listOf(
             "Égalité parfaite ! Une pompe, une pinte. La voie du vrai pirate.",
-            "Match nul entre tes muscles et ton gosier. Le capitaine approuve.",
+            "Match nul entre tes biscotos et ton gosier. Le capitaine approuve.",
             "Équilibre parfait... pour l'instant. Je te surveille, moussaillon.",
         ),
         Verdict.SPORTIF to listOf(
-            "Les muscles mènent ! Tu peux t'offrir un petit verre, champion.",
+            "Les biscotos mènent ! Tu peux t'offrir un petit verre, champion.",
             "Plus de sport que de rhum ? Tu deviens raisonnable, ça m'inquiète.",
             "Pas mal, pas mal. Tu pourrais presque porter le coffre au trésor tout seul.",
         ),
@@ -88,6 +88,34 @@ object JournalQuotes {
         ),
     )
 
+    /** Félicitations du capitaine pour n'importe quelle séance de sport. */
+    private val cheers = listOf(
+        "Bravo moussaillon ! Tes biscotos font pâlir le kraken.",
+        "Ça, c'est du biscoto de compétition !",
+        "Le navire avance plus vite rien qu'à te regarder forcer.",
+        "Je n'ai pas pleuré depuis la bataille de Tortuga. Mais là, presque.",
+        "Tu sues comme un tonneau qui fuit. J'adore.",
+        "Le perroquet t'applaudit. Avec ses ailes. C'est rare.",
+        "Un jour, on chantera tes exploits dans toutes les tavernes.",
+        "Tes bras pourraient soulever l'ancre à mains nues. Presque.",
+        "Arr ! Voilà un pirate qui mérite son sabre.",
+        "Continue comme ça et je te nomme second du navire.",
+    )
+
+    /** Insultes du capitaine pour n'importe quel passage à la taverne. */
+    private val jeers = listOf(
+        "Encore à la taverne ? Ton foie a déposé une plainte, sardine.",
+        "Tu ne lèves pas l'ancre, tu lèves le coude. Moule avariée !",
+        "Le seul trésor que tu cherches, c'est le fond du verre.",
+        "Tête de bulot de comptoir ! File faire des pompes.",
+        "À ce rythme, on va te servir à la paille, limace des docks.",
+        "Tu tangues plus que le navire, et on est à quai.",
+        "Les rats de la cale boivent moins que toi. Et ce sont des rats.",
+        "Hé, fond de cale ! Une traction pour chaque verre, c'est la loi.",
+        "Ton haleine pourrait faire fuir une flotte entière.",
+        "Encore un ? Tu vas finir accroché à la figure de proue, poivrot.",
+    )
+
     /** Les grandes interventions du capitaine, quand les verres s'accumulent. */
     private val interventions = listOf(
         "INTERVENTION DU CAPITAINE ! {n} verres. Je confisque la clé de la cale.",
@@ -101,7 +129,11 @@ object JournalQuotes {
         return pool.filter { it != current }.ifEmpty { pool }.random(random)
     }
 
-    fun reaction(entry: Entry, random: Random = Random.Default): String = reactions.getValue(entry).random(random)
+    /** Une réplique propre à l'activité, ou une félicitation / insulte générale selon le camp. */
+    fun reaction(entry: Entry, random: Random = Random.Default): String {
+        val general = if (entry.side == Side.SPORT) cheers else jeers
+        return (reactions.getValue(entry) + general).random(random)
+    }
 
     /** Tous les 5 verres, le capitaine intervient en personne. */
     fun intervention(drinks: Int, random: Random = Random.Default): String? =
