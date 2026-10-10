@@ -1,6 +1,7 @@
 package dev.mathieuburnat.piratefocus.journal
 
-enum class Side { SPORT, BOISSON }
+/** SPORT et BOISSON se notent à la main ; FOCUS se note tout seul à chaque traversée terminée. */
+enum class Side { SPORT, BOISSON, FOCUS }
 
 enum class Entry(val side: Side, val label: String, val detail: String) {
     MEGA_SEANCE(Side.SPORT, "Méga séance", "pompes, tractions"),
@@ -9,6 +10,7 @@ enum class Entry(val side: Side, val label: String, val detail: String) {
     BIERE(Side.BOISSON, "Bière", "la pinte du marin"),
     COCKTAIL(Side.BOISSON, "Cocktail", "avec une ombrelle"),
     VIN(Side.BOISSON, "Vin !", "rouge, blanc, rosé"),
+    TRAVERSEE(Side.FOCUS, "Traversée", "session de focus terminée"),
 }
 
 /** Le verdict du capitaine selon le match muscles contre bouteilles. */

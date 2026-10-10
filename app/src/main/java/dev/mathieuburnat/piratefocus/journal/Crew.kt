@@ -23,16 +23,20 @@ enum class Audience(val label: String) {
 }
 
 /** Les points d'un matelot sur une période. */
-data class Score(val biscotos: Int, val taverne: Int) {
+data class Score(val biscotos: Int, val taverne: Int, val traversees: Int = 0) {
     val verdict: Verdict
         get() = JournalState(
             mapOf(Entry.MEGA_SEANCE to biscotos, Entry.BIERE to taverne),
         ).verdict
 
+    operator fun plus(other: Score) =
+        Score(biscotos + other.biscotos, taverne + other.taverne, traversees + other.traversees)
+
     companion object {
         fun of(logs: List<LogEntry>) = Score(
             biscotos = logs.count { it.entry.side == Side.SPORT },
             taverne = logs.count { it.entry.side == Side.BOISSON },
+            traversees = logs.count { it.entry.side == Side.FOCUS },
         )
     }
 }
@@ -42,7 +46,7 @@ data class CrewMate(val name: String, val logs: List<LogEntry>, val friend: Bool
 }
 
 /** Une barre du graphique : un créneau de temps et ses points. */
-data class Bucket(val label: String, val biscotos: Int, val taverne: Int)
+data class Bucket(val label: String, val biscotos: Int, val taverne: Int, val traversees: Int = 0)
 
 /** Les deux façons de regarder l'équipage. */
 enum class StatsMode(val label: String) {
@@ -57,7 +61,7 @@ object CrewStats {
 
     /** Le total cumulé de tout l'équipage sur la période. */
     fun teamTotal(crew: List<CrewMate>, period: Period, now: LocalDateTime): Score =
-        crew.map { it.score(period, now) }.fold(Score(0, 0)) { a, b -> Score(a.biscotos + b.biscotos, a.taverne + b.taverne) }
+        crew.map { it.score(period, now) }.fold(Score(0, 0), Score::plus)
 
     /** NO PAIN NO GAIN : les plus gros biscotos d'abord, et à égalité, le moins de taverne gagne. */
     fun noPainRanking(crew: List<CrewMate>, period: Period, now: LocalDateTime): List<Pair<String, Score>> =
@@ -67,16 +71,15 @@ object CrewStats {
     /** Découpe la période en créneaux : par tranches de 2 h sur la journée, par jour sinon. */
     fun buckets(logs: List<LogEntry>, period: Period, now: LocalDateTime): List<Bucket> {
         val inPeriod = logs.filter { period.contains(it.at, now) }
+        fun bucket(label: String, slot: List<LogEntry>) = Score.of(slot).let { Bucket(label, it.biscotos, it.taverne, it.traversees) }
         return if (period == Period.JOUR) {
             (0 until 24 step 2).map { hour ->
-                val slot = inPeriod.filter { it.at.hour in hour until hour + 2 }
-                Bucket("%02dh".format(hour), slot.count { it.entry.side == Side.SPORT }, slot.count { it.entry.side == Side.BOISSON })
+                bucket("%02dh".format(hour), inPeriod.filter { it.at.hour in hour until hour + 2 })
             }
         } else {
             (period.days - 1 downTo 0).map { back ->
                 val day = now.toLocalDate().minusDays(back)
-                val slot = inPeriod.filter { it.at.toLocalDate() == day }
-                Bucket("%02d/%02d".format(day.dayOfMonth, day.monthValue), slot.count { it.entry.side == Side.SPORT }, slot.count { it.entry.side == Side.BOISSON })
+                bucket("%02d/%02d".format(day.dayOfMonth, day.monthValue), inPeriod.filter { it.at.toLocalDate() == day })
             }
         }
     }
@@ -96,12 +99,14 @@ object FakeCrew {
     )
 
     /** Chaque matelot a un tempérament : plutôt salle de sport, plutôt taverne, ou entre les deux. */
-    private enum class Temper(val sportChance: Double, val drinkChance: Double) {
-        ATHLETE(0.75, 0.15),
-        POCHARD(0.15, 0.75),
-        EQUILIBRE(0.45, 0.45),
-        FLEMMARD(0.10, 0.20),
+    private enum class Temper(val sportChance: Double, val drinkChance: Double, val focusChance: Double) {
+        ATHLETE(0.75, 0.15, 0.5),
+        POCHARD(0.15, 0.75, 0.25),
+        EQUILIBRE(0.45, 0.45, 0.6),
+        FLEMMARD(0.10, 0.20, 0.15),
     }
+
+    private val focusMinutes = listOf(5, 10, 30, 30, 45)
 
     private val sports = Entry.entries.filter { it.side == Side.SPORT }
     private val drinks = Entry.entries.filter { it.side == Side.BOISSON }
@@ -143,8 +148,10 @@ object FakeCrew {
                 val rounds = if (random.nextDouble() < temper.drinkChance) random.nextInt(1, 5) else 0
                 // Le sport en journée, la taverne le soir.
                 fun note(pool: List<String>) = if (random.nextDouble() < 0.3) pool.random(random) else null
+                val voyages = if (random.nextDouble() < temper.focusChance) random.nextInt(1, 4) else 0
                 List(sessions) { LogEntry(name, sports.random(random), at(7, 20), note(sportNotes)) } +
-                    List(rounds) { LogEntry(name, drinks.random(random), at(17, 24), note(drinkNotes)) }
+                    List(rounds) { LogEntry(name, drinks.random(random), at(17, 24), note(drinkNotes)) } +
+                    List(voyages) { LogEntry(name, Entry.TRAVERSEE, at(8, 19), FocusLog.note(focusMinutes.random(random))) }
             }.filter { !it.at.isAfter(now) }
             CrewMate(name, logs.sortedByDescending { it.at }, friend = index < FRIENDS)
         }
@@ -169,4 +176,10 @@ fun Entry.icon(): String = when (this) {
     Entry.BIERE -> "🍺"
     Entry.COCKTAIL -> "🍹"
     Entry.VIN -> "🍷"
+    Entry.TRAVERSEE -> "⛵"
+}
+
+object FocusLog {
+    /** Le mot laissé dans le journal de bord après une traversée. */
+    fun note(minutes: Int) = "$minutes min de focus"
 }

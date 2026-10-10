@@ -62,6 +62,16 @@ class JournalTest {
     }
 
     @Test
+    fun `une traversée terminée s'inscrit au journal sans changer le verdict`() {
+        val vm = JournalViewModel()
+        vm.logVoyage(30)
+        val state = vm.uiState.value
+        assertEquals(1, state.journal.total(Side.FOCUS))
+        assertEquals("30 min de focus", state.myLogs.first().note)
+        assertEquals(Verdict.PAGE_BLANCHE, state.journal.verdict)
+    }
+
+    @Test
     fun `Coco débarque au huitième verre puis tous les quatre`() {
         assertEquals(listOf(8, 12, 16), (1..17).filter(JournalRules::parrotAppears))
     }

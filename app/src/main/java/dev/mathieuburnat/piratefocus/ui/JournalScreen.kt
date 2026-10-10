@@ -46,6 +46,7 @@ import dev.mathieuburnat.piratefocus.journal.Entry
 import dev.mathieuburnat.piratefocus.journal.JournalViewModel
 import dev.mathieuburnat.piratefocus.journal.Side
 import dev.mathieuburnat.piratefocus.journal.Verdict
+import dev.mathieuburnat.piratefocus.ui.theme.Lagoon
 
 private fun Side.title() = if (this == Side.SPORT) "BISCOTOS" else "TAVERNE"
 
@@ -142,6 +143,12 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit, onCrew: () ->
                 Text("VS", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterVertically))
                 ScoreBox(Side.BOISSON, journal.total(Side.BOISSON), { viewModel.open(Side.BOISSON) }, Modifier.weight(1f))
             }
+            Text(
+                "⛵ Traversées de focus : ${journal.total(Side.FOCUS)}",
+                style = MaterialTheme.typography.labelLarge,
+                color = Lagoon,
+                modifier = Modifier.padding(top = 8.dp),
+            )
             Text(
                 "Touche un camp pour y ajouter des points.",
                 style = MaterialTheme.typography.bodySmall,

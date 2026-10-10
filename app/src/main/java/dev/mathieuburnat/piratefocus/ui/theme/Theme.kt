@@ -14,6 +14,8 @@ val Foam = Color(0xFF7FB7D9)
 val Parchment = Color(0xFFF2E8CF)
 val Doubloon = Color(0xFFF4C542)
 val PirateRed = Color(0xFFD64545)
+/** Couleur des traversées de focus dans les statistiques. */
+val Lagoon = Color(0xFF6FD3A8)
 
 private val PirateColors = darkColorScheme(
     primary = Doubloon,

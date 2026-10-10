@@ -11,6 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.text.font.FontStyle
 import dev.mathieuburnat.piratefocus.journal.Audience
 import dev.mathieuburnat.piratefocus.journal.StatsMode
+import dev.mathieuburnat.piratefocus.ui.theme.Lagoon
 import androidx.compose.foundation.background
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
@@ -246,10 +247,19 @@ private fun <T> Tabs(options: List<T>, selected: T, label: (T) -> String, onSele
 /** ENSEMBLE : les compteurs de tout l'équipage, qui défilent jusqu'au total. */
 @Composable
 private fun TeamTotals(total: Score) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         CountUpBox("BISCOTOS", total.biscotos, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
         CountUpBox("TAVERNE", total.taverne, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+        CountUpBox("FOCUS", total.traversees, Lagoon, Modifier.weight(1f))
     }
+    Text(
+        "pour tout l'équipage (FOCUS = traversées terminées)",
+        textAlign = TextAlign.Center,
+        style = MaterialTheme.typography.labelSmall,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+    )
 }
 
 @Composable
@@ -263,8 +273,7 @@ private fun CountUpBox(title: String, target: Int, color: Color, modifier: Modif
             .padding(vertical = 10.dp),
     ) {
         Text(title, style = MaterialTheme.typography.labelLarge, color = color)
-        Text("%03d".format(counter.value.roundToInt()), fontSize = 40.sp, fontWeight = FontWeight.Bold, color = color)
-        Text("pour tout l'équipage", style = MaterialTheme.typography.labelSmall, color = color)
+        Text("%03d".format(counter.value.roundToInt()), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = color)
     }
 }
 
@@ -321,15 +330,15 @@ private fun Podium(top: List<Pair<String, Score>>) {
 }
 
 /**
- * Graphique en barres façon pixel art : pour chaque créneau, une colonne de blocs biscotos (bleus)
- * à gauche et une colonne de blocs taverne (dorés) à droite.
+ * Graphique en barres façon pixel art : pour chaque créneau, une colonne de blocs biscotos (bleus),
+ * une de blocs taverne (dorés) et une de blocs focus (verts lagon).
  */
 @Composable
 private fun PixelBarChart(buckets: List<Bucket>) {
     val sport = MaterialTheme.colorScheme.secondary
     val drink = MaterialTheme.colorScheme.primary
     val axis = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-    val peak = max(1, buckets.maxOfOrNull { max(it.biscotos, it.taverne) } ?: 1)
+    val peak = max(1, buckets.maxOfOrNull { maxOf(it.biscotos, it.taverne, it.traversees) } ?: 1)
 
     // Les blocs montent gentiment, colonne après colonne, à chaque changement de données.
     val grow = remember(buckets) { Animatable(0f) }
@@ -341,7 +350,7 @@ private fun PixelBarChart(buckets: List<Bucket>) {
             .height(150.dp),
     ) {
         val slot = size.width / buckets.size
-        val bar = (slot / 2f) * 0.8f
+        val bar = (slot / 3f) * 0.85f
         // Au-delà de 12 blocs, chaque bloc vaut plusieurs points.
         val maxBlocks = 12
         val perBlock = max(1, ceil(peak / maxBlocks.toFloat()).toInt())
@@ -360,11 +369,12 @@ private fun PixelBarChart(buckets: List<Bucket>) {
         }
 
         buckets.forEachIndexed { index, bucket ->
-            val x = index * slot + (slot - 2 * bar) / 2f
+            val x = index * slot + (slot - 3 * bar) / 2f
             // Décalage de départ : la vague de blocs part de la gauche.
             val progress = (grow.value * 1.6f - index / buckets.size.toFloat() * 0.6f).coerceIn(0f, 1f)
             column(x, bucket.biscotos, sport, progress)
             column(x + bar, bucket.taverne, drink, progress)
+            column(x + 2 * bar, bucket.traversees, Lagoon, progress)
         }
         drawRect(axis, topLeft = Offset(0f, size.height - 2f), size = Size(size.width, 2f))
     }
@@ -377,6 +387,8 @@ private fun PixelBarChart(buckets: List<Bucket>) {
         Text("■ BISCOTOS", color = sport, style = MaterialTheme.typography.labelSmall)
         Text("   ")
         Text("■ TAVERNE", color = drink, style = MaterialTheme.typography.labelSmall)
+        Text("   ")
+        Text("■ FOCUS", color = Lagoon, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -425,6 +437,7 @@ private fun Leaderboard(rows: List<Pair<String, Score>>) {
         Text("#  MATELOT", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
         Text("BISC", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.width(44.dp), textAlign = TextAlign.End)
         Text("TAV", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(44.dp), textAlign = TextAlign.End)
+        Text("FOC", style = MaterialTheme.typography.labelSmall, color = Lagoon, modifier = Modifier.width(44.dp), textAlign = TextAlign.End)
     }
     rows.forEachIndexed { index, (name, score) ->
         val me = name == ME
@@ -447,6 +460,7 @@ private fun Leaderboard(rows: List<Pair<String, Score>>) {
             }
             Text("%3d".format(score.biscotos), color = MaterialTheme.colorScheme.secondary, modifier = Modifier.width(44.dp), textAlign = TextAlign.End)
             Text("%3d".format(score.taverne), color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(44.dp), textAlign = TextAlign.End)
+            Text("%3d".format(score.traversees), color = Lagoon, modifier = Modifier.width(44.dp), textAlign = TextAlign.End)
         }
     }
 }

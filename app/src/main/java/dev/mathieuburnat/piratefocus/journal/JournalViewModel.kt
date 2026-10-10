@@ -58,6 +58,14 @@ class JournalViewModel : ViewModel() {
         }
     }
 
+    /** Une traversée de focus vient de se terminer : elle s'inscrit toute seule au journal de bord. */
+    fun logVoyage(minutes: Int) = _uiState.update { state ->
+        state.copy(
+            journal = state.journal.add(Entry.TRAVERSEE),
+            myLogs = listOf(LogEntry(ME, Entry.TRAVERSEE, LocalDateTime.now(), FocusLog.note(minutes))) + state.myLogs,
+        )
+    }
+
     /** « J'INSISTE » : le capitaine cède, et le verre refusé est enfin noté. */
     fun insist() = _uiState.update { state ->
         state.pending?.let { commit(state, it, insisted = true) } ?: state

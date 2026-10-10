@@ -12,13 +12,17 @@ import dev.mathieuburnat.piratefocus.guard.FocusGuardService
 import dev.mathieuburnat.piratefocus.guard.GuardPermissions
 import dev.mathieuburnat.piratefocus.ui.PirateApp
 import dev.mathieuburnat.piratefocus.ui.theme.PirateFocusTheme
+import dev.mathieuburnat.piratefocus.journal.JournalViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private val focusViewModel: FocusViewModel by viewModels()
+    private val journalViewModel: JournalViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,9 +39,16 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Chaque traversée terminée s'inscrit au journal de bord (drop(1) : on ignore l'état déjà connu).
+        lifecycleScope.launch {
+            focusViewModel.uiState.map { it.timer }.distinctUntilChangedBy { it.voyages }.drop(1).collect { timer ->
+                journalViewModel.logVoyage(timer.focusMinutes)
+            }
+        }
+
         setContent {
             PirateFocusTheme {
-                PirateApp(focusViewModel)
+                PirateApp(focusViewModel, journalViewModel)
             }
         }
     }
