@@ -22,8 +22,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.mathieuburnat.piratefocus.focus.FocusViewModel
 import dev.mathieuburnat.piratefocus.guard.GuardPermissions
 import dev.mathieuburnat.piratefocus.journal.JournalViewModel
-import dev.mathieuburnat.piratefocus.journal.Score
-import dev.mathieuburnat.piratefocus.journal.Side
 
 private enum class Screen { MENU, FOCUS, JOURNAL, CREW, SETTINGS }
 
@@ -69,7 +67,7 @@ fun PirateApp(viewModel: FocusViewModel = viewModel(), journalViewModel: Journal
                     val journal by journalViewModel.uiState.collectAsStateWithLifecycle()
                     CrewScreen(
                         crew = journalViewModel.crew,
-                        myToday = Score(journal.journal.total(Side.SPORT), journal.journal.total(Side.BOISSON)),
+                        myLogs = journal.myLogs,
                         onBack = { screen = Screen.JOURNAL },
                     )
                 }

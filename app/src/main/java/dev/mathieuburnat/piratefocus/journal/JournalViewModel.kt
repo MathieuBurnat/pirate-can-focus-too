@@ -5,9 +5,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.time.LocalDateTime
+
+/** Ton nom dans le journal de bord et le classement. */
+const val ME = "Toi"
 
 data class JournalUiState(
     val journal: JournalState = JournalState(),
+    /** Tes lignes du journal de bord, de la plus récente à la plus ancienne. */
+    val myLogs: List<LogEntry> = emptyList(),
     val quote: String = JournalQuotes.verdict(Verdict.PAGE_BLANCHE),
     /** Le camp dont la fenêtre d'ajout est ouverte (null = fermée). */
     val adding: Side? = null,
@@ -28,7 +34,7 @@ class JournalViewModel : ViewModel() {
     val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
 
     /** [dev] Un équipage imaginaire, tiré au sort à chaque lancement. */
-    val crew: List<CrewMate> = FakeCrew.generate()
+    val crew: List<CrewMate> = FakeCrew.generate(LocalDateTime.now())
 
     fun open(side: Side) = _uiState.update {
         it.copy(adding = side, dialogLine = JournalQuotes.greeting(side), refused = false)
@@ -49,6 +55,7 @@ class JournalViewModel : ViewModel() {
         val popup = if (isDrink && parrot == null) JournalQuotes.intervention(drinks) else null
         state.copy(
             journal = journal,
+            myLogs = listOf(LogEntry(ME, entry, LocalDateTime.now())) + state.myLogs,
             quote = quoteFor(state, journal),
             dialogLine = if (state.refused) JournalQuotes.giveIn() else JournalQuotes.reaction(entry),
             refused = false,
@@ -59,7 +66,10 @@ class JournalViewModel : ViewModel() {
 
     fun remove(entry: Entry) = _uiState.update { state ->
         val journal = state.journal.remove(entry)
-        state.copy(journal = journal, quote = quoteFor(state, journal), dialogLine = JournalQuotes.ERASED, refused = false)
+        // On raye la dernière ligne de ce type (les logs sont rangés du plus récent au plus ancien).
+        val index = state.myLogs.indexOfFirst { it.entry == entry }
+        val myLogs = if (index >= 0) state.myLogs.filterIndexed { i, _ -> i != index } else state.myLogs
+        state.copy(journal = journal, myLogs = myLogs, quote = quoteFor(state, journal), dialogLine = JournalQuotes.ERASED, refused = false)
     }
 
     fun newQuote() = _uiState.update {
