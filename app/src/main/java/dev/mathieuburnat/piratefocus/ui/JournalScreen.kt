@@ -13,6 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +49,8 @@ import dev.mathieuburnat.piratefocus.journal.Side
 import dev.mathieuburnat.piratefocus.journal.Verdict
 import dev.mathieuburnat.piratefocus.ui.theme.Lagoon
 
+private val INSIST_HEIGHT = 48.dp
+
 private fun Side.title() = if (this == Side.SPORT) "BISCOTOS" else "TAVERNE"
 
 @Composable
@@ -63,7 +66,7 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit, onCrew: () ->
         AddDialog(
             side = side,
             captainLine = state.dialogLine,
-            shouting = state.refused,
+            pending = state.pending,
             note = state.noteDraft,
             onNoteChange = viewModel::editNote,
             count = journal::count,
@@ -201,7 +204,7 @@ private fun ScoreBox(side: Side, total: Int, onClick: () -> Unit, modifier: Modi
 private fun AddDialog(
     side: Side,
     captainLine: String,
-    shouting: Boolean,
+    pending: Entry?,
     note: String,
     onNoteChange: (String) -> Unit,
     count: (Entry) -> Int,
@@ -212,6 +215,7 @@ private fun AddDialog(
 ) {
     val color = side.color()
     val alarm = MaterialTheme.colorScheme.error
+    val shouting = pending != null
 
     // Quand le capitaine refuse un verre, sa bulle tremble de colère.
     val shake = remember { Animatable(0f) }
@@ -250,27 +254,13 @@ private fun AddDialog(
                         modifier = Modifier
                             .weight(1f)
                             .offset { IntOffset(shake.value.roundToInt(), 0) }
-                            .heightIn(min = 72.dp)
+                            // Hauteur fixe : quelle que soit la réplique, rien ne bouge sous le doigt.
+                            .height(96.dp)
                             .border(
                                 BorderStroke(if (shouting) 3.dp else 1.dp, if (shouting) alarm else MaterialTheme.colorScheme.onSurface),
                                 RectangleShape,
                             )
                             .padding(8.dp),
-                    )
-                }
-                // Le verre refusé ne compte que si on insiste, exprès, avec ce bouton.
-                if (shouting) {
-                    Text(
-                        "> J'INSISTE 🍺",
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = alarm,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                            .border(BorderStroke(2.dp, alarm), RectangleShape)
-                            .clickable(onClick = onInsist)
-                            .padding(10.dp),
                     )
                 }
                 Spacer(Modifier.height(8.dp))
@@ -291,12 +281,13 @@ private fun AddDialog(
                 )
                 Spacer(Modifier.height(4.dp))
                 Entry.entries.filter { it.side == side }.forEach { entry ->
+                    val refused = entry == pending
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .border(BorderStroke(2.dp, color), RectangleShape)
+                            .border(BorderStroke(2.dp, if (refused) alarm else color), RectangleShape)
                             .combinedClickable(onClick = { onAdd(entry) }, onLongClick = { onRemove(entry) })
                             .padding(12.dp),
                     ) {
@@ -304,9 +295,25 @@ private fun AddDialog(
                             Text(entry.label, style = MaterialTheme.typography.bodyLarge)
                             Text(entry.detail, style = MaterialTheme.typography.bodySmall)
                         }
-                        Text("+ ${count(entry)}", style = MaterialTheme.typography.titleMedium, color = color)
+                        Text("+ ${count(entry)}", style = MaterialTheme.typography.titleMedium, color = if (refused) alarm else color)
+                    }
+                    // Le verre refusé ne compte que si on insiste, exprès, avec ce bouton juste en dessous.
+                    if (refused) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(INSIST_HEIGHT)
+                                .border(BorderStroke(2.dp, alarm), RectangleShape)
+                                .clickable(onClick = onInsist),
+                        ) {
+                            Text("> J'INSISTE 🍺", style = MaterialTheme.typography.labelLarge, color = alarm)
+                        }
                     }
                 }
+                // Place réservée au bouton « J'INSISTE » : la fenêtre garde la même hauteur
+                // (elle est centrée, elle bougerait sinon) et rien ne glisse sous le doigt.
+                if (pending == null) Spacer(Modifier.height(INSIST_HEIGHT))
                 Text(
                     "Le mot (facultatif) part avec le prochain point. Appui long pour rayer une ligne.",
                     style = MaterialTheme.typography.bodySmall,
