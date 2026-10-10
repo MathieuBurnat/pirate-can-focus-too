@@ -1,6 +1,15 @@
 package dev.mathieuburnat.piratefocus.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,17 +43,23 @@ fun PirateApp(viewModel: FocusViewModel = viewModel(), journalViewModel: Journal
 
     BackHandler(enabled = screen != Screen.MENU) { screen = Screen.MENU }
 
-    when (screen) {
-        Screen.MENU -> MenuScreen(
-            phase = phase,
-            journalUnlocked = journalUnlocked,
-            onFocus = { screen = Screen.FOCUS },
-            onUnlockJournal = { journalUnlocked = true },
-            onJournal = { screen = Screen.JOURNAL },
-            onSettings = { screen = Screen.SETTINGS },
-        )
-        Screen.FOCUS -> FocusRoute(viewModel, guardReady = guardReady, onMenu = { screen = Screen.MENU })
-        Screen.JOURNAL -> JournalScreen(journalViewModel, onBack = { screen = Screen.MENU })
-        Screen.SETTINGS -> SettingsScreen(onBack = { screen = Screen.MENU })
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // Les écrans ne gèrent plus la barre de navigation : le pied de page s'en charge.
+        Box(Modifier.weight(1f).consumeWindowInsets(WindowInsets.navigationBars)) {
+            when (screen) {
+                Screen.MENU -> MenuScreen(
+                    phase = phase,
+                    journalUnlocked = journalUnlocked,
+                    onFocus = { screen = Screen.FOCUS },
+                    onUnlockJournal = { journalUnlocked = true },
+                    onJournal = { screen = Screen.JOURNAL },
+                    onSettings = { screen = Screen.SETTINGS },
+                )
+                Screen.FOCUS -> FocusRoute(viewModel, guardReady = guardReady, onMenu = { screen = Screen.MENU })
+                Screen.JOURNAL -> JournalScreen(journalViewModel, onBack = { screen = Screen.MENU })
+                Screen.SETTINGS -> SettingsScreen(onBack = { screen = Screen.MENU })
+            }
+        }
+        VersionFooter()
     }
 }
