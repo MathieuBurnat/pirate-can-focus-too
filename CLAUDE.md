@@ -42,6 +42,8 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   ├── AccountQuotes.kt     # textes du capitaine sur les comptes (avertissement sans compte...)
 │   ├── PirateApi.kt         # client de l'API backend/ (HttpURLConnection + org.json)
 │   └── PirateNames.kt       # pseudos de pirate tirés au sort (logique pure, testée)
+├── settings/
+│   └── DevModeStore.kt      # mode dev : équipage inventé au lieu des vrais pirates publics
 ├── guard/
 │   ├── BlacklistStore.kt    # liste noire (défaut : Instagram, TikTok, Reddit)
 │   ├── GuardPermissions.kt  # accès aux données d'utilisation + affichage par-dessus
@@ -55,7 +57,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   ├── JournalStore.kt      # LogBook sur le téléphone : fichier journal.tsv (écriture atomique)
 │   ├── JournalCodec.kt      # journal <-> texte, une ligne par entrée (logique pure, testée)
 │   ├── JournalSync.kt       # fusion du journal du téléphone et du Worker (logique pure, testée)
-│   └── Crew.kt              # [dev] équipage imaginaire, scores jour/semaine/mois
+│   └── Crew.kt              # scores jour/semaine/mois, équipage imaginaire du mode dev
 ├── focus/
 │   ├── FocusTimer.kt        # logique pure du minuteur (testée unitairement)
 │   ├── FocusViewModel.kt    # état de l'écran, boucle de décompte
@@ -65,8 +67,9 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── PirateApp.kt         # navigation : menu, focus, paramètres
     ├── MenuScreen.kt        # menu de démarrage (journal grisé, déverrouillé après 7 taps)
     ├── JournalScreen.kt     # BISCOTOS VS TAVERNE (toucher un camp ouvre ses activités, commentées par une petite tête du capitaine), capitaine pompette si ça boit trop
-    ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (classement [dev])
-    ├── SettingsScreen.kt    # autorisations du gardien + liste noire
+    ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (vrais pirates publics, ou inventés en mode dev)
+    ├── SettingsScreen.kt    # paramètres : applications bloquées, mode dev, déconnexion
+    ├── BlockedAppsScreen.kt # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
     ├── AccountScreen.kt     # « Mon compte » : pseudo, données publiques, déconnexion, suppression
     ├── AccountForms.kt      # formulaire du compte gratuit (email puis code), info sans compte, dé

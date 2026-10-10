@@ -2,6 +2,7 @@ package dev.mathieuburnat.piratefocus.account
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.mathieuburnat.piratefocus.journal.CrewMate
 import dev.mathieuburnat.piratefocus.journal.LogEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -137,6 +138,15 @@ class AccountViewModel(
             if (e.status == 401) signOutLocally()
             null
         }
+    }
+
+    /**
+     * Les vrais pirates publics, accessibles même sans compte. Le pirate de ce téléphone en est retiré :
+     * il apparaît déjà sous « Toi ». Lance [ApiException] si le Worker est injoignable.
+     */
+    suspend fun crew(): List<CrewMate> {
+        val mine = account.pirateName.takeIf { account.signedIn }
+        return api.crew().filter { it.name != mine }
     }
 
     private fun signOutLocally() = save(account.copy(token = null, email = null, kind = null))

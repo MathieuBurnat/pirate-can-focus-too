@@ -66,9 +66,12 @@ import kotlin.math.max
 
 private const val LOGS_PAGE = 15
 
-/** [dev] Les autres matelots, avec des données inventées en attendant le vrai équipage. */
+/**
+ * Les autres matelots : les vrais pirates publics du Worker, ou des matelots inventés en mode dev ([imaginary]).
+ * [status] : un message à afficher sous le titre (chargement, réseau absent...).
+ */
 @Composable
-fun CrewScreen(crew: List<CrewMate>, myLogs: List<LogEntry>, onBack: () -> Unit) {
+fun CrewScreen(crew: List<CrewMate>, myLogs: List<LogEntry>, imaginary: Boolean, status: String?, onBack: () -> Unit) {
     var period by rememberSaveable { mutableStateOf(Period.JOUR) }
     var audience by rememberSaveable { mutableStateOf(Audience.FLOTTE) }
     var shownLogs by remember(period, audience) { mutableIntStateOf(LOGS_PAGE) }
@@ -111,7 +114,11 @@ fun CrewScreen(crew: List<CrewMate>, myLogs: List<LogEntry>, onBack: () -> Unit)
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Text("[dev] équipage imaginaire", style = MaterialTheme.typography.bodySmall)
+            Text(
+                if (imaginary) "[dev] équipage imaginaire" else "les pirates publics de la flotte",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            status?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Center) }
 
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {

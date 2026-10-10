@@ -1,5 +1,6 @@
 package dev.mathieuburnat.piratefocus.account
 
+import dev.mathieuburnat.piratefocus.journal.CrewMate
 import dev.mathieuburnat.piratefocus.journal.Entry
 import dev.mathieuburnat.piratefocus.journal.LogEntry
 import dev.mathieuburnat.piratefocus.journal.ME
@@ -11,6 +12,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.LocalDateTime
+import java.util.UUID
 
 /** Une réponse d'erreur du Worker (son message est déjà en français pirate), ou un réseau absent (status 0). */
 class ApiException(val status: Int, message: String) : Exception(message)
@@ -79,6 +81,18 @@ class PirateApi(private val baseUrl: String = BASE_URL) {
         return SyncResult(received, coffre.getInt("doubloons"), coffre.getInt("voyages"))
     }
 
+    /** Les pirates publics et leur journal du dernier mois (sans compte, sans jeton). */
+    suspend fun crew(): List<CrewMate> {
+        val mates = call("GET", "/crew").getJSONArray("crew")
+        return (0 until mates.length()).map { i ->
+            val mate = mates.getJSONObject(i)
+            val name = mate.getString("name")
+            val logs = mate.getJSONArray("logs")
+            val entries = (0 until logs.length()).mapNotNull { j -> logEntry(logs.getJSONObject(j), who = name) }
+            CrewMate(name, entries.sortedByDescending { it.at })
+        }
+    }
+
     private fun me(json: JSONObject): Me {
         val account = json.optJSONObject("account")
         return Me(
@@ -90,13 +104,13 @@ class PirateApi(private val baseUrl: String = BASE_URL) {
     }
 
     /** Une ligne illisible (entrée inconnue de cette version de l'app...) est ignorée. */
-    private fun logEntry(json: JSONObject): LogEntry? = runCatching {
+    private fun logEntry(json: JSONObject, who: String = ME): LogEntry? = runCatching {
         LogEntry(
-            who = ME,
+            who = who,
             entry = Entry.valueOf(json.getString("entry")),
             at = LocalDateTime.parse(json.getString("at")),
             note = json.takeUnless { it.isNull("note") }?.getString("note"),
-            id = json.getString("id"),
+            id = json.optString("id").ifEmpty { UUID.randomUUID().toString() },
         )
     }.getOrNull()
 
