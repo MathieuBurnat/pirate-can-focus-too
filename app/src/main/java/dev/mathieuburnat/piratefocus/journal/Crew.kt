@@ -13,8 +13,14 @@ enum class Period(val label: String, val days: Long) {
         !at.isAfter(now) && at.toLocalDate().isAfter(now.toLocalDate().minusDays(days))
 }
 
-/** Une ligne du journal de bord : qui a fait (ou bu) quoi, et quand. */
-data class LogEntry(val who: String, val entry: Entry, val at: LocalDateTime)
+/** Une ligne du journal de bord : qui a fait (ou bu) quoi, quand, et ce qu'il en dit. */
+data class LogEntry(val who: String, val entry: Entry, val at: LocalDateTime, val note: String? = null)
+
+/** Qui afficher dans les statistiques. */
+enum class Audience(val label: String) {
+    FLOTTE("Toute la flotte"),
+    AMIS("Mes amis seulement"),
+}
 
 /** Les points d'un matelot sur une période. */
 data class Score(val biscotos: Int, val taverne: Int) {
@@ -31,7 +37,7 @@ data class Score(val biscotos: Int, val taverne: Int) {
     }
 }
 
-data class CrewMate(val name: String, val logs: List<LogEntry>) {
+data class CrewMate(val name: String, val logs: List<LogEntry>, val friend: Boolean = false) {
     fun score(period: Period, now: LocalDateTime): Score = Score.of(logs.filter { period.contains(it.at, now) })
 }
 
@@ -82,9 +88,34 @@ object FakeCrew {
     private val sports = Entry.entries.filter { it.side == Side.SPORT }
     private val drinks = Entry.entries.filter { it.side == Side.BOISSON }
 
+    /** Ce que les faux matelots écrivent parfois après une séance... */
+    private val sportNotes = listOf(
+        "Grosse séance de dos, je sens plus mes bras",
+        "Nouveau record de tractions !",
+        "Le bloc jaune m'a eu, revanche demain",
+        "Abdos en feu 🔥",
+        "Séance express avant le boulot",
+        "J'ai vu le capitaine pleurer de fierté",
+        "Pompes sur le pont, sous la pluie",
+    )
+
+    /** ...ou après un passage à la taverne. */
+    private val drinkNotes = listOf(
+        "Juste une. Promis.",
+        "Anniversaire de Barnabé, ça compte pas",
+        "Happy hour, c'était obligé",
+        "Le cocktail avait une ombrelle, je regrette rien",
+        "Apéro sur le port 🌅",
+        "On a chanté des chants de marins",
+        "Coco m'a regardé bizarrement",
+    )
+
+    /** Combien de faux matelots sont tes amis. */
+    private const val FRIENDS = 3
+
     fun generate(now: LocalDateTime, size: Int = 8, random: Random = Random.Default): List<CrewMate> {
         val names = firstNames.shuffled(random).zip(nicknames.shuffled(random)) { first, nick -> "$first $nick" }
-        return names.take(size).map { name ->
+        return names.take(size).mapIndexed { index, name ->
             val temper = Temper.entries.random(random)
             val logs = (0L until Period.MOIS.days).flatMap { back ->
                 val day = now.toLocalDate().minusDays(back)
@@ -93,10 +124,11 @@ object FakeCrew {
                 val sessions = if (random.nextDouble() < temper.sportChance) random.nextInt(1, 3) else 0
                 val rounds = if (random.nextDouble() < temper.drinkChance) random.nextInt(1, 5) else 0
                 // Le sport en journée, la taverne le soir.
-                List(sessions) { LogEntry(name, sports.random(random), at(7, 20)) } +
-                    List(rounds) { LogEntry(name, drinks.random(random), at(17, 24)) }
+                fun note(pool: List<String>) = if (random.nextDouble() < 0.3) pool.random(random) else null
+                List(sessions) { LogEntry(name, sports.random(random), at(7, 20), note(sportNotes)) } +
+                    List(rounds) { LogEntry(name, drinks.random(random), at(17, 24), note(drinkNotes)) }
             }.filter { !it.at.isAfter(now) }
-            CrewMate(name, logs.sortedByDescending { it.at })
+            CrewMate(name, logs.sortedByDescending { it.at }, friend = index < FRIENDS)
         }
     }
 }

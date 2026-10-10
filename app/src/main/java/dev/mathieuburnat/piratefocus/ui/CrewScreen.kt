@@ -1,6 +1,15 @@
 package dev.mathieuburnat.piratefocus.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.font.FontStyle
+import dev.mathieuburnat.piratefocus.journal.Audience
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,10 +65,13 @@ private const val LOGS_PAGE = 15
 @Composable
 fun CrewScreen(crew: List<CrewMate>, myLogs: List<LogEntry>, onBack: () -> Unit) {
     var period by rememberSaveable { mutableStateOf(Period.JOUR) }
-    var shownLogs by remember(period) { mutableIntStateOf(LOGS_PAGE) }
+    var audience by rememberSaveable { mutableStateOf(Audience.FLOTTE) }
+    var shownLogs by remember(period, audience) { mutableIntStateOf(LOGS_PAGE) }
     val now = remember(myLogs) { LocalDateTime.now() }
 
-    val everyone = remember(crew, myLogs) { crew + CrewMate(ME, myLogs) }
+    val everyone = remember(crew, myLogs, audience) {
+        crew.filter { audience == Audience.FLOTTE || it.friend } + CrewMate(ME, myLogs)
+    }
     val logs = remember(everyone, period, now) {
         everyone.flatMap { it.logs }.filter { period.contains(it.at, now) }.sortedByDescending { it.at }
     }
@@ -114,7 +126,7 @@ fun CrewScreen(crew: List<CrewMate>, myLogs: List<LogEntry>, onBack: () -> Unit)
             PeriodTabs(period) { period = it }
 
             Spacer(Modifier.height(16.dp))
-            SectionTitle("-- Toute la flotte --")
+            AudiencePicker(audience) { audience = it }
             PixelBarChart(buckets)
 
             Spacer(Modifier.height(16.dp))
@@ -159,6 +171,33 @@ private fun SectionTitle(text: String) {
     )
 }
 
+/** « Toute la flotte ▾ » : un menu déroulant pour ne garder que les amis. */
+@Composable
+private fun AudiencePicker(audience: Audience, onSelect: (Audience) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Text(
+            "-- ${audience.label} ▾ --",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .clickable { open = true }
+                .padding(vertical = 4.dp),
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = RectangleShape) {
+            Audience.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(if (option == audience) "> ${option.label}" else "  ${option.label}") },
+                    onClick = {
+                        onSelect(option)
+                        open = false
+                    },
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun PeriodTabs(period: Period, onSelect: (Period) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -191,6 +230,10 @@ private fun PixelBarChart(buckets: List<Bucket>) {
     val axis = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
     val peak = max(1, buckets.maxOfOrNull { max(it.biscotos, it.taverne) } ?: 1)
 
+    // Les blocs montent gentiment, colonne après colonne, à chaque changement de données.
+    val grow = remember(buckets) { Animatable(0f) }
+    LaunchedEffect(buckets) { grow.animateTo(1f, tween(durationMillis = 1400, easing = LinearOutSlowInEasing)) }
+
     Canvas(
         Modifier
             .fillMaxWidth()
@@ -204,8 +247,9 @@ private fun PixelBarChart(buckets: List<Bucket>) {
         val block = (size.height - 4f) / maxBlocks
         val gap = block * 0.15f
 
-        fun column(x: Float, value: Int, color: Color) {
-            repeat(ceil(value / perBlock.toFloat()).toInt()) { i ->
+        fun column(x: Float, value: Int, color: Color, progress: Float) {
+            val blocks = ceil(value / perBlock.toFloat()).toInt()
+            repeat(ceil(blocks * progress).toInt()) { i ->
                 drawRect(
                     color = color,
                     topLeft = Offset(x, size.height - 2f - (i + 1) * block + gap),
@@ -216,8 +260,10 @@ private fun PixelBarChart(buckets: List<Bucket>) {
 
         buckets.forEachIndexed { index, bucket ->
             val x = index * slot + (slot - 2 * bar) / 2f
-            column(x, bucket.biscotos, sport)
-            column(x + bar, bucket.taverne, drink)
+            // Décalage de départ : la vague de blocs part de la gauche.
+            val progress = (grow.value * 1.6f - index / buckets.size.toFloat() * 0.6f).coerceIn(0f, 1f)
+            column(x, bucket.biscotos, sport, progress)
+            column(x + bar, bucket.taverne, drink, progress)
         }
         drawRect(axis, topLeft = Offset(0f, size.height - 2f), size = Size(size.width, 2f))
     }
@@ -258,6 +304,17 @@ private fun LogLine(log: LogEntry, period: Period) {
             modifier = Modifier.weight(1f),
         )
         Text("${log.entry.icon()} ${log.entry.label}", style = MaterialTheme.typography.bodySmall)
+    }
+    log.note?.let { note ->
+        Text(
+            "      « $note »",
+            style = MaterialTheme.typography.bodySmall,
+            fontStyle = FontStyle.Italic,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 3.dp),
+        )
     }
 }
 

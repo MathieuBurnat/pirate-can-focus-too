@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,6 +63,8 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit, onCrew: () ->
             side = side,
             captainLine = state.dialogLine,
             shouting = state.refused,
+            note = state.noteDraft,
+            onNoteChange = viewModel::editNote,
             count = journal::count,
             onAdd = viewModel::add,
             onRemove = viewModel::remove,
@@ -191,6 +194,8 @@ private fun AddDialog(
     side: Side,
     captainLine: String,
     shouting: Boolean,
+    note: String,
+    onNoteChange: (String) -> Unit,
     count: (Entry) -> Int,
     onAdd: (Entry) -> Unit,
     onRemove: (Entry) -> Unit,
@@ -245,6 +250,22 @@ private fun AddDialog(
                     )
                 }
                 Spacer(Modifier.height(8.dp))
+                // Un petit mot pour le journal de bord, collé au prochain point ajouté.
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = onNoteChange,
+                    placeholder = {
+                        Text(
+                            if (side == Side.SPORT) "> un mot sur ta séance ?" else "> un mot sur ta tournée ?",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    },
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    singleLine = true,
+                    shape = RectangleShape,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(4.dp))
                 Entry.entries.filter { it.side == side }.forEach { entry ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -263,7 +284,7 @@ private fun AddDialog(
                     }
                 }
                 Text(
-                    "Appui long pour rayer une ligne.",
+                    "Le mot (facultatif) part avec le prochain point. Appui long pour rayer une ligne.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp),
                 )

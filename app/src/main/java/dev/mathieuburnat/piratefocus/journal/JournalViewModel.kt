@@ -14,6 +14,8 @@ data class JournalUiState(
     val journal: JournalState = JournalState(),
     /** Tes lignes du journal de bord, de la plus récente à la plus ancienne. */
     val myLogs: List<LogEntry> = emptyList(),
+    /** Le petit mot (facultatif) qui accompagnera le prochain point ajouté. */
+    val noteDraft: String = "",
     val quote: String = JournalQuotes.verdict(Verdict.PAGE_BLANCHE),
     /** Le camp dont la fenêtre d'ajout est ouverte (null = fermée). */
     val adding: Side? = null,
@@ -40,7 +42,9 @@ class JournalViewModel : ViewModel() {
         it.copy(adding = side, dialogLine = JournalQuotes.greeting(side), refused = false)
     }
 
-    fun close() = _uiState.update { it.copy(adding = null) }
+    fun close() = _uiState.update { it.copy(adding = null, noteDraft = "") }
+
+    fun editNote(note: String) = _uiState.update { it.copy(noteDraft = note.take(80)) }
 
     fun add(entry: Entry) = _uiState.update { state ->
         // Passé le quota, le capitaine refuse le verre... sauf si on insiste.
@@ -55,7 +59,8 @@ class JournalViewModel : ViewModel() {
         val popup = if (isDrink && parrot == null) JournalQuotes.intervention(drinks) else null
         state.copy(
             journal = journal,
-            myLogs = listOf(LogEntry(ME, entry, LocalDateTime.now())) + state.myLogs,
+            myLogs = listOf(LogEntry(ME, entry, LocalDateTime.now(), state.noteDraft.trim().ifEmpty { null })) + state.myLogs,
+            noteDraft = "",
             quote = quoteFor(state, journal),
             dialogLine = if (state.refused) JournalQuotes.giveIn() else JournalQuotes.reaction(entry),
             refused = false,
