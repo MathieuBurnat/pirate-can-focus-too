@@ -85,9 +85,14 @@ private val happyCaptain = captain.mapIndexed { row, line ->
     }
 }
 
+/** L'œil revient au milieu du visage : le capitaine te regarde droit dans les yeux. */
+private fun List<String>.lookingAtYou(): List<String> =
+    mapIndexed { row, line -> if (row == 8) "..SPPPSSEESSSS.G" else line }
+
 /**
  * [tipsy] : le capitaine a un coup dans le nez et tangue même à quai.
  * [happy] : le capitaine est ravi.
+ * [lookingAtYou] : le capitaine regarde droit devant lui (vers toi).
  */
 @Composable
 fun PixelPirate(
@@ -96,13 +101,15 @@ fun PixelPirate(
     size: Dp = 192.dp,
     tipsy: Boolean = false,
     happy: Boolean = false,
+    lookingAtYou: Boolean = false,
 ) {
-    val sprite = when {
+    val base = when {
         tipsy -> tipsyCaptain
         happy -> happyCaptain
         phase == Phase.SUNK -> sunkCaptain
         else -> captain
     }
+    val sprite = if (lookingAtYou) base.lookingAtYou() else base
 
     // Le capitaine tangue quand il est en mer.
     val transition = rememberInfiniteTransition(label = "tangage")

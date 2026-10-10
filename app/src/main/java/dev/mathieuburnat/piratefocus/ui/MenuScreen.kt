@@ -57,8 +57,8 @@ fun MenuScreen(
         AlertDialog(
             onDismissRequest = { showNoAccount = false },
             shape = RectangleShape,
-            title = { Text("☠ PAS DE COMPTE ☠") },
-            text = { Text(AccountQuotes.NO_ACCOUNT_WARNING, style = MaterialTheme.typography.bodyMedium) },
+            title = { Text("⚓ BON À SAVOIR ⚓") },
+            text = { Text(AccountQuotes.NO_ACCOUNT_INFO, style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
                 TextButton(onClick = {
                     showNoAccount = false
@@ -122,11 +122,11 @@ fun MenuScreen(
             if (signedIn) {
                 MenuItem("4. MON COMPTE", onClick = onAccount)
             } else {
-                // Sans compte, le butin ne vit que sur ce téléphone : le capitaine le rappelle.
+                // Sans compte, le butin ne vit que sur ce téléphone : le capitaine le rappelle, gentiment.
                 Text(
-                    "[!] pas de compte : butin non sauvegardé",
+                    "[i] sans compte : butin rangé sur ce téléphone",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.error,
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.clickable { showNoAccount = true }.padding(vertical = 12.dp),
                 )
             }

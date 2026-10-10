@@ -110,7 +110,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                 MenuItem("SUPPRIMER MON COMPTE", onClick = { confirmDelete = true })
                 BusyAndError(state)
             } else {
-                NoAccountWarning()
+                NoAccountInfo()
                 Text("-- Créer un compte gratuit --", style = MaterialTheme.typography.titleSmall)
                 FreeAccountForm(
                     state = state,

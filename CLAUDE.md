@@ -69,11 +69,12 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── SettingsScreen.kt    # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
     ├── AccountScreen.kt     # « Mon compte » : pseudo, données publiques, déconnexion, suppression
-    ├── AccountForms.kt      # formulaire du compte gratuit (email puis code), avertissement sans compte
+    ├── AccountForms.kt      # formulaire du compte gratuit (email puis code), info sans compte, dé
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes
     ├── PixelPirate.kt       # le capitaine + palette et drawSprite() partagés
     ├── PixelParrot.kt       # Coco le perroquet (pop-up au 8e verre)
+    ├── PixelDice.kt         # le dé des pseudos de pirate (faces 1 à 6)
     ├── VersionFooter.kt     # version discrète en bas des pages (0.1.<nb de commits>)
     ├── PixelShip.kt         # le navire, centré, qui tangue pendant que les vagues défilent
     └── theme/Theme.kt       # couleurs "mer de nuit" + typo monospace partout

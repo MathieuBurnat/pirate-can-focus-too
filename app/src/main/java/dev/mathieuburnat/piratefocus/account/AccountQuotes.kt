@@ -9,10 +9,11 @@ object AccountQuotes {
 
     const val FREE_ACCOUNT = "Compte 100 % gratuit. Ton butin est mis à l'abri dans le cloud et te suit sur un autre téléphone."
 
-    /** L'avertissement des matelots sans compte. */
-    const val NO_ACCOUNT_WARNING =
-        "Attention, matelot sans pavillon ! Tu n'as pas de compte : ton butin n'est caché que dans la cale " +
-            "de ce téléphone. S'il coule, tout coule avec, à moins d'avoir fait une sauvegarde !"
+    /** Le petit mot pour les matelots sans compte : informatif, pas alarmiste. */
+    const val NO_ACCOUNT_INFO =
+        "Bon à savoir, matelot : sans compte, ton butin est rangé dans la cale de ce téléphone. " +
+            "Si le navire coule, le butin coule avec, sauf si tu fais une sauvegarde. " +
+            "Tu pourras créer un compte gratuit quand tu veux."
 
     const val PUBLIC_EXPLAINED = "Tes exploits apparaissent dans les statistiques de l'équipage, sous ton pseudo."
 
