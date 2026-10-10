@@ -44,7 +44,7 @@ npm test                              # tests dans le runtime Workers (Miniflare
 
 ```sh
 npx wrangler login
-npx wrangler d1 create pirate-db      # copier l'id dans wrangler.jsonc (database_id)
+npx wrangler d1 create pirate-can-focus-db      # copier l'id dans wrangler.jsonc (database_id)
 npm run db:migrate:remote
 npx wrangler secret put RESEND_API_KEY
 npm run deploy

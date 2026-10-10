@@ -6,8 +6,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "pirate-db",
-      // Remplacer par l'id affiché par `npx wrangler d1 create pirate-db`.
+      "database_name": "pirate-can-focus-db",
+      // Remplacer par l'id affiché par `npx wrangler d1 create pirate-can-focus-db`.
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
