@@ -3,6 +3,8 @@
   "name": "pirate-can-focus-too-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
+  // L'adresse publique de l'API (domaine géré par Cloudflare).
+  "routes": [{ "pattern": "yaawwwk-pirate-can-focus-too.helveticademia.ch", "custom_domain": true }],
   "d1_databases": [
     {
       "binding": "DB",

@@ -1,5 +1,7 @@
 # L'API du capitaine (Cloudflare Worker + D1)
 
+En ligne sur https://yaawwwk-pirate-can-focus-too.helveticademia.ch
+
 Sauvegarde des comptes, du journal de bord et du coffre (issue #8).
 Sans compte, l'app n'appelle jamais cette API : tout reste sur le téléphone.
 
