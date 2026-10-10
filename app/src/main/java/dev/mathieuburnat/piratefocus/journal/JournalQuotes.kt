@@ -88,6 +88,24 @@ object JournalQuotes {
         ),
     )
 
+    const val ERASED = "Rayé du journal. Personne n'a rien vu. Sauf moi."
+
+    private val greetings = mapOf(
+        Side.SPORT to listOf(
+            "Alors, qu'est-ce qu'on a soulevé aujourd'hui ?",
+            "Montre-moi ces biscotos, matelot !",
+            "Ah, enfin une bonne nouvelle ! Raconte.",
+        ),
+        Side.BOISSON to listOf(
+            "Hmm... Qu'est-ce qu'on a bu, moussaillon ?",
+            "La taverne, hein ? Avoue tout au capitaine.",
+            "*hic* ...Je veux dire : je t'écoute.",
+        ),
+    )
+
+    /** Ce que dit la petite tête du capitaine en ouvrant un camp. */
+    fun greeting(side: Side, random: Random = Random.Default): String = greetings.getValue(side).random(random)
+
     /** Félicitations du capitaine pour n'importe quelle séance de sport. */
     private val cheers = listOf(
         "Bravo moussaillon ! Tes biscotos font pâlir le kraken.",
