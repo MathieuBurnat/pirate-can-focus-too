@@ -25,6 +25,9 @@ class JournalViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(JournalUiState())
     val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
 
+    /** [dev] Un équipage imaginaire, tiré au sort à chaque lancement. */
+    val crew: List<CrewMate> = FakeCrew.generate()
+
     fun open(side: Side) = _uiState.update {
         it.copy(adding = side, dialogLine = JournalQuotes.greeting(side), refused = false)
     }

@@ -22,8 +22,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.mathieuburnat.piratefocus.focus.FocusViewModel
 import dev.mathieuburnat.piratefocus.guard.GuardPermissions
 import dev.mathieuburnat.piratefocus.journal.JournalViewModel
+import dev.mathieuburnat.piratefocus.journal.Score
+import dev.mathieuburnat.piratefocus.journal.Side
 
-private enum class Screen { MENU, FOCUS, JOURNAL, SETTINGS }
+private enum class Screen { MENU, FOCUS, JOURNAL, CREW, SETTINGS }
 
 /** Racine de l'app : le menu de pirate et la navigation entre les écrans. */
 @Composable
@@ -41,7 +43,9 @@ fun PirateApp(viewModel: FocusViewModel = viewModel(), journalViewModel: Journal
         onPauseOrDispose { }
     }
 
-    BackHandler(enabled = screen != Screen.MENU) { screen = Screen.MENU }
+    BackHandler(enabled = screen != Screen.MENU) {
+        screen = if (screen == Screen.CREW) Screen.JOURNAL else Screen.MENU
+    }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Les écrans ne gèrent plus la barre de navigation : le pied de page s'en charge.
@@ -56,7 +60,19 @@ fun PirateApp(viewModel: FocusViewModel = viewModel(), journalViewModel: Journal
                     onSettings = { screen = Screen.SETTINGS },
                 )
                 Screen.FOCUS -> FocusRoute(viewModel, guardReady = guardReady, onMenu = { screen = Screen.MENU })
-                Screen.JOURNAL -> JournalScreen(journalViewModel, onBack = { screen = Screen.MENU })
+                Screen.JOURNAL -> JournalScreen(
+                    journalViewModel,
+                    onBack = { screen = Screen.MENU },
+                    onCrew = { screen = Screen.CREW },
+                )
+                Screen.CREW -> {
+                    val journal by journalViewModel.uiState.collectAsStateWithLifecycle()
+                    CrewScreen(
+                        crew = journalViewModel.crew,
+                        myToday = Score(journal.journal.total(Side.SPORT), journal.journal.total(Side.BOISSON)),
+                        onBack = { screen = Screen.JOURNAL },
+                    )
+                }
                 Screen.SETTINGS -> SettingsScreen(onBack = { screen = Screen.MENU })
             }
         }

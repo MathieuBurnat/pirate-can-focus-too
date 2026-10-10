@@ -42,7 +42,8 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 ├── journal/                 # journal secret (7 taps sur le menu) : sport contre boissons
 │   ├── Journal.kt           # compteurs et verdict du capitaine (logique pure, testée)
 │   ├── JournalQuotes.kt     # insultes, réactions par boisson, interventions tous les 5 verres
-│   └── JournalViewModel.kt  # en mémoire seulement : remis à zéro à chaque lancement
+│   ├── JournalViewModel.kt  # en mémoire seulement : remis à zéro à chaque lancement
+│   └── Crew.kt              # [dev] équipage imaginaire, scores jour/semaine/mois
 ├── focus/
 │   ├── FocusTimer.kt        # logique pure du minuteur (testée unitairement)
 │   ├── FocusViewModel.kt    # état de l'écran, boucle de décompte
@@ -51,6 +52,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── PirateApp.kt         # navigation : menu, focus, paramètres
     ├── MenuScreen.kt        # menu de démarrage (journal grisé, déverrouillé après 7 taps)
     ├── JournalScreen.kt     # BISCOTOS VS TAVERNE (toucher un camp ouvre ses activités, commentées par une petite tête du capitaine), capitaine pompette si ça boit trop
+    ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (classement [dev])
     ├── SettingsScreen.kt    # autorisations du gardien + liste noire
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes

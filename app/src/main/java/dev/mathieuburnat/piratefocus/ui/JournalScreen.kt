@@ -53,7 +53,7 @@ private fun Side.color(): Color =
     if (this == Side.SPORT) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
 
 @Composable
-fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit) {
+fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit, onCrew: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val journal = state.journal
 
@@ -123,6 +123,18 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit) {
                 "Touche un camp pour y ajouter des points.",
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 8.dp),
+            )
+
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "> VOIR LES AUTRES MATELOTS [dev]",
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground), RectangleShape)
+                    .clickable(onClick = onCrew)
+                    .padding(14.dp),
             )
 
             Spacer(Modifier.height(16.dp))
