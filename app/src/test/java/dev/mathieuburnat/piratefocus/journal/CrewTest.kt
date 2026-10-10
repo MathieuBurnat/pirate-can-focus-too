@@ -59,6 +59,17 @@ class CrewTest {
     }
 
     @Test
+    fun `NO PAIN NO GAIN classe par biscotos puis par sobriété`() {
+        val crew = listOf(
+            CrewMate("A", listOf(LogEntry("A", Entry.GRIMPE, now), LogEntry("A", Entry.VIN, now))),
+            CrewMate("B", listOf(LogEntry("B", Entry.GRIMPE, now))),
+            CrewMate("C", listOf(LogEntry("C", Entry.GRIMPE, now), LogEntry("C", Entry.ABDOS, now))),
+        )
+        assertEquals(listOf("C", "B", "A"), CrewStats.noPainRanking(crew, Period.JOUR, now).map { it.first })
+        assertEquals(Score(4, 1), CrewStats.teamTotal(crew, Period.JOUR, now))
+    }
+
+    @Test
     fun `le verdict d'un score suit les règles du journal`() {
         assertEquals(Verdict.EPONGE, Score(0, 4).verdict)
         assertEquals(Verdict.SPORTIF, Score(5, 2).verdict)

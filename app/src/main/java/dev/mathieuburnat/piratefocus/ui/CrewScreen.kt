@@ -10,6 +10,10 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.text.font.FontStyle
 import dev.mathieuburnat.piratefocus.journal.Audience
+import dev.mathieuburnat.piratefocus.journal.StatsMode
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -76,10 +80,9 @@ fun CrewScreen(crew: List<CrewMate>, myLogs: List<LogEntry>, onBack: () -> Unit)
         everyone.flatMap { it.logs }.filter { period.contains(it.at, now) }.sortedByDescending { it.at }
     }
     val buckets = remember(logs, period, now) { CrewStats.buckets(logs, period, now) }
-    val rows = remember(everyone, period, now) {
-        everyone.map { it.name to it.score(period, now) }
-            .sortedByDescending { (_, score) -> score.biscotos - score.taverne }
-    }
+    var mode by rememberSaveable { mutableStateOf(StatsMode.ENSEMBLE) }
+    val rows = remember(everyone, period, now) { CrewStats.noPainRanking(everyone, period, now) }
+    val total = remember(everyone, period, now) { CrewStats.teamTotal(everyone, period, now) }
     // Personne ne gagne un titre avec zéro point.
     val strongest = rows.maxBy { it.second.biscotos }.takeIf { it.second.biscotos > 0 }?.first ?: "personne"
     val thirstiest = rows.maxBy { it.second.taverne }.takeIf { it.second.taverne > 0 }?.first ?: "personne"
@@ -123,36 +126,48 @@ fun CrewScreen(crew: List<CrewMate>, myLogs: List<LogEntry>, onBack: () -> Unit)
             }
 
             Spacer(Modifier.height(12.dp))
-            PeriodTabs(period) { period = it }
+            Tabs(Period.entries, period, { it.label }) { period = it }
+
+            Spacer(Modifier.height(8.dp))
+            Tabs(StatsMode.entries, mode, { it.label }) { mode = it }
 
             Spacer(Modifier.height(16.dp))
             AudiencePicker(audience) { audience = it }
-            PixelBarChart(buckets)
 
-            Spacer(Modifier.height(16.dp))
-            SectionTitle("-- Journal de bord --")
-            if (logs.isEmpty()) {
-                Text("Rien à signaler, capitaine.", style = MaterialTheme.typography.bodySmall)
-            }
-            logs.take(shownLogs).forEach { log -> LogLine(log, period) }
-            if (logs.size > shownLogs) {
-                Text(
-                    "> VOIR PLUS (${logs.size - shownLogs})",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier
-                        .clickable { shownLogs += LOGS_PAGE }
-                        .padding(vertical = 8.dp),
-                )
-            }
+            when (mode) {
+                StatsMode.ENSEMBLE -> {
+                    TeamTotals(total)
+                    Spacer(Modifier.height(16.dp))
+                    PixelBarChart(buckets)
 
-            Spacer(Modifier.height(16.dp))
-            SectionTitle("-- Classement --")
-            Leaderboard(rows)
+                    Spacer(Modifier.height(16.dp))
+                    SectionTitle("-- Journal de bord --")
+                    if (logs.isEmpty()) {
+                        Text("Rien à signaler, capitaine.", style = MaterialTheme.typography.bodySmall)
+                    }
+                    logs.take(shownLogs).forEach { log -> LogLine(log, period) }
+                    if (logs.size > shownLogs) {
+                        Text(
+                            "> VOIR PLUS (${logs.size - shownLogs})",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier
+                                .clickable { shownLogs += LOGS_PAGE }
+                                .padding(vertical = 8.dp),
+                        )
+                    }
+                }
+                StatsMode.NO_PAIN -> {
+                    Podium(rows.take(3))
+                    Spacer(Modifier.height(16.dp))
+                    SectionTitle("-- Classement des biscotos --")
+                    Leaderboard(rows)
+                }
+            }
 
             Spacer(Modifier.height(12.dp))
             Text(
-                "Classement : biscotos moins taverne. Les vrais matelots arriveront bientôt.",
+                "Les vrais matelots arriveront bientôt.",
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -199,22 +214,100 @@ private fun AudiencePicker(audience: Audience, onSelect: (Audience) -> Unit) {
 }
 
 @Composable
-private fun PeriodTabs(period: Period, onSelect: (Period) -> Unit) {
+private fun <T> Tabs(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        Period.entries.forEach { p ->
-            val selected = p == period
-            val color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+        options.forEach { option ->
+            val isSelected = option == selected
+            val color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
             Text(
-                if (selected) "[${p.label}]" else p.label,
+                if (isSelected) "[${label(option)}]" else label(option),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelLarge,
                 color = color,
+                maxLines = 1,
                 modifier = Modifier
                     .weight(1f)
                     .border(BorderStroke(2.dp, color), RectangleShape)
-                    .clickable { onSelect(p) }
+                    .clickable { onSelect(option) }
                     .padding(vertical = 10.dp),
             )
+        }
+    }
+}
+
+/** ENSEMBLE : les compteurs de tout l'équipage, qui défilent jusqu'au total. */
+@Composable
+private fun TeamTotals(total: Score) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+        CountUpBox("BISCOTOS", total.biscotos, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
+        CountUpBox("TAVERNE", total.taverne, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun CountUpBox(title: String, target: Int, color: Color, modifier: Modifier = Modifier) {
+    val counter = remember(target) { Animatable(0f) }
+    LaunchedEffect(target) { counter.animateTo(target.toFloat(), tween(durationMillis = 1200, easing = LinearOutSlowInEasing)) }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .border(BorderStroke(2.dp, color), RectangleShape)
+            .padding(vertical = 10.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.labelLarge, color = color)
+        Text("%03d".format(counter.value.roundToInt()), fontSize = 40.sp, fontWeight = FontWeight.Bold, color = color)
+        Text("pour tout l'équipage", style = MaterialTheme.typography.labelSmall, color = color)
+    }
+}
+
+/** NO PAIN NO GAIN : le podium des trois plus gros biscotos, marches en blocs qui montent. */
+@Composable
+private fun Podium(top: List<Pair<String, Score>>) {
+    if (top.isEmpty()) return
+    val medals = listOf("🥇", "🥈", "🥉")
+    // Ordre classique d'un podium : 2e, 1er, 3e.
+    val order = listOf(1, 0, 2).filter { it < top.size }
+    val heights = mapOf(0 to 96.dp, 1 to 68.dp, 2 to 48.dp)
+    val rise = remember(top) { Animatable(0f) }
+    LaunchedEffect(top) { rise.animateTo(1f, tween(durationMillis = 900, easing = LinearOutSlowInEasing)) }
+
+    Text(
+        "NO PAIN NO GAIN, moussaillons !",
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.secondary,
+        modifier = Modifier.padding(bottom = 8.dp),
+    )
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Bottom,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        order.forEach { rank ->
+            val (name, score) = top[rank]
+            val me = name == ME
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                Text(medals[rank], fontSize = 24.sp)
+                Text(
+                    name,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (me) FontWeight.Bold else FontWeight.Normal,
+                    color = if (me) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text("${score.biscotos} 💪", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(heights.getValue(rank) * rise.value)
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.35f + 0.2f * (2 - rank)))
+                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.secondary), RectangleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("${rank + 1}", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                }
+            }
         }
     }
 }

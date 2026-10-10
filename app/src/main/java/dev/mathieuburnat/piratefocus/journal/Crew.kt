@@ -44,7 +44,25 @@ data class CrewMate(val name: String, val logs: List<LogEntry>, val friend: Bool
 /** Une barre du graphique : un créneau de temps et ses points. */
 data class Bucket(val label: String, val biscotos: Int, val taverne: Int)
 
+/** Les deux façons de regarder l'équipage. */
+enum class StatsMode(val label: String) {
+    /** Tous ensemble : les compteurs cumulés de l'équipage. */
+    ENSEMBLE("ENSEMBLE"),
+
+    /** Chacun pour soi : le podium des plus gros biscotos. */
+    NO_PAIN("NO PAIN NO GAIN"),
+}
+
 object CrewStats {
+
+    /** Le total cumulé de tout l'équipage sur la période. */
+    fun teamTotal(crew: List<CrewMate>, period: Period, now: LocalDateTime): Score =
+        crew.map { it.score(period, now) }.fold(Score(0, 0)) { a, b -> Score(a.biscotos + b.biscotos, a.taverne + b.taverne) }
+
+    /** NO PAIN NO GAIN : les plus gros biscotos d'abord, et à égalité, le moins de taverne gagne. */
+    fun noPainRanking(crew: List<CrewMate>, period: Period, now: LocalDateTime): List<Pair<String, Score>> =
+        crew.map { it.name to it.score(period, now) }
+            .sortedWith(compareByDescending<Pair<String, Score>> { it.second.biscotos }.thenBy { it.second.taverne })
 
     /** Découpe la période en créneaux : par tranches de 2 h sur la journée, par jour sinon. */
     fun buckets(logs: List<LogEntry>, period: Period, now: LocalDateTime): List<Bucket> {
