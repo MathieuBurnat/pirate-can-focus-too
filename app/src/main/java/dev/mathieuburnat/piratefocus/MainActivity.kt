@@ -6,12 +6,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import dev.mathieuburnat.piratefocus.focus.ChestStore
 import dev.mathieuburnat.piratefocus.focus.FocusViewModel
 import dev.mathieuburnat.piratefocus.focus.Phase
 import dev.mathieuburnat.piratefocus.guard.FocusGuardService
 import dev.mathieuburnat.piratefocus.guard.GuardPermissions
 import dev.mathieuburnat.piratefocus.ui.PirateApp
 import dev.mathieuburnat.piratefocus.ui.theme.PirateFocusTheme
+import dev.mathieuburnat.piratefocus.journal.JournalStore
 import dev.mathieuburnat.piratefocus.journal.JournalViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -21,8 +25,13 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    private val focusViewModel: FocusViewModel by viewModels()
-    private val journalViewModel: JournalViewModel by viewModels()
+    // Les deux ViewModels reçoivent leur coffre et leur journal rangés sur le téléphone.
+    private val focusViewModel: FocusViewModel by viewModels {
+        viewModelFactory { initializer { FocusViewModel(ChestStore(application)) } }
+    }
+    private val journalViewModel: JournalViewModel by viewModels {
+        viewModelFactory { initializer { JournalViewModel(JournalStore(application)) } }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

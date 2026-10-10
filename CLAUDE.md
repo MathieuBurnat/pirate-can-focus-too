@@ -16,7 +16,8 @@ accompagne l'utilisateur, avec une interface entièrement en **police monospace*
 - Kotlin, Jetpack Compose (Material 3), une seule Activity.
 - Gradle Kotlin DSL + catalogue de versions (`gradle/libs.versions.toml`).
 - `minSdk 26`, `targetSdk`/`compileSdk 35`, JVM 17.
-- Pas de dépendance réseau ni de backend : tout est local.
+- Pas de dépendance réseau ni de backend pour l'instant : tout est local (journal et doublons sauvegardés sur le téléphone).
+  La sauvegarde sur Cloudflare (Worker + D1) est en cours : issue #8.
 
 ## Environnement du développeur
 
@@ -42,11 +43,15 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 ├── journal/                 # journal secret (7 taps sur le menu) : sport contre boissons
 │   ├── Journal.kt           # compteurs et verdict du capitaine (logique pure, testée)
 │   ├── JournalQuotes.kt     # insultes, réactions par boisson, interventions tous les 5 verres
-│   ├── JournalViewModel.kt  # en mémoire seulement : remis à zéro à chaque lancement
+│   ├── JournalViewModel.kt  # compteurs du jour, journal de bord chargé depuis un LogBook
+│   ├── LogBook.kt           # où ranger le journal (interface ; Forgetful pour les tests)
+│   ├── JournalStore.kt      # LogBook sur le téléphone : fichier journal.tsv (écriture atomique)
+│   ├── JournalCodec.kt      # journal <-> texte, une ligne par entrée (logique pure, testée)
 │   └── Crew.kt              # [dev] équipage imaginaire, scores jour/semaine/mois
 ├── focus/
 │   ├── FocusTimer.kt        # logique pure du minuteur (testée unitairement)
 │   ├── FocusViewModel.kt    # état de l'écran, boucle de décompte
+│   ├── ChestStore.kt        # le coffre : doublons et traversées gardés (SharedPreferences)
 │   └── PirateQuotes.kt      # répliques du capitaine selon la phase
 └── ui/
     ├── PirateApp.kt         # navigation : menu, focus, paramètres

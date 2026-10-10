@@ -1,10 +1,18 @@
 package dev.mathieuburnat.piratefocus.journal
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /** Ton nom dans le journal de bord et le classement. */
@@ -32,11 +40,24 @@ data class JournalUiState(
     val refused: Boolean get() = pending != null
 }
 
-/** Les compteurs vivent en mémoire : ils repartent à zéro à chaque lancement de l'app. */
-class JournalViewModel : ViewModel() {
+/**
+ * Le journal de bord est rangé dans [store] (sur le téléphone : [JournalStore]) et survit à la fermeture de l'app.
+ * Les compteurs, eux, ne montrent que la journée en cours.
+ */
+class JournalViewModel(private val store: LogBook = LogBook.Forgetful) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(JournalUiState())
+    private val _uiState = MutableStateFlow(initialState(store.load()))
     val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
+
+    init {
+        // Chaque ligne ajoutée ou rayée est recopiée dans le fichier (drop(1) : ce qui vient d'être lu y est déjà ;
+        // UNDISPATCHED : l'abonnement est pris tout de suite, avant qu'un premier ajout ne puisse filer).
+        if (store != LogBook.Forgetful) {
+            viewModelScope.launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
+                _uiState.map { it.myLogs }.distinctUntilChanged().drop(1).collect(store::save)
+            }
+        }
+    }
 
     /** [dev] Un équipage imaginaire, tiré au sort à chaque lancement. */
     val crew: List<CrewMate> = FakeCrew.generate(LocalDateTime.now())
@@ -106,6 +127,12 @@ class JournalViewModel : ViewModel() {
     fun dismissPopup() = _uiState.update { it.copy(popup = null) }
 
     fun dismissParrot() = _uiState.update { it.copy(parrot = null) }
+
+    private fun initialState(logs: List<LogEntry>): JournalUiState {
+        val myLogs = logs.sortedByDescending { it.at }
+        val journal = JournalState.today(myLogs, LocalDate.now())
+        return JournalUiState(journal = journal, myLogs = myLogs, quote = JournalQuotes.verdict(journal.verdict))
+    }
 
     /** Le capitaine change d'avis seulement quand le verdict change. */
     private fun quoteFor(state: JournalUiState, journal: JournalState): String =

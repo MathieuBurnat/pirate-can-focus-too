@@ -2,11 +2,15 @@ package dev.mathieuburnat.piratefocus.focus
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -16,10 +20,22 @@ data class FocusUiState(
     val quote: String = PirateQuotes.randomFor(Phase.IDLE),
 )
 
-class FocusViewModel : ViewModel() {
+/** [chest] garde les doublons et les traversées entre deux lancements (null : rien n'est gardé). */
+class FocusViewModel(private val chest: ChestStore? = null) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(FocusUiState())
+    private val _uiState = MutableStateFlow(FocusUiState(timer = chest?.load() ?: FocusState()))
     val uiState: StateFlow<FocusUiState> = _uiState.asStateFlow()
+
+    init {
+        // Le butin rejoint le coffre dès qu'une traversée rapporte quelque chose.
+        if (chest != null) {
+            viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                _uiState.map { it.timer }.distinctUntilChangedBy { it.doubloons to it.voyages }.drop(1).collect {
+                    chest.save(it.doubloons, it.voyages)
+                }
+            }
+        }
+    }
 
     private var ticker: Job? = null
 

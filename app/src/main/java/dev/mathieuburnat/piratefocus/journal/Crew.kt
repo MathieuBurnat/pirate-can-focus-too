@@ -1,6 +1,7 @@
 package dev.mathieuburnat.piratefocus.journal
 
 import java.time.LocalDateTime
+import java.util.UUID
 import kotlin.random.Random
 
 enum class Period(val label: String, val days: Long) {
@@ -13,8 +14,17 @@ enum class Period(val label: String, val days: Long) {
         !at.isAfter(now) && at.toLocalDate().isAfter(now.toLocalDate().minusDays(days))
 }
 
-/** Une ligne du journal de bord : qui a fait (ou bu) quoi, quand, et ce qu'il en dit. */
-data class LogEntry(val who: String, val entry: Entry, val at: LocalDateTime, val note: String? = null)
+/**
+ * Une ligne du journal de bord : qui a fait (ou bu) quoi, quand, et ce qu'il en dit.
+ * [id] identifie la ligne pour de bon (sauvegarde locale, puis synchronisation).
+ */
+data class LogEntry(
+    val who: String,
+    val entry: Entry,
+    val at: LocalDateTime,
+    val note: String? = null,
+    val id: String = UUID.randomUUID().toString(),
+)
 
 /** Qui afficher dans les statistiques. */
 enum class Audience(val label: String) {
