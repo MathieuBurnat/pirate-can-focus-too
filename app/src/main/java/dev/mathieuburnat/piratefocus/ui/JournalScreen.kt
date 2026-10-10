@@ -67,6 +67,7 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit, onCrew: () ->
             onNoteChange = viewModel::editNote,
             count = journal::count,
             onAdd = viewModel::add,
+            onInsist = viewModel::insist,
             onRemove = viewModel::remove,
             onDismiss = viewModel::close,
         )
@@ -198,6 +199,7 @@ private fun AddDialog(
     onNoteChange: (String) -> Unit,
     count: (Entry) -> Int,
     onAdd: (Entry) -> Unit,
+    onInsist: () -> Unit,
     onRemove: (Entry) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -247,6 +249,21 @@ private fun AddDialog(
                                 RectangleShape,
                             )
                             .padding(8.dp),
+                    )
+                }
+                // Le verre refusé ne compte que si on insiste, exprès, avec ce bouton.
+                if (shouting) {
+                    Text(
+                        "> J'INSISTE 🍺",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = alarm,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .border(BorderStroke(2.dp, alarm), RectangleShape)
+                            .clickable(onClick = onInsist)
+                            .padding(10.dp),
                     )
                 }
                 Spacer(Modifier.height(8.dp))

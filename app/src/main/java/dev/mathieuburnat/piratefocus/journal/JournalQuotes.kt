@@ -119,7 +119,8 @@ object JournalQuotes {
     )
 
     /** Le capitaine fait barrage (affiché en grand et en rouge). */
-    fun refusal(random: Random = Random.Default): String = refusals.random(random)
+    fun refusal(current: String? = null, random: Random = Random.Default): String =
+        refusals.filter { it != current }.random(random)
 
     /** On a insisté : le capitaine cède en ronchonnant. */
     fun giveIn(random: Random = Random.Default): String = givingIn.random(random)

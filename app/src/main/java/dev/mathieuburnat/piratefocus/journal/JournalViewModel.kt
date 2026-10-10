@@ -21,13 +21,16 @@ data class JournalUiState(
     val adding: Side? = null,
     /** Ce que dit la petite tête du capitaine dans la fenêtre d'ajout. */
     val dialogLine: String = "",
-    /** Le capitaine vient de refuser un verre : il crie, et il cédera au prochain tap. */
-    val refused: Boolean = false,
+    /** Le verre que le capitaine vient de refuser : il ne compte que si on appuie sur « J'INSISTE ». */
+    val pending: Entry? = null,
     /** Grande intervention à afficher en pop-up. */
     val popup: String? = null,
     /** Coco le perroquet débarque (trop de verres dans la soirée). */
     val parrot: String? = null,
-)
+) {
+    /** Le capitaine est en train de crier « NON ! PAS ENCORE ! ». */
+    val refused: Boolean get() = pending != null
+}
 
 /** Les compteurs vivent en mémoire : ils repartent à zéro à chaque lancement de l'app. */
 class JournalViewModel : ViewModel() {
@@ -39,31 +42,42 @@ class JournalViewModel : ViewModel() {
     val crew: List<CrewMate> = FakeCrew.generate(LocalDateTime.now())
 
     fun open(side: Side) = _uiState.update {
-        it.copy(adding = side, dialogLine = JournalQuotes.greeting(side), refused = false)
+        it.copy(adding = side, dialogLine = JournalQuotes.greeting(side), pending = null)
     }
 
-    fun close() = _uiState.update { it.copy(adding = null, noteDraft = "") }
+    fun close() = _uiState.update { it.copy(adding = null, noteDraft = "", pending = null) }
 
     fun editNote(note: String) = _uiState.update { it.copy(noteDraft = note.take(80)) }
 
     fun add(entry: Entry) = _uiState.update { state ->
-        // Passé le quota, le capitaine refuse le verre... sauf si on insiste.
-        if (JournalRules.refuses(entry, state.journal, insisting = state.refused)) {
-            return@update state.copy(dialogLine = JournalQuotes.refusal(), refused = true)
+        // Passé le quota, le capitaine refuse le verre : rien n'est compté, il faut insister exprès.
+        if (JournalRules.refuses(entry, state.journal, insisting = false)) {
+            state.copy(dialogLine = JournalQuotes.refusal(current = state.dialogLine), pending = entry)
+        } else {
+            commit(state, entry, insisted = false)
         }
+    }
+
+    /** « J'INSISTE » : le capitaine cède, et le verre refusé est enfin noté. */
+    fun insist() = _uiState.update { state ->
+        state.pending?.let { commit(state, it, insisted = true) } ?: state
+    }
+
+    /** Note le point pour de bon : compteurs, journal de bord, réactions et pop-ups. */
+    private fun commit(state: JournalUiState, entry: Entry, insisted: Boolean): JournalUiState {
         val journal = state.journal.add(entry)
         val drinks = journal.total(Side.BOISSON)
         val isDrink = entry.side == Side.BOISSON
         // Coco le perroquet a la priorité sur le capitaine.
         val parrot = if (isDrink && JournalRules.parrotAppears(drinks)) JournalQuotes.parrot(drinks) else null
         val popup = if (isDrink && parrot == null) JournalQuotes.intervention(drinks) else null
-        state.copy(
+        return state.copy(
             journal = journal,
             myLogs = listOf(LogEntry(ME, entry, LocalDateTime.now(), state.noteDraft.trim().ifEmpty { null })) + state.myLogs,
             noteDraft = "",
             quote = quoteFor(state, journal),
-            dialogLine = if (state.refused) JournalQuotes.giveIn() else JournalQuotes.reaction(entry),
-            refused = false,
+            dialogLine = if (insisted) JournalQuotes.giveIn() else JournalQuotes.reaction(entry),
+            pending = null,
             popup = popup,
             parrot = parrot,
         )
@@ -74,7 +88,7 @@ class JournalViewModel : ViewModel() {
         // On raye la dernière ligne de ce type (les logs sont rangés du plus récent au plus ancien).
         val index = state.myLogs.indexOfFirst { it.entry == entry }
         val myLogs = if (index >= 0) state.myLogs.filterIndexed { i, _ -> i != index } else state.myLogs
-        state.copy(journal = journal, myLogs = myLogs, quote = quoteFor(state, journal), dialogLine = JournalQuotes.ERASED, refused = false)
+        state.copy(journal = journal, myLogs = myLogs, quote = quoteFor(state, journal), dialogLine = JournalQuotes.ERASED, pending = null)
     }
 
     fun newQuote() = _uiState.update {

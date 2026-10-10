@@ -45,6 +45,23 @@ class JournalTest {
     }
 
     @Test
+    fun `un verre refusé ne compte pas, même en tapant encore, sauf avec J'INSISTE`() {
+        val vm = JournalViewModel()
+        repeat(3) { vm.add(Entry.BIERE) }
+        assertEquals(3, vm.uiState.value.journal.total(Side.BOISSON))
+
+        vm.add(Entry.BIERE)
+        vm.add(Entry.VIN)
+        assertEquals(3, vm.uiState.value.journal.total(Side.BOISSON))
+        assertEquals(true, vm.uiState.value.refused)
+
+        vm.insist()
+        assertEquals(4, vm.uiState.value.journal.total(Side.BOISSON))
+        assertEquals(1, vm.uiState.value.journal.count(Entry.VIN))
+        assertEquals(false, vm.uiState.value.refused)
+    }
+
+    @Test
     fun `Coco débarque au huitième verre puis tous les quatre`() {
         assertEquals(listOf(8, 12, 16), (1..17).filter(JournalRules::parrotAppears))
     }
