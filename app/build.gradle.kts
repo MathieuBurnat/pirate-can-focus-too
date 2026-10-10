@@ -4,6 +4,30 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+/**
+ * Nombre de commits sur la branche courante : le dernier chiffre de la version (0.1.x).
+ * Sous Windows, git vit dans WSL, d'où le second essai via `wsl`.
+ */
+fun gitCommitCount(): Int {
+    val attempts = listOf(
+        listOf("git", "rev-list", "--count", "HEAD"),
+        listOf("wsl", "git", "rev-list", "--count", "HEAD"),
+    )
+    for (command in attempts) {
+        val count = runCatching {
+            providers.exec {
+                commandLine(command)
+                workingDir = rootDir
+                isIgnoreExitValue = true
+            }.standardOutput.asText.get().trim().toInt()
+        }.getOrNull()
+        if (count != null) return count
+    }
+    return 0
+}
+
+val commitCount = gitCommitCount()
+
 android {
     namespace = "dev.mathieuburnat.piratefocus"
     compileSdk = 35
@@ -12,8 +36,8 @@ android {
         applicationId = "dev.mathieuburnat.piratefocus"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = commitCount.coerceAtLeast(1)
+        versionName = "0.1.$commitCount"
     }
 
     buildTypes {
@@ -34,6 +58,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

@@ -34,6 +34,8 @@ internal val palette = mapOf(
     'G' to Color(0xFFF4C542), // boucle d'oreille en or
     'X' to Color(0xFF7FB7D9), // larme (naufrage)
     'C' to Color(0xFFF28B82), // joues roses (pompette)
+    'Q' to Color(0xFFE53935), // plumes rouges de Coco
+    'A' to Color(0xFF3F7FD9), // ailes bleues de Coco
 )
 
 private val captain = listOf(
@@ -74,11 +76,30 @@ private val tipsyCaptain = captain.mapIndexed { row, line ->
     }
 }
 
-/** [tipsy] : le capitaine a un coup dans le nez et tangue même à quai. */
+/** Version ravie : grand sourire jusqu'aux oreilles. */
+private val happyCaptain = captain.mapIndexed { row, line ->
+    when (row) {
+        11 -> "..BSMSSSSSSMSB.."
+        12 -> "..BBSMMMMMMSBB.."
+        else -> line
+    }
+}
+
+/**
+ * [tipsy] : le capitaine a un coup dans le nez et tangue même à quai.
+ * [happy] : le capitaine est ravi.
+ */
 @Composable
-fun PixelPirate(phase: Phase, modifier: Modifier = Modifier, size: Dp = 192.dp, tipsy: Boolean = false) {
+fun PixelPirate(
+    phase: Phase,
+    modifier: Modifier = Modifier,
+    size: Dp = 192.dp,
+    tipsy: Boolean = false,
+    happy: Boolean = false,
+) {
     val sprite = when {
         tipsy -> tipsyCaptain
+        happy -> happyCaptain
         phase == Phase.SUNK -> sunkCaptain
         else -> captain
     }

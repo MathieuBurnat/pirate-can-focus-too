@@ -10,6 +10,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,6 +37,7 @@ import dev.mathieuburnat.piratefocus.focus.Phase
 import dev.mathieuburnat.piratefocus.focus.PirateQuotes
 import dev.mathieuburnat.piratefocus.ui.PixelPirate
 import dev.mathieuburnat.piratefocus.ui.TypewriterText
+import dev.mathieuburnat.piratefocus.ui.VersionFooter
 import dev.mathieuburnat.piratefocus.ui.theme.PirateFocusTheme
 
 /** L'écran qui surgit quand on ouvre une appli interdite en pleine traversée. */
@@ -49,8 +53,14 @@ class CaughtActivity : ComponentActivity() {
                 BackHandler { backToShip() }
                 var quote by remember { mutableStateOf(PirateQuotes.caught(appName)) }
                 Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+                  Column {
                     Column(
-                        modifier = Modifier.safeDrawingPadding().padding(24.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .consumeWindowInsets(WindowInsets.navigationBars)
+                            .safeDrawingPadding()
+                            .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
@@ -69,6 +79,8 @@ class CaughtActivity : ComponentActivity() {
                             Text("> RETOUR AU NAVIRE")
                         }
                     }
+                    VersionFooter()
+                  }
                 }
             }
         }

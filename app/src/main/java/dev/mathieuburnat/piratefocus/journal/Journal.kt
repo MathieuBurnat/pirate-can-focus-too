@@ -1,6 +1,7 @@
 package dev.mathieuburnat.piratefocus.journal
 
-enum class Side { SPORT, BOISSON }
+/** SPORT et BOISSON se notent à la main ; FOCUS se note tout seul à chaque traversée terminée. */
+enum class Side { SPORT, BOISSON, FOCUS }
 
 enum class Entry(val side: Side, val label: String, val detail: String) {
     MEGA_SEANCE(Side.SPORT, "Méga séance", "pompes, tractions"),
@@ -9,6 +10,7 @@ enum class Entry(val side: Side, val label: String, val detail: String) {
     BIERE(Side.BOISSON, "Bière", "la pinte du marin"),
     COCKTAIL(Side.BOISSON, "Cocktail", "avec une ombrelle"),
     VIN(Side.BOISSON, "Vin !", "rouge, blanc, rosé"),
+    TRAVERSEE(Side.FOCUS, "Traversée", "session de focus terminée"),
 }
 
 /** Le verdict du capitaine selon le match muscles contre bouteilles. */
@@ -30,6 +32,21 @@ enum class Verdict {
 
     /** Plus de séances que de verres. */
     SPORTIF,
+}
+
+object JournalRules {
+    /** Au-delà de ce nombre de verres, le capitaine fait barrage. */
+    const val DRINK_LIMIT = 3
+
+    /** Le capitaine refuse un verre de plus au-delà de la limite, sauf si on insiste (second tap). */
+    fun refuses(entry: Entry, journal: JournalState, insisting: Boolean): Boolean =
+        entry.side == Side.BOISSON && journal.total(Side.BOISSON) >= DRINK_LIMIT && !insisting
+
+    /** À partir de ce nombre de verres dans la soirée, Coco le perroquet débarque. */
+    const val PARROT_LIMIT = 8
+
+    /** Coco surgit au 8e verre, puis tous les 4 verres (12, 16...). */
+    fun parrotAppears(drinks: Int): Boolean = drinks >= PARROT_LIMIT && (drinks - PARROT_LIMIT) % 4 == 0
 }
 
 /** Le carnet de bord du jour (remis à zéro à chaque lancement, pour l'instant). */
