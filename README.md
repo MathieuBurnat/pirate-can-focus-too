@@ -39,9 +39,39 @@ Tout est en **pixel art** et en **police monospace**, comme un vieux terminal de
   <tr>
     <td align="center"><img src="docs/screenshots/abordage.png" width="220" /><br/><b>À l'abordage !</b><br/>Tu ouvres une appli interdite pendant une traversée ? Le capitaine surgit.</td>
     <td align="center"><img src="docs/screenshots/settings.png" width="220" /><br/><b>Paramètres</b><br/>Ta liste noire d'applis, avec recherche. Instagram, TikTok et Reddit y sont d'office.</td>
-    <td align="center">🦜<br/><br/><b>Et aussi...</b><br/>Plus de 60 répliques de pirate tapées à la machine à écrire.<br/><i>« Un pirate qui procrastine, c'est juste un marin en pyjama. »</i></td>
+    <td align="center">🦜<br/><br/><b>Et aussi...</b><br/>Plus de 150 répliques de pirate tapées à la machine à écrire.<br/><i>« Un pirate qui procrastine, c'est juste un marin en pyjama. »</i></td>
   </tr>
 </table>
+
+## 📖 Le journal secret du capitaine
+
+Dans le menu, « Mon journal » est grisé... mais il n'est pas tout à fait fermé.
+
+<details>
+<summary>🗝️ <b>Spoiler : comment entrer</b></summary>
+
+Frappe **7 fois** sur la porte. Le capitaine râle de plus en plus (« J'ai dit FERMÉ. Tu es sourd comme un hareng ? »),
+puis finit par céder : *« C'est bon, c'est bon, je te laisse entrer ! Mais attention : c'est encore en travaux. »*
+
+</details>
+
+À l'intérieur, c'est le grand duel **BISCOTOS 💪 contre TAVERNE 🍺**, arbitré par un capitaine qui n'a pas sa langue dans sa poche.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/journal.png" width="220" /><br/><b>Le duel</b><br/>Touche un camp pour y noter une séance ou une tournée. Tes traversées de focus s'y inscrivent toutes seules ⛵.</td>
+    <td align="center"><img src="docs/screenshots/taverne-refus.png" width="220" /><br/><b>« NON ! PAS ENCORE ! »</b><br/>Après 3 verres, le capitaine fait barrage. Il faut appuyer sur « J'INSISTE 🍺 » pour passer.</td>
+    <td align="center"><img src="docs/screenshots/coco.png" width="220" /><br/><b>Coco le perroquet</b><br/>Au 8e verre de la soirée, Coco débarque : <i>« Mon coco, tu vas devenir fou ! »</i></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/stats-ensemble.png" width="220" /><br/><b>ENSEMBLE</b><br/>Les compteurs de tout l'équipage, un graphique pixel art dont les blocs montent, et le journal de bord avec les petits mots de chacun.</td>
+    <td align="center"><img src="docs/screenshots/stats-no-pain.png" width="220" /><br/><b>NO PAIN NO GAIN</b><br/>Le podium des plus gros biscotos 🥇🥈🥉, en entier ou entre amis seulement.</td>
+    <td align="center">🏴‍☠️<br/><br/><b>Le capitaine juge</b><br/>Pilier de taverne, éponge de cale, moine-soldat... Selon ton score, il te félicite ou t'insulte. Et quand la taverne mène, il devient pompette.</td>
+  </tr>
+</table>
+
+> 🚧 Le journal est encore en travaux : les compteurs repartent à zéro à chaque lancement,
+> et les autres matelots sont pour l'instant un équipage imaginaire `[dev]`.
 
 ## 🦜 Fonctionnalités
 
@@ -51,12 +81,18 @@ Tout est en **pixel art** et en **police monospace**, comme un vieux terminal de
 - 🔍 **Recherche d'applis** dans la liste noire (sans se soucier des accents)
 - ⌨️ **Répliques façon machine à écrire**, qui changent au hasard (tape sur la bulle pour en avoir une autre)
 - 🌙 **Écran toujours allumé** pendant une traversée
+- 📖 **Journal secret** : biscotos contre taverne, avec un petit mot à chaque séance ou tournée
+- 📊 **Statistiques de l'équipage** : jour, semaine, mois, modes ENSEMBLE et NO PAIN NO GAIN, filtre « Mes amis »
+- 🦜 **Coco le perroquet** et un capitaine qui refuse le verre de trop
+- 🏷️ **Numéro de version** discret en bas de chaque page (`0.1.x`, x = nombre de commits)
 - 📴 **100 % hors ligne** : pas de compte, pas de pub, pas de serveur
 
 ## 🧭 Prochaines escales
 
-- [ ] 📖 **Mon journal** : l'historique de tes traversées
-- [ ] 💾 Sauvegarder les doublons entre deux lancements
+- [x] 📖 **Mon journal** : biscotos, taverne et traversées *(en travaux)*
+- [ ] 💾 Sauvegarder le journal et les doublons entre deux lancements
+- [ ] 🧑‍🤝‍🧑 De vrais matelots à la place de l'équipage imaginaire
+- [ ] 📈 Des statistiques étendues
 - [ ] 🛒 Dépenser ses doublons (un perroquet ? un chapeau ? un plus gros navire ?)
 - [ ] 🔕 Activer « Ne pas déranger » pendant le focus
 
@@ -102,6 +138,11 @@ adb shell appops set dev.mathieuburnat.piratefocus SYSTEM_ALERT_WINDOW allow
 
 Ajoute Chrome à la liste noire, lance une traversée, ouvre Chrome : à l'abordage !
 
+### La version
+
+`versionName` vaut `0.1.<nombre de commits>`, calculé par Gradle avec `git rev-list --count HEAD`
+(et via `wsl git` sous Windows quand git n'est installé que dans WSL). Elle s'affiche en bas de chaque page.
+
 ### La cale (organisation du code)
 
 ```
@@ -109,13 +150,14 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 ├── MainActivity.kt          # point d'entrée, démarre/arrête le gardien
 ├── focus/                   # le minuteur (logique pure, testée) et les répliques
 ├── guard/                   # liste noire, autorisations, service gardien, écran d'abordage
-└── ui/                      # écrans Compose, sprites pixel art, thème monospace
+├── journal/                 # journal secret, verdicts, règles (refus, Coco), équipage [dev] et stats
+└── ui/                      # écrans Compose, sprites pixel art, graphique, thème monospace
 ```
 
 - **Stack** : Kotlin, Jetpack Compose (Material 3), une seule Activity, aucun backend.
-- **Sprites** : définis comme des grilles de caractères dans `PixelPirate.kt` et `PixelShip.kt`
-  (un caractère = une couleur de la palette). Dessine ton propre perroquet !
-- **Répliques** : toutes dans `focus/PirateQuotes.kt`. Courtes, drôles, en français pirate.
+- **Sprites** : définis comme des grilles de caractères dans `PixelPirate.kt`, `PixelShip.kt` et `PixelParrot.kt`
+  (un caractère = une couleur de la palette). Coco existe déjà, à toi de dessiner la suite !
+- **Répliques** : dans `focus/PirateQuotes.kt` (focus) et `journal/JournalQuotes.kt` (journal). Courtes, drôles, en français pirate.
 - Plus de détails dans [`CLAUDE.md`](CLAUDE.md).
 
 ### Contribuer
