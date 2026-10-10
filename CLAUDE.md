@@ -77,3 +77,5 @@ backend/                     # API Cloudflare (Worker + D1) pour les comptes et 
   (un caractère = une couleur de la palette). Ajouter de nouveaux sprites de la même façon.
 - La logique du minuteur reste dans `FocusTimer.kt`, sans dépendance Android, pour rester testable.
 - Les nouvelles répliques vont dans `PirateQuotes.kt` : courtes, drôles, en français pirate.
+- Base de données : chaque changement de schéma est une **nouvelle migration** numérotée dans `backend/migrations/`
+  (`0003_xxx.sql`, ...). Ne jamais modifier une migration déjà appliquée.
