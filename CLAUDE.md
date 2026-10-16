@@ -68,7 +68,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── MenuScreen.kt        # menu de démarrage (focus, journal, paramètres, fiche de matelot)
     ├── JournalScreen.kt     # BISCOTOS VS TAVERNE (toucher un camp ouvre ses activités, commentées par une petite tête du capitaine), capitaine pompette si ça boit trop
     ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (vrais pirates publics, ou inventés en mode dev)
-    ├── SettingsScreen.kt    # paramètres : applications bloquées, mode dev, déconnexion
+    ├── SettingsScreen.kt    # paramètres : applications bloquées, déconnexion, mode dev caché (5 taps sur le titre, menu avec « Salut papa »)
     ├── BlockedAppsScreen.kt # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
     ├── AccountScreen.kt     # « Ma fiche de matelot » (ex « Mon compte ») : pseudo, données publiques, déconnexion, suppression
@@ -78,6 +78,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── PixelPirate.kt       # le capitaine + palette et drawSprite() partagés
     ├── PixelParrot.kt       # Coco le perroquet (pop-up au 8e verre)
     ├── PixelDice.kt         # le dé des pseudos de pirate (faces 1 à 6)
+    ├── Sparkles.kt          # gerbe de paillettes en pixel art (SparkleBurst)
     ├── VersionFooter.kt     # version discrète en bas des pages (0.1.<nb de commits>)
     ├── PixelShip.kt         # le navire, centré, qui tangue pendant que les vagues défilent
     └── theme/Theme.kt       # couleurs "mer de nuit" + typo monospace partout

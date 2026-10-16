@@ -44,6 +44,7 @@ fun PirateApp(
     var screen by rememberSaveable { mutableStateOf(if (accountState.account.onboarded) Screen.MENU else Screen.WELCOME) }
     val devModeStore = remember { DevModeStore(context) }
     var devMode by remember { mutableStateOf(devModeStore.isOn()) }
+    var devRevealed by remember { mutableStateOf(devModeStore.isRevealed()) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val phase = state.timer.phase
 
@@ -104,9 +105,14 @@ fun PirateApp(
                 }
                 Screen.SETTINGS -> SettingsScreen(
                     devMode = devMode,
+                    devRevealed = devRevealed,
                     signedIn = accountState.account.signedIn,
                     onBack = { screen = Screen.MENU },
                     onBlockedApps = { screen = Screen.BLOCKED_APPS },
+                    onRevealDev = {
+                        devModeStore.reveal()
+                        devRevealed = true
+                    },
                     onDevModeChange = {
                         devModeStore.set(it)
                         devMode = it
