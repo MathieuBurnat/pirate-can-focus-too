@@ -90,7 +90,12 @@ fun BlockedAppsScreen(onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),
             )
-            Text("=== APPLIS BLOQUÉES ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "=== APPLIS BLOQUÉES ===",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
             Spacer(Modifier.height(12.dp))
 
             Text("-- Le gardien du navire --", style = MaterialTheme.typography.titleSmall)

@@ -92,7 +92,7 @@ fun DevModeScreen(
                 "=== MODE DEV ===",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                modifier = Modifier.align(Alignment.CenterHorizontally).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                     titleTaps++
                 },
             )
