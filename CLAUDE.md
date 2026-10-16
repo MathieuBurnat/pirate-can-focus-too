@@ -71,7 +71,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── SettingsScreen.kt    # paramètres : applications bloquées, mode dev, déconnexion
     ├── BlockedAppsScreen.kt # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
-    ├── AccountScreen.kt     # « Mon compte » : pseudo, données publiques, déconnexion, suppression
+    ├── AccountScreen.kt     # « Ma fiche de matelot » (ex « Mon compte ») : pseudo, données publiques, déconnexion, suppression
     ├── AccountForms.kt      # formulaire du compte gratuit (email puis code), info sans compte, dé
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes

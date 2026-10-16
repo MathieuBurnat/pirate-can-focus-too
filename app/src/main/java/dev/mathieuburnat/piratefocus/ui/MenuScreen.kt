@@ -120,7 +120,7 @@ fun MenuScreen(
             }
             MenuItem("3. PARAMÈTRES", onClick = onSettings)
             if (signedIn) {
-                MenuItem("4. MON COMPTE", onClick = onAccount)
+                MenuItem("4. MA FICHE DE MATELOT", onClick = onAccount)
             } else {
                 // Sans compte, le butin ne vit que sur ce téléphone : le capitaine le rappelle, gentiment.
                 Text(

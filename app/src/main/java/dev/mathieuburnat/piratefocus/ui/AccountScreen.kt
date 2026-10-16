@@ -31,7 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.mathieuburnat.piratefocus.account.AccountQuotes
 import dev.mathieuburnat.piratefocus.account.AccountViewModel
 
-/** « Mon compte » : pseudo, visibilité publique, déconnexion, suppression. Sans compte : de quoi en créer un. */
+/** « Ma fiche de matelot » : pseudo, visibilité publique, déconnexion, suppression. Sans compte : de quoi en créer un. */
 @Composable
 fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -71,7 +71,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),
             )
-            Text("=== MON COMPTE ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+            Text("=== FICHE DE MATELOT ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(12.dp))
 
             Text("-- Pseudo --", style = MaterialTheme.typography.titleSmall)
