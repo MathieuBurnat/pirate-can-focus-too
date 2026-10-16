@@ -23,7 +23,7 @@ Supprimer un compte efface l'identité, les sessions et les petits mots du journ
 | Route | Jeton | Rôle |
 |---|---|---|
 | `POST /auth/register` `{login, password, name?}` | | Crée le compte ; renvoie le jeton et le **code secret**, montré une seule fois (identifiant pris : 409) |
-| `POST /auth/login` `{login, password}` | | Connexion (même erreur si l'identifiant ou le mot de passe est faux ; 10 échecs par IP en 10 min ou par identifiant en 1 h : 429) |
+| `POST /auth/login` `{login, password}` | | Connexion (même erreur si l'identifiant ou le mot de passe est faux ; après 5 échecs sur un identifiant, ou 10 depuis un appareil, en 1 h : 429 pendant 2 min, +1 min par nouvel échec, durée annoncée dans le message) |
 | `POST /auth/recover` `{login, code, newPassword}` | | Mot de passe oublié : le code secret remet un mot de passe, un nouveau code est renvoyé, les autres sessions sont fermées |
 | `POST /me/recovery` | ✓ | Nouveau code secret (l'ancien ne marche plus) |
 | `POST /me/password` `{current, new}` | ✓ | Change le mot de passe |

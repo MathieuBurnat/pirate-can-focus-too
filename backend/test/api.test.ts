@@ -283,12 +283,25 @@ describe("identifiant, mot de passe et code secret", () => {
     expect((await badPassword.json<any>()).error).toBe((await unknownLogin.json<any>()).error);
   });
 
-  it("bloque après 10 essais ratés sur un identifiant", async () => {
-    await register("calico.jack@flotte.fr", "bon-mot-de-passe");
-    for (let i = 0; i < 10; i++) {
-      expect((await api("/auth/login", { json: { login: "calico.jack@flotte.fr", password: `faux-${i}-xxxx` } })).status).toBe(401);
+  it("après 5 essais ratés, verrouille 2 minutes (en le disant), puis une minute de plus par échec", async () => {
+    const login = "calico.jack@flotte.fr";
+    await register(login, "bon-mot-de-passe");
+    for (let i = 0; i < 5; i++) {
+      expect((await api("/auth/login", { json: { login, password: `faux-${i}-xxxx` } })).status).toBe(401);
     }
-    expect((await api("/auth/login", { json: { login: "calico.jack@flotte.fr", password: "bon-mot-de-passe" } })).status).toBe(429);
+    const locked = await api("/auth/login", { json: { login, password: "bon-mot-de-passe" } });
+    expect(locked.status).toBe(429);
+    expect((await locked.json<any>()).error).toContain("2 minutes");
+
+    // 3 minutes plus tard, la cale est rouverte.
+    const past = new Date(Date.now() - 3 * 60_000).toISOString();
+    await env.DB.prepare("UPDATE auth_failures SET created_at = ? WHERE login = ?").bind(past, login).run();
+    expect((await api("/auth/login", { json: { login, password: "bon-mot-de-passe" } })).status).toBe(200);
+
+    // Un 6e échec : verrou de 3 minutes.
+    expect((await api("/auth/login", { json: { login, password: "encore-faux-1" } })).status).toBe(401);
+    const longer = await api("/auth/login", { json: { login, password: "bon-mot-de-passe" } });
+    expect((await longer.json<any>()).error).toContain("3 minutes");
   });
 
   it("mot de passe oublié : le code secret remet un mot de passe et en donne un nouveau", async () => {

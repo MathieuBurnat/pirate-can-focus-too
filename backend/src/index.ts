@@ -13,9 +13,13 @@ const CODE_COOLDOWN_SECONDS = 60;
 const CODE_MAX_ATTEMPTS = 5;
 /** Codes envoyés au plus par appareil (IP) et par heure, toutes adresses confondues. */
 const CODES_PER_IP_PER_HOUR = 10;
-/** Essais ratés (mot de passe, code secret) tolérés par appareil sur 10 minutes, et par identifiant sur une heure. */
+/**
+ * Essais ratés (mot de passe, code secret) tolérés sur une heure, par identifiant et par appareil. Au-delà, la cale est
+ * verrouillée 2 minutes après le dernier échec, puis une minute de plus à chaque nouvel échec.
+ */
+const AUTH_FAILURES_PER_LOGIN = 5;
 const AUTH_FAILURES_PER_IP = 10;
-const AUTH_FAILURES_PER_LOGIN = 10;
+const LOCK_FIRST_MINUTES = 2;
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 200;
 const SYNC_MAX_LOGS = 500;
@@ -180,18 +184,31 @@ function cleanPassword(value: unknown): string {
 const recoveryHash = async (code: string) => sha256(`recovery:${normalizeRecoveryCode(code)}`);
 const ipHashOf = (request: Request) => sha256(`ip:${request.headers.get("CF-Connecting-IP") ?? "inconnue"}`);
 
-/** Trop d'essais ratés depuis cet appareil (10 min) ou sur cet identifiant (1 h) : on ferme le pont-levis. */
+/** Fin du verrou après [failures] échecs (le dernier à [last]), ou null s'il n'y en a pas : 2 min, puis +1 min par échec. */
+function lockedUntil(failures: number, last: string | null, threshold: number): number | null {
+  if (failures < threshold || !last) return null;
+  return Date.parse(last) + (LOCK_FIRST_MINUTES + failures - threshold) * 60_000;
+}
+
+/** Trop d'essais ratés sur cet identifiant ou depuis cet appareil : on ferme le pont-levis quelques minutes. */
 async function checkAuthFailures(env: Env, request: Request, login: string) {
-  const tenMinutesAgo = new Date(Date.now() - 600_000).toISOString();
   const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
   const [, byIp, byLogin] = await env.DB.batch([
     env.DB.prepare("DELETE FROM auth_failures WHERE created_at < ?").bind(hourAgo),
-    env.DB.prepare("SELECT COUNT(*) AS n FROM auth_failures WHERE ip_hash = ? AND created_at >= ?").bind(await ipHashOf(request), tenMinutesAgo),
-    env.DB.prepare("SELECT COUNT(*) AS n FROM auth_failures WHERE login = ?").bind(login),
+    env.DB.prepare("SELECT COUNT(*) AS n, MAX(created_at) AS last FROM auth_failures WHERE ip_hash = ?").bind(await ipHashOf(request)),
+    env.DB.prepare("SELECT COUNT(*) AS n, MAX(created_at) AS last FROM auth_failures WHERE login = ?").bind(login),
   ]);
-  const count = (result: D1Result) => (result.results[0] as { n: number }).n ?? 0;
-  if (count(byIp) >= AUTH_FAILURES_PER_IP || count(byLogin) >= AUTH_FAILURES_PER_LOGIN) {
-    throw new HttpError(429, "Trop d'essais ratés : le capitaine verrouille la cale, reviens plus tard");
+  const row = (result: D1Result) => result.results[0] as { n: number; last: string | null };
+  const until = Math.max(
+    lockedUntil(row(byIp).n, row(byIp).last, AUTH_FAILURES_PER_IP) ?? 0,
+    lockedUntil(row(byLogin).n, row(byLogin).last, AUTH_FAILURES_PER_LOGIN) ?? 0,
+  );
+  if (until > Date.now()) {
+    const minutes = Math.ceil((until - Date.now()) / 60_000);
+    throw new HttpError(
+      429,
+      `Trop d'essais ratés : le capitaine verrouille la cale. Reviens dans ${minutes} minute${minutes > 1 ? "s" : ""}, matelot !`,
+    );
   }
 }
 
