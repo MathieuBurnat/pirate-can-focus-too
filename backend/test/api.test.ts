@@ -133,7 +133,7 @@ describe("connexion Google", () => {
     expect(response.status).toBe(200);
     const { me, created } = await response.json<any>();
     expect(created).toBe(true);
-    expect(me.account).toEqual({ kind: "google", email: "mary@read.fr" });
+    expect(me.account).toEqual({ kind: "google", email: "mary@read.fr", login: null });
   });
 
   it("refuse un jeton destiné à une autre application", async () => {
