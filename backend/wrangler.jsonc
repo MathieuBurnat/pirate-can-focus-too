@@ -16,8 +16,8 @@
   "vars": {
     // Identifiants OAuth Google acceptés (séparés par des virgules) : le client Android et le client Web.
     "GOOGLE_CLIENT_IDS": "",
-    // Expéditeur des codes de connexion (domaine vérifié chez Resend).
+    // Expéditeur des codes de connexion (domaine vérifié chez Brevo ou Resend).
     "EMAIL_FROM": "Le Capitaine <capitaine@helveticademia.ch>"
   }
-  // Secret à définir avec `npx wrangler secret put RESEND_API_KEY`.
+  // Secret à définir avec `npx wrangler secret put BREVO_API_KEY` (ou RESEND_API_KEY).
 }

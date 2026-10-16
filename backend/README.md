@@ -48,10 +48,10 @@ npm test                              # tests dans le runtime Workers (Miniflare
 npx wrangler login
 npx wrangler d1 create pirate-can-focus-db      # copier l'id dans wrangler.jsonc (database_id)
 npm run db:migrate:remote
-npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put BREVO_API_KEY       # ou RESEND_API_KEY (Brevo est prioritaire si les deux sont là)
 npm run deploy
 ```
 
 Avant le déploiement, renseigner dans `wrangler.jsonc` :
 - `GOOGLE_CLIENT_IDS` : les identifiants OAuth (client Web utilisé par Credential Manager côté Android) ;
-- `EMAIL_FROM` : une adresse d'un domaine vérifié chez Resend.
+- `EMAIL_FROM` : « Nom <adresse> », adresse d'un domaine vérifié chez Brevo (ou Resend).

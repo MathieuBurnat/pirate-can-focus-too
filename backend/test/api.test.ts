@@ -6,18 +6,26 @@ import { forgetGoogleKeys } from "../src/google";
 
 const realFetch = globalThis.fetch;
 let sentCodes: string[] = [];
+let brevoMails: any[] = [];
 let googleKeys: { kid: string; jwk: JsonWebKey; privateKey: CryptoKey } | null = null;
 
 beforeEach(() => {
   sentCodes = [];
+  brevoMails = [];
   forgetGoogleKeys();
-  // Les appels sortants (Resend, clés Google) sont interceptés ; les appels à l'API passent.
+  // Les appels sortants (Brevo, Resend, clés Google) sont interceptés ; les appels à l'API passent.
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = input instanceof Request ? input.url : String(input);
     if (url === "https://api.resend.com/emails") {
       const payload = JSON.parse(String(init?.body));
       sentCodes.push(/(\d{6})/.exec(payload.subject)![1]);
       return Response.json({ id: "email-1" });
+    }
+    if (url === "https://api.brevo.com/v3/smtp/email") {
+      const payload = JSON.parse(String(init?.body));
+      brevoMails.push({ payload, apiKey: new Headers(init?.headers).get("api-key") });
+      sentCodes.push(/(\d{6})/.exec(payload.subject)![1]);
+      return Response.json({ messageId: "brevo-1" }, { status: 201 });
     }
     if (url === "https://www.googleapis.com/oauth2/v3/certs") {
       return Response.json({ keys: googleKeys ? [{ ...googleKeys.jwk, kid: googleKeys.kid, alg: "RS256", use: "sig" }] : [] });
@@ -27,7 +35,10 @@ beforeEach(() => {
   env.RESEND_API_KEY = "re_test";
 });
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  delete env.BREVO_API_KEY;
+});
 
 const api = (path: string, init: RequestInit & { token?: string; json?: unknown } = {}) =>
   SELF.fetch(`https://api.test${path}`, {
@@ -233,5 +244,20 @@ describe("équipage", () => {
     expect(names).toContain("Morgane Pied-Marin");
     expect(names).not.toContain("Octave Discret");
     expect(JSON.stringify(crew)).not.toContain("visible@flotte.fr");
+  });
+});
+
+describe("envoi des codes", () => {
+  it("passe par Brevo quand sa clé est là, avec l'expéditeur découpé en nom et adresse", async () => {
+    env.BREVO_API_KEY = "xkeysib-test";
+    const { created } = await emailLogin("brevo@flotte.fr", "Barbe Bleue");
+    expect(created).toBe(true);
+    expect(brevoMails).toHaveLength(1);
+    const { payload, apiKey } = brevoMails[0];
+    expect(apiKey).toBe("xkeysib-test");
+    expect(payload.to).toEqual([{ email: "brevo@flotte.fr" }]);
+    expect(payload.sender.email).toMatch(/@/);
+    expect(payload.sender.email).not.toContain("<");
+    expect(payload.textContent).toContain(sentCodes.at(-1));
   });
 });
