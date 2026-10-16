@@ -90,11 +90,11 @@ fun MenuScreen(
 }
 
 @Composable
-internal fun MenuItem(label: String, onClick: () -> Unit, dimmed: Boolean = false) {
+internal fun MenuItem(label: String, onClick: () -> Unit, dimmed: Boolean = false, modifier: Modifier = Modifier) {
     Text(
         text = "> $label",
         style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
             .alpha(if (dimmed) 0.4f else 1f)
