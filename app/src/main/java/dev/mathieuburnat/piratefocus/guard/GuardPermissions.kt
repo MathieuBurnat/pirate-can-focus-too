@@ -32,6 +32,10 @@ object GuardPermissions {
 
     fun usageAccessIntent(): Intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
 
+    /** Les réglages de notification de l'appli (pour retirer l'autorisation une fois donnée). */
+    fun notificationSettingsIntent(context: Context): Intent =
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+
     fun overlayIntent(context: Context): Intent =
         Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
 }

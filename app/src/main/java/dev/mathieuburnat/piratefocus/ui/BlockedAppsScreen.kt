@@ -107,9 +107,18 @@ fun BlockedAppsScreen(onBack: () -> Unit) {
             PermissionRow("Surgir par-dessus", overlayOk) { context.startActivity(GuardPermissions.overlayIntent(context)) }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 PermissionRow("Notification de veille", notifOk) {
-                    notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    if (notifOk) {
+                        context.startActivity(GuardPermissions.notificationSettingsIntent(context))
+                    } else {
+                        notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
                 }
             }
+            Text(
+                "(touche une ligne pour changer l'autorisation)",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary,
+            )
 
             Spacer(Modifier.height(16.dp))
             Text("-- Liste noire (${blacklist.size}) --", style = MaterialTheme.typography.titleSmall)
@@ -172,13 +181,14 @@ fun BlockedAppsScreen(onBack: () -> Unit) {
 private fun String.normalized(): String =
     Normalizer.normalize(trim().lowercase(), Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
 
+/** Une autorisation du gardien : la toucher ouvre son réglage, pour la donner ou la retirer. */
 @Composable
-private fun PermissionRow(label: String, granted: Boolean, onRequest: () -> Unit) {
+private fun PermissionRow(label: String, granted: Boolean, onOpen: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !granted, onClick = onRequest)
+            .clickable(onClick = onOpen)
             .padding(vertical = 6.dp),
     ) {
         Text(
