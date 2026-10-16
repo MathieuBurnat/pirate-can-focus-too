@@ -15,6 +15,35 @@ export function randomCode(): string {
   return String(value % 1_000_000).padStart(6, "0");
 }
 
+/** Alphabet de Crockford : 32 signes, sans I, L, O ni U pour ne pas les confondre. */
+const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+/** Un code de secours : 20 signes (100 bits), en 5 groupes de 4 (« 7QXM-K2PA-... »). */
+export function randomRecoveryCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(20));
+  const chars = [...bytes].map((b) => CROCKFORD[b & 31]).join("");
+  return chars.match(/.{4}/g)!.join("-");
+}
+
+/** Ce que le pirate a tapé, ramené à la forme canonique : majuscules, sans tirets, O lu 0, I et L lus 1. */
+export function normalizeRecoveryCode(input: string): string {
+  return input.toUpperCase().replace(/[^0-9A-Z]/g, "").replace(/O/g, "0").replace(/[IL]/g, "1");
+}
+
+/** Itérations PBKDF2 : le maximum accepté par les Workers. */
+const PBKDF2_ITERATIONS = 100_000;
+
+/** Empreinte d'un mot de passe (PBKDF2-SHA256, sel aléatoire de 16 octets), en base64url. */
+export async function hashPassword(password: string, salt = randomToken(16)): Promise<{ hash: string; salt: string }> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: fromBase64Url(salt), iterations: PBKDF2_ITERATIONS },
+    key,
+    256,
+  );
+  return { hash: base64Url(new Uint8Array(bits)), salt };
+}
+
 export async function sha256(text: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");

@@ -1,4 +1,4 @@
-import { randomCode, randomToken, sameText, sha256 } from "./crypto";
+import { hashPassword, normalizeRecoveryCode, randomCode, randomRecoveryCode, randomToken, sameText, sha256 } from "./crypto";
 import { sendLoginCode } from "./email";
 import type { Env } from "./env";
 import { verifyGoogleIdToken } from "./google";
@@ -13,6 +13,11 @@ const CODE_COOLDOWN_SECONDS = 60;
 const CODE_MAX_ATTEMPTS = 5;
 /** Codes envoyés au plus par appareil (IP) et par heure, toutes adresses confondues. */
 const CODES_PER_IP_PER_HOUR = 10;
+/** Essais ratés (mot de passe, code secret) tolérés par appareil sur 10 minutes, et par identifiant sur une heure. */
+const AUTH_FAILURES_PER_IP = 10;
+const AUTH_FAILURES_PER_LOGIN = 10;
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 200;
 const SYNC_MAX_LOGS = 500;
 const CREW_DAYS = 31;
 
@@ -152,19 +157,169 @@ async function emailVerify(env: Env, request: Request) {
   return welcome(env, pirateId, created);
 }
 
+// --- Identifiant, mot de passe et code secret -----------------------------------
+
+/** Identifiant privé : 3 à 32 caractères (lettres, chiffres, . _ -), sans distinction de casse. */
+function cleanLogin(value: unknown): string {
+  const login = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (!/^[a-z0-9._-]{3,32}$/.test(login)) throw new HttpError(400, "Identifiant de 3 à 32 caractères (lettres, chiffres, . _ -)");
+  return login;
+}
+
+function cleanPassword(value: unknown): string {
+  const password = typeof value === "string" ? value : "";
+  if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) {
+    throw new HttpError(400, `Mot de passe de ${PASSWORD_MIN} caractères minimum, matelot`);
+  }
+  return password;
+}
+
+const recoveryHash = async (code: string) => sha256(`recovery:${normalizeRecoveryCode(code)}`);
+const ipHashOf = (request: Request) => sha256(`ip:${request.headers.get("CF-Connecting-IP") ?? "inconnue"}`);
+
+/** Trop d'essais ratés depuis cet appareil (10 min) ou sur cet identifiant (1 h) : on ferme le pont-levis. */
+async function checkAuthFailures(env: Env, request: Request, login: string) {
+  const tenMinutesAgo = new Date(Date.now() - 600_000).toISOString();
+  const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+  const [, byIp, byLogin] = await env.DB.batch([
+    env.DB.prepare("DELETE FROM auth_failures WHERE created_at < ?").bind(hourAgo),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM auth_failures WHERE ip_hash = ? AND created_at >= ?").bind(await ipHashOf(request), tenMinutesAgo),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM auth_failures WHERE login = ?").bind(login),
+  ]);
+  const count = (result: D1Result) => (result.results[0] as { n: number }).n ?? 0;
+  if (count(byIp) >= AUTH_FAILURES_PER_IP || count(byLogin) >= AUTH_FAILURES_PER_LOGIN) {
+    throw new HttpError(429, "Trop d'essais ratés : le capitaine verrouille la cale, reviens plus tard");
+  }
+}
+
+async function recordAuthFailure(env: Env, request: Request, login: string) {
+  await env.DB.prepare("INSERT INTO auth_failures (ip_hash, login, created_at) VALUES (?, ?, ?)")
+    .bind(await ipHashOf(request), login, nowIso())
+    .run();
+}
+
+interface CredentialRow {
+  pirate_id: string;
+  password_hash: string;
+  password_salt: string;
+  recovery_hash: string;
+}
+
+const credentialsOf = (env: Env, login: string) =>
+  env.DB.prepare("SELECT pirate_id, password_hash, password_salt, recovery_hash FROM credentials WHERE login = ?")
+    .bind(login)
+    .first<CredentialRow>();
+
+/** Nouveau compte gratuit : le code secret n'est montré qu'une fois, ici. */
+async function register(env: Env, request: Request) {
+  const data = await body(request);
+  const login = cleanLogin(data.login);
+  const password = cleanPassword(data.password);
+  if (await env.DB.prepare("SELECT 1 FROM credentials WHERE login = ?").bind(login).first()) {
+    throw new HttpError(409, "Cet identifiant est déjà pris par un autre pirate");
+  }
+  const pirateId = crypto.randomUUID();
+  const recoveryCode = randomRecoveryCode();
+  const { hash, salt } = await hashPassword(password);
+  const now = nowIso();
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO pirates (id, name, created_at) VALUES (?, ?, ?)").bind(pirateId, cleanPirateName(data.name) ?? randomPirateName(), now),
+    env.DB.prepare(
+      `INSERT INTO credentials (pirate_id, login, password_hash, password_salt, recovery_hash, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(pirateId, login, hash, salt, await recoveryHash(recoveryCode), now, now),
+  ]);
+  return json({ token: await openSession(env, pirateId), created: true, recoveryCode, me: await me(env, pirateId) });
+}
+
+/** Connexion : on ne dit jamais si c'est l'identifiant ou le mot de passe qui cloche. */
+async function passwordLogin(env: Env, request: Request) {
+  const data = await body(request);
+  const login = typeof data.login === "string" ? data.login.trim().toLowerCase() : "";
+  const password = typeof data.password === "string" ? data.password : "";
+  await checkAuthFailures(env, request, login);
+  const row = login ? await credentialsOf(env, login) : null;
+  const ok = row !== null && sameText((await hashPassword(password, row.password_salt)).hash, row.password_hash);
+  if (!row || !ok) {
+    await recordAuthFailure(env, request, login);
+    throw new HttpError(401, "Identifiant ou mot de passe incorrect");
+  }
+  return welcome(env, row.pirate_id, false);
+}
+
+/** Mot de passe oublié : le code secret ouvre la cale une fois, puis un nouveau code le remplace. */
+async function recover(env: Env, request: Request) {
+  const data = await body(request);
+  const login = typeof data.login === "string" ? data.login.trim().toLowerCase() : "";
+  const code = typeof data.code === "string" ? data.code : "";
+  const password = cleanPassword(data.newPassword);
+  await checkAuthFailures(env, request, login);
+  const row = login ? await credentialsOf(env, login) : null;
+  if (!row || !sameText(await recoveryHash(code), row.recovery_hash)) {
+    await recordAuthFailure(env, request, login);
+    throw new HttpError(401, "Identifiant ou code secret incorrect");
+  }
+  const recoveryCode = randomRecoveryCode();
+  const { hash, salt } = await hashPassword(password);
+  await env.DB.batch([
+    env.DB.prepare("UPDATE credentials SET password_hash = ?, password_salt = ?, recovery_hash = ?, updated_at = ? WHERE pirate_id = ?").bind(
+      hash,
+      salt,
+      await recoveryHash(recoveryCode),
+      nowIso(),
+      row.pirate_id,
+    ),
+    // Les autres appareils sont déconnectés : quelqu'un d'autre connaissait peut-être l'ancien mot de passe.
+    env.DB.prepare("DELETE FROM sessions WHERE pirate_id = ?").bind(row.pirate_id),
+  ]);
+  return json({ token: await openSession(env, row.pirate_id), created: false, recoveryCode, me: await me(env, row.pirate_id) });
+}
+
+/** Nouveau code secret (l'ancien ne marche plus), montré une seule fois. */
+async function newRecoveryCode(env: Env, pirateId: string) {
+  const recoveryCode = randomRecoveryCode();
+  const { meta } = await env.DB.prepare("UPDATE credentials SET recovery_hash = ?, updated_at = ? WHERE pirate_id = ?")
+    .bind(await recoveryHash(recoveryCode), nowIso(), pirateId)
+    .run();
+  if (meta.changes === 0) throw new HttpError(400, "Ce compte n'a pas de code secret");
+  return json({ recoveryCode });
+}
+
+async function changePassword(env: Env, request: Request, pirateId: string) {
+  const data = await body(request);
+  const password = cleanPassword(data.new);
+  const row = await env.DB.prepare("SELECT login, password_hash, password_salt FROM credentials WHERE pirate_id = ?")
+    .bind(pirateId)
+    .first<{ login: string; password_hash: string; password_salt: string }>();
+  if (!row) throw new HttpError(400, "Ce compte n'a pas de mot de passe");
+  await checkAuthFailures(env, request, row.login);
+  const current = typeof data.current === "string" ? data.current : "";
+  if (!sameText((await hashPassword(current, row.password_salt)).hash, row.password_hash)) {
+    await recordAuthFailure(env, request, row.login);
+    throw new HttpError(401, "Mot de passe actuel incorrect");
+  }
+  const { hash, salt } = await hashPassword(password);
+  await env.DB.prepare("UPDATE credentials SET password_hash = ?, password_salt = ?, updated_at = ? WHERE pirate_id = ?")
+    .bind(hash, salt, nowIso(), pirateId)
+    .run();
+  return json({ ok: true });
+}
+
 // --- Mon compte --------------------------------------------------------------
 
 async function me(env: Env, pirateId: string) {
   const row = await env.DB.prepare(
-    `SELECT p.name, p.public, i.email, i.google_sub FROM pirates p LEFT JOIN identities i ON i.pirate_id = p.id WHERE p.id = ?`,
+    `SELECT p.name, p.public, i.email, i.google_sub, c.login FROM pirates p
+     LEFT JOIN identities i ON i.pirate_id = p.id LEFT JOIN credentials c ON c.pirate_id = p.id WHERE p.id = ?`,
   )
     .bind(pirateId)
-    .first<{ name: string; public: number; email: string | null; google_sub: string | null }>();
+    .first<{ name: string; public: number; email: string | null; google_sub: string | null; login: string | null }>();
   if (!row) throw new HttpError(404, "Pirate introuvable");
+  const kind = row.login ? "password" : row.google_sub ? "google" : "email";
   return {
     name: row.name,
     public: row.public === 1,
-    account: { kind: row.google_sub ? "google" : "email", email: row.email },
+    account: { kind, email: row.email, login: row.login },
   };
 }
 
@@ -183,12 +338,13 @@ async function updateMe(env: Env, request: Request, pirateId: string) {
 }
 
 /**
- * Suppression du compte : l'identité (email, Google) et les sessions disparaissent, les petits mots
+ * Suppression du compte : l'identité (email, Google, identifiant et mot de passe) et les sessions disparaissent, les petits mots
  * du journal sont effacés, et le pirate devient un « Ancien matelot » dont les stats restent au classement.
  */
 async function deleteMe(env: Env, pirateId: string) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM identities WHERE pirate_id = ?").bind(pirateId),
+    env.DB.prepare("DELETE FROM credentials WHERE pirate_id = ?").bind(pirateId),
     env.DB.prepare("DELETE FROM sessions WHERE pirate_id = ?").bind(pirateId),
     env.DB.prepare("UPDATE exploits SET note = NULL WHERE pirate_id = ?").bind(pirateId),
     env.DB.prepare("UPDATE pirates SET name = ?, former = 1 WHERE id = ?").bind(formerPirateName(), pirateId),
@@ -300,6 +456,16 @@ async function route(request: Request, env: Env): Promise<Response> {
       return emailStart(env, request);
     case "POST /auth/email/verify":
       return emailVerify(env, request);
+    case "POST /auth/register":
+      return register(env, request);
+    case "POST /auth/login":
+      return passwordLogin(env, request);
+    case "POST /auth/recover":
+      return recover(env, request);
+    case "POST /me/recovery":
+      return newRecoveryCode(env, await pirateOf(env, request));
+    case "POST /me/password":
+      return changePassword(env, request, await pirateOf(env, request));
     case "POST /auth/logout":
       return logout(env, request);
     case "GET /me":

@@ -247,6 +247,86 @@ describe("équipage", () => {
   });
 });
 
+describe("identifiant, mot de passe et code secret", () => {
+  const register = (login: string, password = "motdepasse-solide", name?: string) =>
+    api("/auth/register", { json: { login, password, name } });
+
+  it("crée un compte, montre le code secret une fois, et l'identifiant reste privé", async () => {
+    const response = await register("Anne.Bonny", "rhum-et-voiles", "Anne la Terrible");
+    expect(response.status).toBe(200);
+    const created = await response.json<any>();
+    expect(created.token).toBeTruthy();
+    expect(created.recoveryCode).toMatch(/^[0-9A-Z]{4}(-[0-9A-Z]{4}){4}$/);
+    expect(created.me).toMatchObject({ name: "Anne la Terrible", account: { kind: "password", login: "anne.bonny" } });
+
+    const { crew } = await (await api("/crew")).json<any>();
+    expect(JSON.stringify(crew)).not.toContain("anne.bonny");
+  });
+
+  it("refuse un identifiant déjà pris (sans tenir compte des majuscules) et un mot de passe trop court", async () => {
+    expect((await register("kraken")).status).toBe(200);
+    expect((await register("KRAKEN")).status).toBe(409);
+    expect((await register("petit", "court")).status).toBe(400);
+    expect((await register("x")).status).toBe(400);
+  });
+
+  it("se connecte avec le bon mot de passe, sans dire ce qui cloche sinon", async () => {
+    await register("jack.sparrow", "black-pearl-1");
+    const ok = await api("/auth/login", { json: { login: "Jack.Sparrow", password: "black-pearl-1" } });
+    expect(ok.status).toBe(200);
+    expect((await ok.json<any>()).me.account.login).toBe("jack.sparrow");
+
+    const badPassword = await api("/auth/login", { json: { login: "jack.sparrow", password: "mauvais-mdp" } });
+    const unknownLogin = await api("/auth/login", { json: { login: "personne", password: "black-pearl-1" } });
+    expect(badPassword.status).toBe(401);
+    expect(unknownLogin.status).toBe(401);
+    expect((await badPassword.json<any>()).error).toBe((await unknownLogin.json<any>()).error);
+  });
+
+  it("bloque après 10 essais ratés sur un identifiant", async () => {
+    await register("calico.jack", "bon-mot-de-passe");
+    for (let i = 0; i < 10; i++) {
+      expect((await api("/auth/login", { json: { login: "calico.jack", password: `faux-${i}-xxxx` } })).status).toBe(401);
+    }
+    expect((await api("/auth/login", { json: { login: "calico.jack", password: "bon-mot-de-passe" } })).status).toBe(429);
+  });
+
+  it("mot de passe oublié : le code secret remet un mot de passe et en donne un nouveau", async () => {
+    const { recoveryCode } = await (await register("mary.read", "ancien-mdp-123")).json<any>();
+    const typed = recoveryCode.toLowerCase().replace(/-/g, " ");
+    const recovered = await api("/auth/recover", { json: { login: "mary.read", code: typed, newPassword: "nouveau-mdp-456" } });
+    expect(recovered.status).toBe(200);
+    const { recoveryCode: fresh, token } = await recovered.json<any>();
+    expect(token).toBeTruthy();
+    expect(fresh).not.toBe(recoveryCode);
+
+    expect((await api("/auth/login", { json: { login: "mary.read", password: "ancien-mdp-123" } })).status).toBe(401);
+    expect((await api("/auth/login", { json: { login: "mary.read", password: "nouveau-mdp-456" } })).status).toBe(200);
+    // L'ancien code a servi : il ne marche plus.
+    expect((await api("/auth/recover", { json: { login: "mary.read", code: recoveryCode, newPassword: "encore-un-mdp" } })).status).toBe(401);
+  });
+
+  it("donne un nouveau code secret et change le mot de passe une fois connecté", async () => {
+    const first = await (await register("rackham", "premier-mdp-1")).json<any>();
+    const renewed = await api("/me/recovery", { method: "POST", token: first.token });
+    expect(renewed.status).toBe(200);
+    const { recoveryCode } = await renewed.json<any>();
+    expect(recoveryCode).not.toBe(first.recoveryCode);
+    expect((await api("/auth/recover", { json: { login: "rackham", code: first.recoveryCode, newPassword: "zzzzzzzz" } })).status).toBe(401);
+
+    expect((await api("/me/password", { token: first.token, json: { current: "faux-mdp-xx", new: "second-mdp-2" } })).status).toBe(401);
+    expect((await api("/me/password", { token: first.token, json: { current: "premier-mdp-1", new: "second-mdp-2" } })).status).toBe(200);
+    expect((await api("/auth/login", { json: { login: "rackham", password: "second-mdp-2" } })).status).toBe(200);
+  });
+
+  it("supprimer le compte efface l'identifiant : il ne permet plus de se connecter", async () => {
+    const { token } = await (await register("ching.shih", "flotte-rouge-1")).json<any>();
+    expect((await api("/me", { method: "DELETE", token })).status).toBe(200);
+    expect((await api("/auth/login", { json: { login: "ching.shih", password: "flotte-rouge-1" } })).status).toBe(401);
+    expect((await register("ching.shih")).status).toBe(200);
+  });
+});
+
 describe("envoi des codes", () => {
   it("passe par Brevo quand sa clé est là, avec l'expéditeur découpé en nom et adresse", async () => {
     env.BREVO_API_KEY = "xkeysib-test";

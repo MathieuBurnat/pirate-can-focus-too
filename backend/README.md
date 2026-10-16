@@ -8,7 +8,10 @@ Sans compte, l'app n'appelle jamais cette API : tout reste sur le téléphone.
 ## Les tables
 
 - `pirates` : pseudo, visibilité publique. Aucune donnée personnelle.
-- `identities` : email ou identifiant Google, rattaché à un pirate. **Séparé** des statistiques.
+- `credentials` : le compte gratuit utilisé par l'app : identifiant privé, mot de passe (PBKDF2-SHA256 salé)
+  et empreinte du code secret. **Séparé** des statistiques, l'identifiant n'est jamais montré.
+- `identities` : email ou identifiant Google, rattaché à un pirate (routes gardées, plus utilisées par l'app).
+- `auth_failures` : essais ratés par appareil (empreinte de l'IP) et par identifiant, pour freiner les devinettes.
 - `exploits`, `chests` : journal de bord (chaque séance, verre ou traversée) et coffre, rattachés au pirate.
 - `sessions`, `email_codes` : jetons et codes de connexion (seules leurs empreintes SHA-256 sont gardées).
 
@@ -19,6 +22,11 @@ Supprimer un compte efface l'identité, les sessions et les petits mots du journ
 
 | Route | Jeton | Rôle |
 |---|---|---|
+| `POST /auth/register` `{login, password, name?}` | | Crée le compte ; renvoie le jeton et le **code secret**, montré une seule fois (identifiant pris : 409) |
+| `POST /auth/login` `{login, password}` | | Connexion (même erreur si l'identifiant ou le mot de passe est faux ; 10 échecs par IP en 10 min ou par identifiant en 1 h : 429) |
+| `POST /auth/recover` `{login, code, newPassword}` | | Mot de passe oublié : le code secret remet un mot de passe, un nouveau code est renvoyé, les autres sessions sont fermées |
+| `POST /me/recovery` | ✓ | Nouveau code secret (l'ancien ne marche plus) |
+| `POST /me/password` `{current, new}` | ✓ | Change le mot de passe |
 | `POST /auth/email/start` `{email}` | | Envoie un code à 6 chiffres (valable 10 min, 1 envoi par minute par adresse, 10 par heure par IP) |
 | `POST /auth/email/verify` `{email, code, name?}` | | Connexion ; crée le pirate au premier passage (5 essais par code) |
 | `POST /auth/google` `{idToken, name?}` | | Connexion avec un ID token Google |
@@ -47,8 +55,8 @@ npm test                              # tests dans le runtime Workers (Miniflare
 ```sh
 npx wrangler login
 npx wrangler d1 create pirate-can-focus-db      # copier l'id dans wrangler.jsonc (database_id)
-npm run db:migrate:remote
-npx wrangler secret put BREVO_API_KEY       # ou RESEND_API_KEY (Brevo est prioritaire si les deux sont là)
+npm run db:migrate:remote                       # applique les nouvelles migrations (0003_credentials...)
+npx wrangler secret put BREVO_API_KEY       # facultatif : seulement pour les codes par email
 npm run deploy
 ```
 
