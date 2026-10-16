@@ -11,6 +11,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,7 +40,7 @@ import dev.mathieuburnat.piratefocus.focus.Phase
 
 /**
  * La page du mode dev (dénichée dans les paramètres) : l'activer ou non, et, mode dev allumé,
- * choisir les fausses données de l'équipage, dire bonjour à papa, ou tout couler (factory reset).
+ * choisir les fausses données de l'équipage, ou tout couler (factory reset). 2 taps sur le titre : dire bonjour à papa.
  */
 @Composable
 fun DevModeScreen(
@@ -51,6 +53,7 @@ fun DevModeScreen(
 ) {
     var hello by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
+    var titleTaps by remember { mutableIntStateOf(0) }
 
     if (confirmReset) {
         AlertDialog(
@@ -84,7 +87,15 @@ fun DevModeScreen(
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),
             )
-            Text("=== MODE DEV ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+            // 2 taps sur le titre (sans effet de pression) et HI DAAD se pointe.
+            Text(
+                "=== MODE DEV ===",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                    titleTaps++
+                },
+            )
             Spacer(Modifier.height(16.dp))
 
             MenuItem("1. MODE DEV  ${if (devMode) "[x]" else "[ ]"}", onClick = { onDevModeChange(!devMode) })
@@ -103,13 +114,16 @@ fun DevModeScreen(
                     )
                 }
             }
-            ScrollIn(devMode, order = 1) { MenuItem("3. HI DAAD", onClick = { hello = true }) }
-            ScrollIn(devMode, order = 2) { MenuItem("4. FACTORY RESET", onClick = { confirmReset = true }) }
+            ScrollIn(devMode, order = 1) { MenuItem("3. FACTORY RESET", onClick = { confirmReset = true }) }
+            ScrollIn(devMode && titleTaps >= HELLO_TAPS, order = 0) { MenuItem("4. HI DAAD", onClick = { hello = true }) }
         }
     }
 
     if (hello) HelloDadDialog(onDismiss = { hello = false })
 }
+
+/** Taps sur le titre pour faire apparaître HI DAAD. */
+private const val HELLO_TAPS = 2
 
 /** Délai entre deux options qui défilent. */
 private const val SCROLL_STAGGER_MS = 90
