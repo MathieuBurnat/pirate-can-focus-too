@@ -1,5 +1,6 @@
 package dev.mathieuburnat.piratefocus.ui
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -132,7 +133,10 @@ fun PirateApp(
                         devRevealed = false
                         fakeData = false
                         screen = Screen.WELCOME
+                        Toast.makeText(context.applicationContext, "Merci pour tout. Bon voyage !", Toast.LENGTH_LONG).show()
                     },
+                    anonymous = !accountState.account.signedIn,
+                    onLinkAccount = { screen = Screen.ACCOUNT },
                     onFakeDataChange = {
                         devModeStore.setFakeData(it)
                         fakeData = it

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -50,6 +51,8 @@ fun DevModeScreen(
     onDevModeChange: (Boolean) -> Unit,
     onFakeDataChange: (Boolean) -> Unit,
     onFactoryReset: () -> Unit,
+    anonymous: Boolean,
+    onLinkAccount: () -> Unit,
 ) {
     var hello by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
@@ -70,24 +73,42 @@ fun DevModeScreen(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
+            // Boutons empilés : lier un compte d'abord (la sortie sûre), puis couler, puis garder le cap.
             confirmButton = {
-                TextButton(onClick = {
-                    confirmReset = false
-                    reallySure = true
-                }) { Text("TOUT COULER") }
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (anonymous) {
+                        LinkAccountButton {
+                            confirmReset = false
+                            onLinkAccount()
+                        }
+                    }
+                    TextButton(onClick = {
+                        confirmReset = false
+                        reallySure = true
+                    }) { Text("TOUT COULER") }
+                    TextButton(onClick = { confirmReset = false }) { Text("GARDER LE CAP") }
+                }
             },
-            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("GARDER LE CAP") } },
         )
     }
 
     if (reallySure) {
         ReallySureDialog(
             message = "T'es vraiment sûr ? Toutes les données seront coulées à jamais !!",
+            confirmLabel = "OUI, JE SUIS VRAIMENT SÛR",
             onConfirm = {
                 reallySure = false
                 onFactoryReset()
             },
             onCancel = { reallySure = false },
+            onLinkAccount = if (anonymous) {
+                {
+                    reallySure = false
+                    onLinkAccount()
+                }
+            } else {
+                null
+            },
         )
     }
 
