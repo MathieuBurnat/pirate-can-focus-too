@@ -18,18 +18,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import dev.mathieuburnat.piratefocus.guard.BlacklistStore
 import kotlin.math.abs
 
 /** Coups à donner sur le titre des paramètres pour faire apparaître le mode dev. */
 private const val TAPS_TO_REVEAL = 5
 
-/** Les paramètres : applications bloquées, déconnexion, et le mode dev caché (5 taps sur le titre). */
+/** Les paramètres : applications bloquées (et tout débloquer), déconnexion, et le mode dev caché (5 taps sur le titre). */
 @Composable
 fun SettingsScreen(
     devMode: Boolean,
@@ -45,6 +48,21 @@ fun SettingsScreen(
 
 
     var reveals by remember { mutableIntStateOf(0) }
+    val blacklistStore = BlacklistStore(LocalContext.current)
+    var blacklistEmpty by remember { mutableStateOf(blacklistStore.load().isEmpty()) }
+    var confirmClear by remember { mutableStateOf(false) }
+
+    if (confirmClear) {
+        ReallySureDialog(
+            message = "T'es vraiment sûr ? Toutes tes applis bloquées seront libérées, plus aucune sirène ne sera surveillée !",
+            onConfirm = {
+                confirmClear = false
+                blacklistStore.clear()
+                blacklistEmpty = true
+            },
+            onCancel = { confirmClear = false },
+        )
+    }
     // Dès le 2e coup, le titre frémit, de plus en plus fort : quelque chose va se débloquer...
     val shake = remember { Animatable(0f) }
     LaunchedEffect(taps) {
@@ -87,6 +105,11 @@ fun SettingsScreen(
 
             var number = 1
             MenuItem("${number++}. APPLICATIONS BLOQUÉES", onClick = onBlockedApps)
+            MenuItem(
+                "${number++}. SUPPRIMER TOUTES LES APPLIS BLOQUÉES",
+                onClick = { if (!blacklistEmpty) confirmClear = true },
+                dimmed = blacklistEmpty,
+            )
             if (devRevealed) DevModeItem("${number++}.", devMode, reveals, onDevMode)
             if (signedIn) MenuItem("${number}. SE DÉCONNECTER", onClick = onLogout)
         }

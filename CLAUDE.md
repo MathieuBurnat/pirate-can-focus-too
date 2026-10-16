@@ -69,7 +69,8 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── MenuScreen.kt        # menu de démarrage (focus, journal, paramètres, fiche de matelot)
     ├── JournalScreen.kt     # BISCOTOS VS TAVERNE (toucher un camp ouvre ses activités, commentées par une petite tête du capitaine), capitaine pompette si ça boit trop
     ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (vrais pirates publics, ou inventés avec « fake data »)
-    ├── SettingsScreen.kt    # paramètres : applications bloquées, déconnexion, mode dev caché (5 taps sur le titre)
+    ├── SettingsScreen.kt    # paramètres : applications bloquées (et tout débloquer), déconnexion, mode dev caché (5 taps sur le titre)
+    ├── ReallySureDialog.kt  # « T'es vraiment sûr ? » : CONFIRMER après 5 s (factory reset, liste noire vidée)
     ├── DevModeScreen.kt     # page du mode dev : activer/désactiver (l'éteindre recache le bouton) ; allumé : « fake data », factory reset, et « Hi daad » après 2 taps sur le titre
     ├── BlockedAppsScreen.kt # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit

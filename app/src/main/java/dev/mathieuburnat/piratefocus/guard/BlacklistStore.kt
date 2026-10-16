@@ -13,6 +13,9 @@ class BlacklistStore(context: Context) {
         prefs.edit().putStringSet(KEY, packages).apply()
     }
 
+    /** Plus aucune appli interdite : la liste vide est gardée telle quelle (pas de retour aux défauts). */
+    fun clear() = save(emptySet())
+
     fun toggle(packageName: String): Set<String> {
         val current = load()
         val next = if (packageName in current) current - packageName else current + packageName
