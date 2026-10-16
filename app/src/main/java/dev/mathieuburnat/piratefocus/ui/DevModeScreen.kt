@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +30,7 @@ import dev.mathieuburnat.piratefocus.focus.Phase
 
 /**
  * La page du mode dev (dénichée dans les paramètres) : l'activer ou non, et, mode dev allumé,
- * choisir les fausses données de l'équipage et dire bonjour à papa.
+ * choisir les fausses données de l'équipage, dire bonjour à papa, ou tout couler (factory reset).
  */
 @Composable
 fun DevModeScreen(
@@ -37,8 +39,34 @@ fun DevModeScreen(
     onBack: () -> Unit,
     onDevModeChange: (Boolean) -> Unit,
     onFakeDataChange: (Boolean) -> Unit,
+    onFactoryReset: () -> Unit,
 ) {
     var hello by remember { mutableStateOf(false) }
+    var confirmReset by remember { mutableStateOf(false) }
+
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            shape = RectangleShape,
+            title = { Text("☠ FACTORY RESET ☠") },
+            text = {
+                Text(
+                    "Tout ce que ce téléphone garde passe par-dessus bord : pseudo, journal de bord, " +
+                        "coffre et doublons, mode dev, applis bloquées.\n\n" +
+                        "Compte gratuit : tes données restent au chaud chez le Worker et reviennent à la prochaine connexion. " +
+                        "Matelot anonyme : tout coule pour de bon !",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmReset = false
+                    onFactoryReset()
+                }) { Text("TOUT COULER") }
+            },
+            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("GARDER LE CAP") } },
+        )
+    }
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.safeDrawingPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -64,6 +92,7 @@ fun DevModeScreen(
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             MenuItem("3. HI DAAD", onClick = { hello = true })
+            MenuItem("4. FACTORY RESET", onClick = { confirmReset = true })
         }
     }
 

@@ -117,6 +117,11 @@ fun PirateApp(
                     },
                     onDevMode = { screen = Screen.DEV_MODE },
                     onLogout = accountViewModel::logout,
+                )
+                Screen.DEV_MODE -> DevModeScreen(
+                    devMode = devMode,
+                    fakeData = fakeData,
+                    onBack = { screen = Screen.SETTINGS },
                     onFactoryReset = {
                         // D'abord l'état en mémoire (rien de périmé à l'écran), puis le téléphone.
                         accountViewModel.reset()
@@ -128,11 +133,6 @@ fun PirateApp(
                         fakeData = false
                         screen = Screen.WELCOME
                     },
-                )
-                Screen.DEV_MODE -> DevModeScreen(
-                    devMode = devMode,
-                    fakeData = fakeData,
-                    onBack = { screen = Screen.SETTINGS },
                     onFakeDataChange = {
                         devModeStore.setFakeData(it)
                         fakeData = it
