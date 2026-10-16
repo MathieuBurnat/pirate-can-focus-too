@@ -122,6 +122,12 @@ fun PirateApp(
                     onDevModeChange = {
                         devModeStore.set(it)
                         devMode = it
+                        // Mode dev éteint : le bouton se recache, retour aux paramètres.
+                        if (!it) {
+                            devModeStore.hide()
+                            devRevealed = false
+                            screen = Screen.SETTINGS
+                        }
                     },
                 )
                 Screen.BLOCKED_APPS -> BlockedAppsScreen(onBack = { screen = Screen.SETTINGS })

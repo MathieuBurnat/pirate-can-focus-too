@@ -16,11 +16,18 @@ class DevModeStore(context: Context) {
         prefs.edit().putBoolean(KEY, on).apply()
     }
 
-    /** Le bouton « Mode dev » est caché tant qu'on n'a pas tapé 5 fois sur le titre des paramètres. */
+    /**
+     * Le bouton « Mode dev » est caché tant qu'on n'a pas tapé 5 fois sur le titre des paramètres,
+     * et il se recache dès qu'on éteint le mode dev.
+     */
     fun isRevealed(): Boolean = prefs.getBoolean(REVEALED, false) || isOn()
 
     fun reveal() {
         prefs.edit().putBoolean(REVEALED, true).apply()
+    }
+
+    fun hide() {
+        prefs.edit().putBoolean(REVEALED, false).apply()
     }
 
     private companion object {
