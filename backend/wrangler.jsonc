@@ -17,7 +17,7 @@
     // Identifiants OAuth Google acceptés (séparés par des virgules) : le client Android et le client Web.
     "GOOGLE_CLIENT_IDS": "",
     // Expéditeur des codes de connexion (domaine vérifié chez Resend).
-    "EMAIL_FROM": "Le Capitaine <capitaine@example.com>"
+    "EMAIL_FROM": "Le Capitaine <capitaine@helveticademia.ch>"
   }
   // Secret à définir avec `npx wrangler secret put RESEND_API_KEY`.
 }
