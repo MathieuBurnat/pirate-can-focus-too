@@ -62,10 +62,10 @@ fun DevModeScreen(
             title = { Text("☠ FACTORY RESET ☠") },
             text = {
                 Text(
-                    "Tout ce que ce téléphone garde passe par-dessus bord : pseudo, journal de bord, " +
-                        "coffre et doublons, mode dev, applis bloquées.\n\n" +
-                        "Compte gratuit : tes données restent au chaud chez le Worker et reviennent à la prochaine connexion. " +
-                        "Matelot anonyme : tout coule pour de bon !",
+                    "Tout ce qui est rangé sur ce téléphone sera effacé : pseudo, journal de bord, " +
+                        "coffre et doublons, mode dev et applis bloquées.\n\n" +
+                        "Avec un compte gratuit, tes données restent sauvegardées en ligne et reviennent à ta prochaine connexion. " +
+                        "En matelot anonyme, tout coule pour de bon !",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
