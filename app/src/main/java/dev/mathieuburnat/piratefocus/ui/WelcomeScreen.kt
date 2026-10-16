@@ -1,5 +1,8 @@
 package dev.mathieuburnat.piratefocus.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,10 +20,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,6 +35,7 @@ import dev.mathieuburnat.piratefocus.account.AccountViewModel
 import dev.mathieuburnat.piratefocus.account.PirateNames
 import dev.mathieuburnat.piratefocus.focus.Phase
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private enum class WelcomeStep { CHOICE, ANONYMOUS, FREE_ACCOUNT }
 
@@ -48,6 +55,28 @@ fun WelcomeScreen(viewModel: AccountViewModel, onDone: () -> Unit) {
         lookingAtYou = true
         delay(600)
         smiling = true
+    }
+
+    // Puis il salue : il se dandine d'un pied sur l'autre en sautillant, à chaque retour sur le choix.
+    val sway = remember { Animatable(0f) }
+    val hop = remember { Animatable(0f) }
+    LaunchedEffect(smiling, step) {
+        if (!smiling || step != WelcomeStep.CHOICE) {
+            sway.animateTo(0f)
+            return@LaunchedEffect
+        }
+        launch {
+            repeat(2) {
+                hop.animateTo(1f, tween(140, easing = FastOutSlowInEasing))
+                hop.animateTo(0f, tween(160))
+            }
+        }
+        for (angle in listOf(-10f, 10f, -8f, 8f, -4f, 0f)) sway.animateTo(angle, tween(150))
+        // Ensuite, un léger balancement tant qu'on choisit.
+        while (true) {
+            sway.animateTo(3f, tween(1100))
+            sway.animateTo(-3f, tween(1100))
+        }
     }
 
     // Le code est validé : le compte gratuit est prêt, on lève l'ancre.
@@ -79,7 +108,17 @@ fun WelcomeScreen(viewModel: AccountViewModel, onDone: () -> Unit) {
             }
             Text("=== BIENVENUE À BORD ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
-            PixelPirate(phase = Phase.IDLE, happy = smiling, lookingAtYou = lookingAtYou)
+            PixelPirate(
+                phase = Phase.IDLE,
+                happy = smiling,
+                lookingAtYou = lookingAtYou,
+                modifier = Modifier.graphicsLayer {
+                    // Il pivote depuis ses bottes, comme un vrai loup de mer.
+                    transformOrigin = TransformOrigin(0.5f, 1f)
+                    rotationZ = sway.value
+                    translationY = -hop.value * 10.dp.toPx()
+                },
+            )
             Spacer(Modifier.height(16.dp))
 
             when (step) {
