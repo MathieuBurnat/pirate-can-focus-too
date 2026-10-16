@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import dev.mathieuburnat.piratefocus.focus.Phase
 
-/** La page du mode dev (dénichée dans les paramètres) : l'activer ou non, et dire bonjour à papa. */
+/** La page du mode dev (dénichée dans les paramètres) : l'activer ou non, et (mode dev allumé) dire bonjour à papa. */
 @Composable
 fun DevModeScreen(
     devMode: Boolean,
@@ -56,14 +56,14 @@ fun DevModeScreen(
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
-            MenuItem("2. SALUT PAPA", onClick = { hello = true })
+            if (devMode) MenuItem("2. HI DAAD", onClick = { hello = true })
         }
     }
 
     if (hello) HelloDadDialog(onDismiss = { hello = false })
 }
 
-/** « SALUT PAPA » : le capitaine sourit, et les paillettes pleuvent sans fin. */
+/** « HI DAAD » : le capitaine sourit, et les paillettes pleuvent sans fin. */
 @Composable
 private fun HelloDadDialog(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
@@ -80,7 +80,7 @@ private fun HelloDadDialog(onDismiss: () -> Unit) {
                     PixelPirate(phase = Phase.IDLE, happy = true, lookingAtYou = true, size = 128.dp)
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "SALUT PAPA !",
+                        "HI DAAD !",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.Center,
