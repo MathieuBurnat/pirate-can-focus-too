@@ -159,10 +159,13 @@ async function emailVerify(env: Env, request: Request) {
 
 // --- Identifiant, mot de passe et code secret -----------------------------------
 
-/** Identifiant privé : 3 à 32 caractères (lettres, chiffres, . _ -), sans distinction de casse. */
+/**
+ * Identifiant privé : une adresse email (en minuscules), qui ne sert qu'à se connecter.
+ * Aucun mail n'y est jamais envoyé, et elle n'est jamais montrée aux autres pirates.
+ */
 function cleanLogin(value: unknown): string {
   const login = typeof value === "string" ? value.trim().toLowerCase() : "";
-  if (!/^[a-z0-9._-]{3,32}$/.test(login)) throw new HttpError(400, "Identifiant de 3 à 32 caractères (lettres, chiffres, . _ -)");
+  if (login.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(login)) throw new HttpError(400, "Adresse email invalide, matelot");
   return login;
 }
 

@@ -8,7 +8,7 @@ data class Account(
     /** Jeton de session du Worker : null tant qu'on n'a pas de compte gratuit. */
     val token: String? = null,
     val email: String? = null,
-    /** L'identifiant privé du compte gratuit (jamais montré aux autres pirates). */
+    /** L'email qui sert d'identifiant au compte gratuit (privé, jamais vérifié ni montré aux autres pirates). */
     val login: String? = null,
     /** "password" (identifiant + mot de passe), ou les anciens "email" et "google". */
     val kind: String? = null,

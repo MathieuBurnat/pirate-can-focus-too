@@ -18,7 +18,7 @@ accompagne l'utilisateur, avec une interface entièrement en **police monospace*
 - `minSdk 26`, `targetSdk`/`compileSdk 35`, JVM 17.
 - Sans compte, tout est local (journal et doublons sauvegardés sur le téléphone). Avec un compte gratuit,
   journal et coffre sont synchronisés avec le Worker Cloudflare de `backend/` (issue #8).
-  Le compte gratuit n'utilise pas d'email : identifiant privé + mot de passe + code secret
+  Compte gratuit : email (simple identifiant privé, jamais vérifié, aucun mail envoyé) + mot de passe + code secret
   (montré une seule fois, il remet un mot de passe oublié). Les routes email/Google du Worker restent, inutilisées.
 
 ## Environnement du développeur

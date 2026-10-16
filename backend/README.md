@@ -8,8 +8,8 @@ Sans compte, l'app n'appelle jamais cette API : tout reste sur le téléphone.
 ## Les tables
 
 - `pirates` : pseudo, visibilité publique. Aucune donnée personnelle.
-- `credentials` : le compte gratuit utilisé par l'app : identifiant privé, mot de passe (PBKDF2-SHA256 salé)
-  et empreinte du code secret. **Séparé** des statistiques, l'identifiant n'est jamais montré.
+- `credentials` : le compte gratuit utilisé par l'app : email servant d'identifiant (jamais vérifié, aucun mail envoyé),
+  mot de passe (PBKDF2-SHA256 salé) et empreinte du code secret. **Séparé** des statistiques, l'email n'est jamais montré.
 - `identities` : email ou identifiant Google, rattaché à un pirate (routes gardées, plus utilisées par l'app).
 - `auth_failures` : essais ratés par appareil (empreinte de l'IP) et par identifiant, pour freiner les devinettes.
 - `exploits`, `chests` : journal de bord (chaque séance, verre ou traversée) et coffre, rattachés au pirate.

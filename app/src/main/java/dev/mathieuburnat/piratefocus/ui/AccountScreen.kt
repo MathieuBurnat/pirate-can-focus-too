@@ -113,7 +113,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
             if (account.signedIn) {
                 Text("-- Compte gratuit --", style = MaterialTheme.typography.titleSmall)
                 when {
-                    account.login != null -> Text("Identifiant (privé) : ${account.login}", style = MaterialTheme.typography.bodyMedium)
+                    account.login != null -> Text("Email (privé) : ${account.login}", style = MaterialTheme.typography.bodyMedium)
                     account.kind == "google" -> Text("Connecté par Google", style = MaterialTheme.typography.bodyMedium)
                     else -> Text("Connecté par email${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
                 }

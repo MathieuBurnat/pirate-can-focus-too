@@ -1,5 +1,6 @@
--- Les comptes gratuits « identifiant + mot de passe + code secret ». À part des pirates, comme les identités :
--- l'identifiant est privé (jamais montré), seul le pseudo du pirate apparaît dans l'équipage.
+-- Les comptes gratuits « email + mot de passe + code secret ». À part des pirates, comme les identités :
+-- l'email sert seulement d'identifiant (jamais vérifié, aucun mail envoyé, jamais montré) ;
+-- seul le pseudo du pirate apparaît dans l'équipage.
 -- Mot de passe : PBKDF2-SHA256 salé ; code secret : empreinte SHA-256 (il est assez long pour ne pas être deviné).
 CREATE TABLE credentials (
   pirate_id TEXT PRIMARY KEY REFERENCES pirates(id),

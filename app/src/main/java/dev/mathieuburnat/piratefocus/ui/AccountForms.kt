@@ -8,7 +8,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -55,7 +58,7 @@ import kotlinx.coroutines.launch
 private const val PASSWORD_MIN = 8
 
 /**
- * Le compte gratuit, sans email : créer un compte (identifiant, mot de passe, pseudo), s'y connecter,
+ * Le compte gratuit : créer un compte (email comme identifiant, mot de passe, pseudo), s'y connecter,
  * ou retrouver un mot de passe oublié avec le code secret.
  */
 @Composable
@@ -70,22 +73,23 @@ fun FreeAccountForm(
     var password by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf(state.account.pirateName.ifEmpty { PirateNames.random() }) }
-    val loginOk = login.trim().length >= 3
+    val loginOk = EMAIL.matches(login.trim())
     val passwordOk = password.length >= PASSWORD_MIN
 
     Column(Modifier.fillMaxWidth()) {
         TypewriterText(AccountQuotes.FREE_ACCOUNT, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(12.dp))
-        // Deux onglets : créer un compte, ou monter à bord d'un compte existant.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Deux onglets de même hauteur : créer un compte, ou monter à bord d'un compte existant.
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AuthTab("CRÉER MON COMPTE", selected = state.authMode == AuthMode.REGISTER, onClick = { onMode(AuthMode.REGISTER) }, modifier = Modifier.weight(1f))
             AuthTab("J'AI DÉJÀ UN COMPTE", selected = state.authMode != AuthMode.REGISTER, onClick = { onMode(AuthMode.LOGIN) }, modifier = Modifier.weight(1f))
         }
         Spacer(Modifier.height(8.dp))
-        PirateField(login, { login = it.filter { c -> c.isLetterOrDigit() || c in "._-" }.take(32) }, "> identifiant")
+        // L'email sert d'identifiant : jamais vérifié, aucun mail envoyé.
+        PirateField(login, { login = it.filter { c -> !c.isWhitespace() }.take(254) }, "ton-adresse@mail.com", KeyboardType.Email, autoCorrect = false)
+        Text(AccountQuotes.LOGIN_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         when (state.authMode) {
             AuthMode.REGISTER -> {
-                Text(AccountQuotes.LOGIN_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                 PasswordField(password, { password = it }, "> mot de passe ($PASSWORD_MIN caractères min.)")
                 Text("Ton pseudo de pirate (celui que l'équipage voit) :", style = MaterialTheme.typography.bodySmall)
                 PirateField(name, { name = it }, "> ton pseudo de pirate")
@@ -127,18 +131,26 @@ fun FreeAccountForm(
     }
 }
 
+/** Une adresse email plausible (une seule @, un domaine avec un point, pas d'espace). */
+private val EMAIL = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
+
 @Composable
 private fun AuthTab(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Text(
-        label,
-        style = MaterialTheme.typography.labelLarge,
-        textAlign = TextAlign.Center,
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
+            .fillMaxHeight()
             .border(BorderStroke(2.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)), RectangleShape)
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp, horizontal = 4.dp),
-    )
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            textAlign = TextAlign.Center,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+        )
+    }
 }
 
 /** Un mot de passe masqué, avec « voir » / « cacher ». */
@@ -212,7 +224,13 @@ fun BusyAndError(state: AccountUiState) {
 }
 
 @Composable
-fun PirateField(value: String, onValueChange: (String) -> Unit, placeholder: String, keyboard: KeyboardType = KeyboardType.Text) {
+fun PirateField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    keyboard: KeyboardType = KeyboardType.Text,
+    autoCorrect: Boolean = true,
+) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -220,7 +238,7 @@ fun PirateField(value: String, onValueChange: (String) -> Unit, placeholder: Str
         singleLine = true,
         shape = RectangleShape,
         textStyle = MaterialTheme.typography.bodyLarge,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboard),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboard, autoCorrectEnabled = autoCorrect),
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
     )
 }
