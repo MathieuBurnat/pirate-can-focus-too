@@ -43,19 +43,9 @@ Tout est en **pixel art** et en **police monospace**, comme un vieux terminal de
   </tr>
 </table>
 
-## 📖 Le journal secret du capitaine
+## 📖 Le journal du capitaine
 
-Dans le menu, « Mon journal » est grisé... mais il n'est pas tout à fait fermé.
-
-<details>
-<summary>🗝️ <b>Spoiler : comment entrer</b></summary>
-
-Frappe **7 fois** sur la porte. Le capitaine râle de plus en plus (« J'ai dit FERMÉ. Tu es sourd comme un hareng ? »),
-puis finit par céder : *« C'est bon, c'est bon, je te laisse entrer ! Mais attention : c'est encore en travaux. »*
-
-</details>
-
-À l'intérieur, c'est le grand duel **BISCOTOS 💪 contre TAVERNE 🍺**, arbitré par un capitaine qui n'a pas sa langue dans sa poche.
+Dans le menu, « Mon journal » ouvre le grand duel **BISCOTOS 💪 contre TAVERNE 🍺**, arbitré par un capitaine qui n'a pas sa langue dans sa poche.
 
 <table>
   <tr>

@@ -4,18 +4,6 @@ import kotlin.random.Random
 
 object JournalQuotes {
 
-    /** Ce que dit le capitaine pendant qu'on tapote sur le journal verrouillé (tap 1 à 6). */
-    fun knock(tapsLeft: Int): String? = when (tapsLeft) {
-        4 -> "Toc toc ? Ce journal est fermé, moussaillon."
-        3 -> "J'ai dit FERMÉ. Tu es sourd comme un hareng ?"
-        2 -> "Encore deux coups et j'appelle le kraken..."
-        1 -> "Bon. Un dernier coup, et je craque."
-        else -> null
-    }
-
-    const val UNLOCKED = "C'est bon, c'est bon, je te laisse entrer ! Mais attention : c'est encore en travaux. " +
-        "Ne marche pas sur la peinture fraîche."
-
     private val verdicts = mapOf(
         Verdict.PAGE_BLANCHE to listOf(
             "Page blanche. Tu n'as rien fait, ou tu as tout oublié ?",

@@ -49,7 +49,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   ├── GuardPermissions.kt  # accès aux données d'utilisation + affichage par-dessus
 │   ├── FocusGuardService.kt # service au premier plan qui surveille l'appli ouverte
 │   └── CaughtActivity.kt    # le capitaine surgit sur une appli interdite
-├── journal/                 # journal secret (7 taps sur le menu) : sport contre boissons
+├── journal/                 # journal du capitaine : sport contre boissons
 │   ├── Journal.kt           # compteurs et verdict du capitaine (logique pure, testée)
 │   ├── JournalQuotes.kt     # insultes, réactions par boisson, interventions tous les 5 verres
 │   ├── JournalViewModel.kt  # compteurs du jour, journal de bord chargé depuis un LogBook
@@ -65,7 +65,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   └── PirateQuotes.kt      # répliques du capitaine selon la phase
 └── ui/
     ├── PirateApp.kt         # navigation : menu, focus, paramètres
-    ├── MenuScreen.kt        # menu de démarrage (journal grisé, déverrouillé après 7 taps)
+    ├── MenuScreen.kt        # menu de démarrage (focus, journal, paramètres, fiche de matelot)
     ├── JournalScreen.kt     # BISCOTOS VS TAVERNE (toucher un camp ouvre ses activités, commentées par une petite tête du capitaine), capitaine pompette si ça boit trop
     ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (vrais pirates publics, ou inventés en mode dev)
     ├── SettingsScreen.kt    # paramètres : applications bloquées, mode dev, déconnexion

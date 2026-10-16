@@ -44,8 +44,6 @@ fun PirateApp(
     var screen by rememberSaveable { mutableStateOf(if (accountState.account.onboarded) Screen.MENU else Screen.WELCOME) }
     val devModeStore = remember { DevModeStore(context) }
     var devMode by remember { mutableStateOf(devModeStore.isOn()) }
-    // Le journal secret se déverrouille à chaque lancement (7 coups sur la porte).
-    var journalUnlocked by rememberSaveable { mutableStateOf(false) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val phase = state.timer.phase
 
@@ -70,10 +68,8 @@ fun PirateApp(
                 Screen.WELCOME -> WelcomeScreen(accountViewModel, onDone = { screen = Screen.MENU })
                 Screen.MENU -> MenuScreen(
                     phase = phase,
-                    journalUnlocked = journalUnlocked,
                     signedIn = accountState.account.signedIn,
                     onFocus = { screen = Screen.FOCUS },
-                    onUnlockJournal = { journalUnlocked = true },
                     onJournal = { screen = Screen.JOURNAL },
                     onSettings = { screen = Screen.SETTINGS },
                     onAccount = { screen = Screen.ACCOUNT },
