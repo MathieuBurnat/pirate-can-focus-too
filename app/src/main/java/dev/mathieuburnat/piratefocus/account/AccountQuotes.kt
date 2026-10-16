@@ -3,7 +3,8 @@ package dev.mathieuburnat.piratefocus.account
 /** Ce que le capitaine raconte à propos des comptes. */
 object AccountQuotes {
 
-    const val WELCOME = "Ahoy ! Sur ce navire, personne n'est forcé de signer quoi que ce soit."
+    const val WELCOME = "Ahoy ! Sur ce navire, personne n'est forcé de signer quoi que ce soit.\n\n" +
+        "Tu peux utiliser l'appli sans créer de compte. Bonne navigation, matelot !"
 
     const val ANONYMOUS = "Un pseudo, et tu montes à bord. Aucune adresse, aucun nom, rien."
 

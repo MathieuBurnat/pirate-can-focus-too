@@ -42,7 +42,9 @@ fun TypewriterText(
         withStyle(SpanStyle(color = color)) { append(text.take(shown)) }
         if (shown < text.length) {
             withStyle(SpanStyle(color = color)) { append('▌') }
-            withStyle(SpanStyle(color = Color.Transparent)) { append(text.drop(shown + 1)) }
+            // Le curseur ne mange pas un saut de ligne : la mise en page ne saute pas.
+            val rest = if (text[shown] == '\n') text.drop(shown) else text.drop(shown + 1)
+            withStyle(SpanStyle(color = Color.Transparent)) { append(rest) }
         }
     }
     Text(annotated, style = style, textAlign = textAlign, modifier = modifier)
