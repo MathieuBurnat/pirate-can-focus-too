@@ -43,7 +43,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   ├── PirateApi.kt         # client de l'API backend/ (HttpURLConnection + org.json)
 │   └── PirateNames.kt       # pseudos de pirate tirés au sort (logique pure, testée)
 ├── settings/
-│   └── DevModeStore.kt      # mode dev : équipage inventé au lieu des vrais pirates publics
+│   └── DevModeStore.kt      # mode dev, et son option « fake data » : équipage inventé au lieu des vrais pirates publics
 ├── guard/
 │   ├── BlacklistStore.kt    # liste noire (défaut : Instagram, TikTok, Reddit)
 │   ├── GuardPermissions.kt  # accès aux données d'utilisation + affichage par-dessus
@@ -57,7 +57,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   ├── JournalStore.kt      # LogBook sur le téléphone : fichier journal.tsv (écriture atomique)
 │   ├── JournalCodec.kt      # journal <-> texte, une ligne par entrée (logique pure, testée)
 │   ├── JournalSync.kt       # fusion du journal du téléphone et du Worker (logique pure, testée)
-│   └── Crew.kt              # scores jour/semaine/mois, équipage imaginaire du mode dev
+│   └── Crew.kt              # scores jour/semaine/mois, équipage imaginaire de « fake data »
 ├── focus/
 │   ├── FocusTimer.kt        # logique pure du minuteur (testée unitairement)
 │   ├── FocusViewModel.kt    # état de l'écran, boucle de décompte
@@ -67,9 +67,9 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── PirateApp.kt         # navigation : menu, focus, paramètres
     ├── MenuScreen.kt        # menu de démarrage (focus, journal, paramètres, fiche de matelot)
     ├── JournalScreen.kt     # BISCOTOS VS TAVERNE (toucher un camp ouvre ses activités, commentées par une petite tête du capitaine), capitaine pompette si ça boit trop
-    ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (vrais pirates publics, ou inventés en mode dev)
+    ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (vrais pirates publics, ou inventés avec « fake data »)
     ├── SettingsScreen.kt    # paramètres : applications bloquées, déconnexion, mode dev caché (5 taps sur le titre)
-    ├── DevModeScreen.kt     # page du mode dev : activer/désactiver (l'éteindre recache le bouton), et « Hi daad » (si le mode dev est allumé)
+    ├── DevModeScreen.kt     # page du mode dev : activer/désactiver (l'éteindre recache le bouton) ; allumé : « fake data » et « Hi daad »
     ├── BlockedAppsScreen.kt # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
     ├── AccountScreen.kt     # « Ma fiche de matelot » (ex « Mon compte ») : pseudo, données publiques, déconnexion, suppression

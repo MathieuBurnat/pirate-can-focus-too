@@ -45,6 +45,7 @@ fun PirateApp(
     val devModeStore = remember { DevModeStore(context) }
     var devMode by remember { mutableStateOf(devModeStore.isOn()) }
     var devRevealed by remember { mutableStateOf(devModeStore.isRevealed()) }
+    var fakeData by remember { mutableStateOf(devModeStore.isFakeData()) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val phase = state.timer.phase
 
@@ -83,10 +84,10 @@ fun PirateApp(
                 )
                 Screen.CREW -> {
                     val journal by journalViewModel.uiState.collectAsStateWithLifecycle()
-                    // Hors mode dev : les vrais pirates publics, rechargés à chaque visite.
+                    // Sans « fake data » : les vrais pirates publics, rechargés à chaque visite.
                     var status by remember { mutableStateOf<String?>(null) }
-                    val realCrew by produceState(initialValue = emptyList<CrewMate>(), devMode) {
-                        if (devMode) return@produceState
+                    val realCrew by produceState(initialValue = emptyList<CrewMate>(), fakeData) {
+                        if (fakeData) return@produceState
                         status = "~ la longue-vue cherche l'équipage... ~"
                         status = try {
                             value = accountViewModel.crew()
@@ -96,10 +97,10 @@ fun PirateApp(
                         }
                     }
                     CrewScreen(
-                        crew = if (devMode) journalViewModel.crew else realCrew,
+                        crew = if (fakeData) journalViewModel.crew else realCrew,
                         myLogs = journal.myLogs,
-                        imaginary = devMode,
-                        status = if (devMode) null else status,
+                        imaginary = fakeData,
+                        status = if (fakeData) null else status,
                         onBack = { screen = Screen.JOURNAL },
                     )
                 }
@@ -118,10 +119,16 @@ fun PirateApp(
                 )
                 Screen.DEV_MODE -> DevModeScreen(
                     devMode = devMode,
+                    fakeData = fakeData,
                     onBack = { screen = Screen.SETTINGS },
+                    onFakeDataChange = {
+                        devModeStore.setFakeData(it)
+                        fakeData = it
+                    },
                     onDevModeChange = {
                         devModeStore.set(it)
                         devMode = it
+                        fakeData = devModeStore.isFakeData()
                         // Mode dev éteint : le bouton se recache, retour aux paramètres.
                         if (!it) {
                             devModeStore.hide()

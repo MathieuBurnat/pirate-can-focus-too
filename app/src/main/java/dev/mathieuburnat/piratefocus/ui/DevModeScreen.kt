@@ -26,12 +26,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import dev.mathieuburnat.piratefocus.focus.Phase
 
-/** La page du mode dev (dénichée dans les paramètres) : l'activer ou non, et (mode dev allumé) dire bonjour à papa. */
+/**
+ * La page du mode dev (dénichée dans les paramètres) : l'activer ou non, et, mode dev allumé,
+ * choisir les fausses données de l'équipage et dire bonjour à papa.
+ */
 @Composable
 fun DevModeScreen(
     devMode: Boolean,
+    fakeData: Boolean,
     onBack: () -> Unit,
     onDevModeChange: (Boolean) -> Unit,
+    onFakeDataChange: (Boolean) -> Unit,
 ) {
     var hello by remember { mutableStateOf(false) }
 
@@ -47,8 +52,10 @@ fun DevModeScreen(
             Spacer(Modifier.height(16.dp))
 
             MenuItem("1. MODE DEV  ${if (devMode) "[x]" else "[ ]"}", onClick = { onDevModeChange(!devMode) })
+            if (!devMode) return@Column
+            MenuItem("2. FAKE DATA  ${if (fakeData) "[x]" else "[ ]"}", onClick = { onFakeDataChange(!fakeData) })
             Text(
-                if (devMode) {
+                if (fakeData) {
                     "Les statistiques de l'équipage montrent des matelots inventés, codés en dur dans l'app."
                 } else {
                     "Les statistiques de l'équipage montrent les vrais pirates publics. Aucune fausse donnée en base."
@@ -56,7 +63,7 @@ fun DevModeScreen(
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
-            if (devMode) MenuItem("2. HI DAAD", onClick = { hello = true })
+            MenuItem("3. HI DAAD", onClick = { hello = true })
         }
     }
 

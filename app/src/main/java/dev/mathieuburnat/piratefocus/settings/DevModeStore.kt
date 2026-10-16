@@ -3,8 +3,9 @@ package dev.mathieuburnat.piratefocus.settings
 import android.content.Context
 
 /**
- * Le mode dev : les statistiques de l'équipage montrent des matelots inventés (codés en dur dans l'app).
- * Hors mode dev, elles montrent les vrais pirates publics du Worker. La base, elle, ne contient jamais de fausses données.
+ * Le mode dev et son option « fake data » : cochée, les statistiques de l'équipage montrent des matelots inventés
+ * (codés en dur dans l'app). Sinon, elles montrent les vrais pirates publics du Worker.
+ * La base, elle, ne contient jamais de fausses données. Éteindre le mode dev décoche aussi « fake data ».
  */
 class DevModeStore(context: Context) {
 
@@ -13,7 +14,16 @@ class DevModeStore(context: Context) {
     fun isOn(): Boolean = prefs.getBoolean(KEY, false)
 
     fun set(on: Boolean) {
-        prefs.edit().putBoolean(KEY, on).apply()
+        val edit = prefs.edit().putBoolean(KEY, on)
+        if (!on) edit.putBoolean(FAKE_DATA, false)
+        edit.apply()
+    }
+
+    /** Les fausses données ne servent que mode dev allumé. */
+    fun isFakeData(): Boolean = isOn() && prefs.getBoolean(FAKE_DATA, false)
+
+    fun setFakeData(on: Boolean) {
+        prefs.edit().putBoolean(FAKE_DATA, on).apply()
     }
 
     /**
@@ -33,5 +43,6 @@ class DevModeStore(context: Context) {
     private companion object {
         const val KEY = "mode_dev"
         const val REVEALED = "mode_dev_visible"
+        const val FAKE_DATA = "mode_dev_fake_data"
     }
 }
