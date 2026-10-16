@@ -35,7 +35,8 @@ fun GuardNudgeDialog(text: String, onFollow: () -> Unit, onLater: () -> Unit) {
                 TypewriterText(
                     text,
                     style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
+                    // Texte « carré » ; la machine à écrire réserve déjà tout le texte, les lignes ne sautent pas.
+                    textAlign = TextAlign.Justify,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(16.dp))
