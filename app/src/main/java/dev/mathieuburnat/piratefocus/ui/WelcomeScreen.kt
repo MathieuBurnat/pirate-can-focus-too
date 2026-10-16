@@ -144,7 +144,10 @@ fun WelcomeScreen(viewModel: AccountViewModel, onDone: () -> Unit) {
                     PirateField(name, { name = it }, "> ton pseudo de pirate")
                     DiceReroll(onRoll = { name = PirateNames.random() })
                     NoAccountInfo()
-                    MenuItem("LEVER L'ANCRE", onClick = { if (viewModel.chooseAnonymous(name)) onDone() })
+                    AnchorOrSignIn(
+                        onAnchor = { if (viewModel.chooseAnonymous(name)) onDone() },
+                        onSignIn = { step = WelcomeStep.FREE_ACCOUNT },
+                    )
                     BusyAndError(state)
                 }
                 WelcomeStep.FREE_ACCOUNT -> FreeAccountForm(
@@ -156,4 +159,26 @@ fun WelcomeScreen(viewModel: AccountViewModel, onDone: () -> Unit) {
             }
         }
     }
+}
+
+/**
+ * « LEVER L'ANCRE » (5 s) puis « SE CONNECTER » (3 s), en boucle : le bouton se trémousse à chaque
+ * changement, et fait ce qu'il affiche au moment du tap.
+ */
+@Composable
+private fun AnchorOrSignIn(onAnchor: () -> Unit, onSignIn: () -> Unit) {
+    var signIn by remember { mutableStateOf(false) }
+    val wiggle = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(if (signIn) 3_000 else 5_000)
+            signIn = !signIn
+            for (angle in listOf(-4f, 4f, -3f, 3f, -1f, 0f)) wiggle.animateTo(angle, tween(60))
+        }
+    }
+    MenuItem(
+        if (signIn) "SE CONNECTER" else "LEVER L'ANCRE",
+        onClick = { if (signIn) onSignIn() else onAnchor() },
+        modifier = Modifier.graphicsLayer { rotationZ = wiggle.value },
+    )
 }
