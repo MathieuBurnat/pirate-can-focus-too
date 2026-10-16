@@ -33,6 +33,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -151,19 +158,14 @@ private fun ReallySureDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
     AlertDialog(
         onDismissRequest = onCancel,
         shape = RectangleShape,
-        title = { Text("☠ ATTENTION ☠") },
+        title = { Text("☠ ATTENTION ☠", maxLines = 1, softWrap = false, overflow = TextOverflow.Clip) },
         text = {
-            Text(
+            TypewriterText(
                 "T'es vraiment sûr ? Toutes les données seront coulées à jamais !!",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
             )
         },
-        confirmButton = {
-            TextButton(onClick = onConfirm, enabled = left == 0) {
-                Text(if (left > 0) "CONFIRMER ($left)" else "CONFIRMER")
-            }
-        },
+        confirmButton = { ConfirmButton(left, onConfirm) },
         dismissButton = {
             TextButton(onClick = onCancel) {
                 Text(
@@ -173,6 +175,36 @@ private fun ReallySureDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
                 )
             }
         },
+    )
+}
+
+/**
+ * « CONFIRMER » en rouge : bordure blanche en pointillés et compte à rebours tant qu'il faut patienter,
+ * puis, d'un coup, bordure rouge pleine et bouton cliquable.
+ */
+@Composable
+private fun ConfirmButton(left: Int, onConfirm: () -> Unit) {
+    val ready = left == 0
+    val red = MaterialTheme.colorScheme.error
+    Text(
+        if (ready) "CONFIRMER" else "CONFIRMER ($left)",
+        style = MaterialTheme.typography.labelLarge,
+        color = if (ready) red else red.copy(alpha = 0.5f),
+        modifier = Modifier
+            .drawBehind {
+                val stroke = 2.dp.toPx()
+                drawRect(
+                    color = if (ready) red else Color.White,
+                    topLeft = Offset(stroke / 2, stroke / 2),
+                    size = Size(size.width - stroke, size.height - stroke),
+                    style = Stroke(
+                        width = stroke,
+                        pathEffect = if (ready) null else PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx())),
+                    ),
+                )
+            }
+            .clickable(enabled = ready, onClick = onConfirm)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
 
