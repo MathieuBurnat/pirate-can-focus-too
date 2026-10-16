@@ -87,7 +87,7 @@ private val happyCaptain = captain.mapIndexed { row, line ->
 
 /** L'œil revient au milieu du visage : le capitaine te regarde droit dans les yeux. */
 private fun List<String>.lookingAtYou(): List<String> =
-    mapIndexed { row, line -> if (row == 8) "..SPPPSSEESSSS.G" else line }
+    mapIndexed { row, line -> if (row == 8) "..SPPPSSSEESSS.G" else line }
 
 /**
  * [tipsy] : le capitaine a un coup dans le nez et tangue même à quai.
