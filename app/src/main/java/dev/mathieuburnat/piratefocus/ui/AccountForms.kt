@@ -4,6 +4,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,56 +33,175 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import dev.mathieuburnat.piratefocus.account.AccountQuotes
 import dev.mathieuburnat.piratefocus.account.AccountUiState
-import dev.mathieuburnat.piratefocus.account.EmailStep
+import dev.mathieuburnat.piratefocus.account.AuthMode
 import dev.mathieuburnat.piratefocus.account.PirateNames
 import kotlin.math.PI
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Le compte gratuit : l'adresse email, puis le code reçu (et le pseudo, au premier passage). */
+/** Mot de passe : 8 caractères au moins (le Worker vérifie aussi). */
+private const val PASSWORD_MIN = 8
+
+/**
+ * Le compte gratuit, sans email : créer un compte (identifiant, mot de passe, pseudo), s'y connecter,
+ * ou retrouver un mot de passe oublié avec le code secret.
+ */
 @Composable
 fun FreeAccountForm(
     state: AccountUiState,
-    onStartEmail: (String) -> Unit,
-    onVerify: (code: String, name: String) -> Unit,
-    onChangeEmail: () -> Unit,
+    onMode: (AuthMode) -> Unit,
+    onRegister: (login: String, password: String, name: String) -> Unit,
+    onLogin: (login: String, password: String) -> Unit,
+    onRecover: (login: String, code: String, newPassword: String) -> Unit,
 ) {
-    var email by rememberSaveable { mutableStateOf(state.email) }
+    var login by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf(state.account.pirateName.ifEmpty { PirateNames.random() }) }
+    val loginOk = login.trim().length >= 3
+    val passwordOk = password.length >= PASSWORD_MIN
 
     Column(Modifier.fillMaxWidth()) {
         TypewriterText(AccountQuotes.FREE_ACCOUNT, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(12.dp))
-        when (state.emailStep) {
-            EmailStep.ADDRESS -> {
-                PirateField(email, { email = it }, "ton-adresse@mail.com", KeyboardType.Email)
-                MenuItem("RECEVOIR MON CODE", onClick = { if (email.isNotBlank()) onStartEmail(email) }, dimmed = state.busy || email.isBlank())
-                MenuItem("AVEC GOOGLE  (bientôt)", onClick = {}, dimmed = true)
-            }
-            EmailStep.CODE -> {
-                Text("${AccountQuotes.CODE_SENT} ${state.email}. Entre le code à 6 chiffres :", style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(8.dp))
-                PirateField(code, { code = it.filter(Char::isDigit).take(6) }, "> 000000", KeyboardType.NumberPassword)
-                Text("Ton pseudo (si c'est ton premier passage) :", style = MaterialTheme.typography.bodySmall)
+        // Deux onglets : créer un compte, ou monter à bord d'un compte existant.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AuthTab("CRÉER MON COMPTE", selected = state.authMode == AuthMode.REGISTER, onClick = { onMode(AuthMode.REGISTER) }, modifier = Modifier.weight(1f))
+            AuthTab("J'AI DÉJÀ UN COMPTE", selected = state.authMode != AuthMode.REGISTER, onClick = { onMode(AuthMode.LOGIN) }, modifier = Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(8.dp))
+        PirateField(login, { login = it.filter { c -> c.isLetterOrDigit() || c in "._-" }.take(32) }, "> identifiant")
+        when (state.authMode) {
+            AuthMode.REGISTER -> {
+                Text(AccountQuotes.LOGIN_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                PasswordField(password, { password = it }, "> mot de passe ($PASSWORD_MIN caractères min.)")
+                Text("Ton pseudo de pirate (celui que l'équipage voit) :", style = MaterialTheme.typography.bodySmall)
                 PirateField(name, { name = it }, "> ton pseudo de pirate")
                 DiceReroll(onRoll = { name = PirateNames.random() })
-                MenuItem("MONTER À BORD", onClick = { if (code.length == 6) onVerify(code, name) }, dimmed = state.busy || code.length != 6)
+                MenuItem(
+                    "CRÉER MON COMPTE GRATUIT",
+                    onClick = { if (loginOk && passwordOk) onRegister(login, password, name) },
+                    dimmed = state.busy || !loginOk || !passwordOk,
+                )
+            }
+            AuthMode.LOGIN -> {
+                PasswordField(password, { password = it }, "> mot de passe")
+                MenuItem("MONTER À BORD", onClick = { if (loginOk && password.isNotEmpty()) onLogin(login, password) }, dimmed = state.busy || !loginOk || password.isEmpty())
                 Text(
-                    "< changer d'adresse",
+                    "mot de passe oublié ?",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.clickable(onClick = onChangeEmail).padding(vertical = 6.dp),
+                    modifier = Modifier.clickable { onMode(AuthMode.FORGOT) }.padding(vertical = 6.dp),
+                )
+            }
+            AuthMode.FORGOT -> {
+                Text(AccountQuotes.FORGOT_EXPLAINED, style = MaterialTheme.typography.bodySmall)
+                PirateField(code, { code = it.uppercase().take(30) }, "> code secret (XXXX-XXXX-...)")
+                PasswordField(password, { password = it }, "> nouveau mot de passe ($PASSWORD_MIN min.)")
+                MenuItem(
+                    "RETROUVER MON COMPTE",
+                    onClick = { if (loginOk && code.isNotBlank() && passwordOk) onRecover(login, code, password) },
+                    dimmed = state.busy || !loginOk || code.isBlank() || !passwordOk,
+                )
+                Text(
+                    "< j'ai retrouvé mon mot de passe",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.clickable { onMode(AuthMode.LOGIN) }.padding(vertical = 6.dp),
                 )
             }
         }
         BusyAndError(state)
+    }
+}
+
+@Composable
+private fun AuthTab(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelLarge,
+        textAlign = TextAlign.Center,
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+        modifier = modifier
+            .border(BorderStroke(2.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)), RectangleShape)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+    )
+}
+
+/** Un mot de passe masqué, avec « voir » / « cacher ». */
+@Composable
+fun PasswordField(value: String, onValueChange: (String) -> Unit, placeholder: String) {
+    var visible by remember { mutableStateOf(false) }
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(placeholder) },
+        singleLine = true,
+        shape = RectangleShape,
+        textStyle = MaterialTheme.typography.bodyLarge,
+        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        trailingIcon = {
+            Text(
+                if (visible) "cacher" else "voir",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.clickable { visible = !visible }.padding(horizontal = 8.dp),
+            )
+        },
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+    )
+}
+
+/** Le code secret, montré une seule fois : à noter (ou copier) avant de continuer. */
+@Composable
+fun RecoveryCodeDialog(code: String, onNoted: () -> Unit) {
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+    Dialog(onDismissRequest = {}, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
+        Surface(
+            shape = RectangleShape,
+            color = MaterialTheme.colorScheme.background,
+            modifier = Modifier.border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), RectangleShape),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(20.dp)) {
+                Text("☠ TON CODE SECRET ☠", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    code,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground), RectangleShape)
+                        .padding(12.dp),
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(AccountQuotes.RECOVERY_WARNING, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(12.dp))
+                MenuItem(
+                    if (copied) "COPIÉ !" else "COPIER",
+                    onClick = {
+                        clipboard.setText(AnnotatedString(code))
+                        copied = true
+                    },
+                )
+                MenuItem("J'AI NOTÉ MON CODE", onClick = onNoted)
+            }
+        }
     }
 }
 

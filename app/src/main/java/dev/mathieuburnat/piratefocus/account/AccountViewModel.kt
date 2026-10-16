@@ -10,21 +10,23 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Les deux temps de la connexion par email : l'adresse, puis le code reçu. */
-enum class EmailStep { ADDRESS, CODE }
+/** Le formulaire du compte gratuit : créer un compte, s'y connecter, ou retrouver un mot de passe oublié. */
+enum class AuthMode { REGISTER, LOGIN, FORGOT }
 
 data class AccountUiState(
     val account: Account = Account(),
-    val emailStep: EmailStep = EmailStep.ADDRESS,
-    /** L'adresse à laquelle le code est parti. */
-    val email: String = "",
+    val authMode: AuthMode = AuthMode.REGISTER,
+    /** Le code secret à montrer une seule fois (null : rien à montrer). */
+    val recoveryCode: String? = null,
+    /** Le mot de passe vient d'être changé (petit mot de confirmation). */
+    val passwordChanged: Boolean = false,
     val busy: Boolean = false,
     /** Le dernier souci à afficher (déjà en français pirate). */
     val error: String? = null,
 )
 
 /**
- * Le compte du matelot : anonyme (tout reste sur le téléphone) ou compte gratuit (code par email).
+ * Le compte du matelot : anonyme (tout reste sur le téléphone) ou compte gratuit (identifiant, mot de passe et code secret).
  * [store] null : rien n'est gardé (tests, aperçus).
  */
 class AccountViewModel(
@@ -52,30 +54,56 @@ class AccountViewModel(
         return true
     }
 
-    fun startEmail(email: String) = launchBusy {
-        val address = email.trim().lowercase()
-        api.startEmail(address)
-        _uiState.update { it.copy(emailStep = EmailStep.CODE, email = address) }
+    fun setAuthMode(mode: AuthMode) = _uiState.update { it.copy(authMode = mode, error = null) }
+
+    /**
+     * Nouveau compte gratuit : le journal et le coffre du téléphone partent ensuite chez le Worker (synchro).
+     * Le code secret reste affiché tant que le matelot n'a pas confirmé l'avoir noté.
+     */
+    fun register(login: String, password: String, name: String) = launchBusy {
+        signIn(api.register(login.trim(), password, PirateNames.clean(name)))
     }
 
-    /** [name] : le pseudo voulu si le pirate est créé à cette occasion (sinon celui déjà connu du Worker). */
-    fun verifyCode(code: String, name: String) = launchBusy {
-        val session = api.verifyEmail(_uiState.value.email, code.trim(), PirateNames.clean(name))
+    fun login(login: String, password: String) = launchBusy { signIn(api.login(login.trim(), password)) }
+
+    /** Mot de passe oublié : un nouveau code secret remplace celui qui vient de servir. */
+    fun recover(login: String, code: String, newPassword: String) = launchBusy {
+        signIn(api.recover(login.trim(), code, newPassword))
+    }
+
+    fun newRecoveryCode() {
+        val token = account.token ?: return
+        launchBusy {
+            val code = api.newRecoveryCode(token)
+            _uiState.update { it.copy(recoveryCode = code) }
+        }
+    }
+
+    fun changePassword(current: String, new: String) {
+        val token = account.token ?: return
+        launchBusy {
+            api.changePassword(token, current, new)
+            _uiState.update { it.copy(passwordChanged = true) }
+        }
+    }
+
+    /** Le matelot a noté son code secret : on ne le montrera plus jamais. */
+    fun recoveryCodeNoted() = _uiState.update { it.copy(recoveryCode = null) }
+
+    private fun signIn(session: Session) {
+        _uiState.update { it.copy(recoveryCode = session.recoveryCode, authMode = AuthMode.LOGIN) }
         save(
             account.copy(
                 onboarded = true,
                 pirateName = session.me.name,
                 token = session.token,
                 email = session.me.email,
+                login = session.me.login,
                 kind = session.me.kind,
                 public = session.me.public,
             ),
         )
-        _uiState.update { it.copy(emailStep = EmailStep.ADDRESS) }
     }
-
-    /** Retour à la saisie de l'adresse (faute de frappe, code jamais reçu...). */
-    fun changeEmail() = _uiState.update { it.copy(emailStep = EmailStep.ADDRESS, error = null) }
 
     /** Relit le compte chez le Worker (pseudo, visibilité) ; un jeton refusé déconnecte en douceur. */
     fun refresh() {
@@ -83,7 +111,7 @@ class AccountViewModel(
         viewModelScope.launch {
             try {
                 val me = api.me(token)
-                save(account.copy(pirateName = me.name, public = me.public, email = me.email, kind = me.kind))
+                save(account.copy(pirateName = me.name, public = me.public, email = me.email, login = me.login, kind = me.kind))
             } catch (e: ApiException) {
                 if (e.status == 401) signOutLocally()
             }
@@ -159,7 +187,7 @@ class AccountViewModel(
         return api.crew().filter { it.name != mine }
     }
 
-    private fun signOutLocally() = save(account.copy(token = null, email = null, kind = null))
+    private fun signOutLocally() = save(account.copy(token = null, email = null, login = null, kind = null))
 
     private fun save(next: Account) {
         store?.save(next)
@@ -168,7 +196,7 @@ class AccountViewModel(
 
     private fun launchBusy(block: suspend () -> Unit) {
         if (_uiState.value.busy) return
-        _uiState.update { it.copy(busy = true, error = null) }
+        _uiState.update { it.copy(busy = true, error = null, passwordChanged = false) }
         viewModelScope.launch {
             try {
                 block()

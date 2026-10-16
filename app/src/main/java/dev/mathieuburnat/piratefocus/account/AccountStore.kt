@@ -12,6 +12,7 @@ class AccountStore(context: Context) {
         pirateName = prefs.getString(KEY_NAME, null).orEmpty(),
         token = prefs.getString(KEY_TOKEN, null),
         email = prefs.getString(KEY_EMAIL, null),
+        login = prefs.getString(KEY_LOGIN, null),
         kind = prefs.getString(KEY_KIND, null),
         public = prefs.getBoolean(KEY_PUBLIC, true),
     )
@@ -22,6 +23,7 @@ class AccountStore(context: Context) {
             .putString(KEY_NAME, account.pirateName)
             .putString(KEY_TOKEN, account.token)
             .putString(KEY_EMAIL, account.email)
+            .putString(KEY_LOGIN, account.login)
             .putString(KEY_KIND, account.kind)
             .putBoolean(KEY_PUBLIC, account.public)
             .apply()
@@ -33,6 +35,7 @@ class AccountStore(context: Context) {
         private const val KEY_NAME = "pseudo"
         private const val KEY_TOKEN = "jeton"
         private const val KEY_EMAIL = "email"
+        private const val KEY_LOGIN = "identifiant"
         private const val KEY_KIND = "type"
         private const val KEY_PUBLIC = "public"
     }

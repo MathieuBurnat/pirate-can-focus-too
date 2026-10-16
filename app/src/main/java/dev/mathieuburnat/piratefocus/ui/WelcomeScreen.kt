@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.mathieuburnat.piratefocus.account.AccountQuotes
 import dev.mathieuburnat.piratefocus.account.AccountViewModel
+import dev.mathieuburnat.piratefocus.account.AuthMode
 import dev.mathieuburnat.piratefocus.account.PirateNames
 import dev.mathieuburnat.piratefocus.focus.Phase
 import kotlinx.coroutines.delay
@@ -79,10 +80,12 @@ fun WelcomeScreen(viewModel: AccountViewModel, onDone: () -> Unit) {
         }
     }
 
-    // Le code est validé : le compte gratuit est prêt, on lève l'ancre.
-    LaunchedEffect(state.account.signedIn) {
-        if (state.account.signedIn) onDone()
+    // Le compte gratuit est prêt (et son code secret noté) : on lève l'ancre.
+    val ready = state.account.signedIn && state.recoveryCode == null
+    LaunchedEffect(ready) {
+        if (ready) onDone()
     }
+    state.recoveryCode?.let { RecoveryCodeDialog(it, onNoted = viewModel::recoveryCodeNoted) }
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(
@@ -131,7 +134,10 @@ fun WelcomeScreen(viewModel: AccountViewModel, onDone: () -> Unit) {
                     )
                     Spacer(Modifier.height(16.dp))
                     MenuItem("1. MATELOT ANONYME", onClick = { step = WelcomeStep.ANONYMOUS })
-                    MenuItem("2. COMPTE GRATUIT", onClick = { step = WelcomeStep.FREE_ACCOUNT })
+                    MenuItem("2. COMPTE GRATUIT", onClick = {
+                        viewModel.setAuthMode(AuthMode.REGISTER)
+                        step = WelcomeStep.FREE_ACCOUNT
+                    })
                 }
                 WelcomeStep.ANONYMOUS -> {
                     TypewriterText(
@@ -146,15 +152,19 @@ fun WelcomeScreen(viewModel: AccountViewModel, onDone: () -> Unit) {
                     NoAccountInfo()
                     AnchorOrSignIn(
                         onAnchor = { if (viewModel.chooseAnonymous(name)) onDone() },
-                        onSignIn = { step = WelcomeStep.FREE_ACCOUNT },
+                        onSignIn = {
+                            viewModel.setAuthMode(AuthMode.LOGIN)
+                            step = WelcomeStep.FREE_ACCOUNT
+                        },
                     )
                     BusyAndError(state)
                 }
                 WelcomeStep.FREE_ACCOUNT -> FreeAccountForm(
                     state = state,
-                    onStartEmail = viewModel::startEmail,
-                    onVerify = viewModel::verifyCode,
-                    onChangeEmail = viewModel::changeEmail,
+                    onMode = viewModel::setAuthMode,
+                    onRegister = viewModel::register,
+                    onLogin = viewModel::login,
+                    onRecover = viewModel::recover,
                 )
             }
         }

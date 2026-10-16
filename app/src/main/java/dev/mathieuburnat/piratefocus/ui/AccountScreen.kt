@@ -38,9 +38,40 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
     val account = state.account
     var name by rememberSaveable(account.pirateName) { mutableStateOf(account.pirateName) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var confirmNewCode by remember { mutableStateOf(false) }
+    var changingPassword by rememberSaveable { mutableStateOf(false) }
+    var currentPassword by rememberSaveable { mutableStateOf("") }
+    var newPassword by rememberSaveable { mutableStateOf("") }
 
     // Le Worker a peut-être changé d'avis (pseudo, visibilité) depuis un autre téléphone.
     LaunchedEffect(Unit) { viewModel.refresh() }
+
+    // Mot de passe changé : on replie le formulaire.
+    LaunchedEffect(state.passwordChanged) {
+        if (state.passwordChanged) {
+            changingPassword = false
+            currentPassword = ""
+            newPassword = ""
+        }
+    }
+
+    state.recoveryCode?.let { RecoveryCodeDialog(it, onNoted = viewModel::recoveryCodeNoted) }
+
+    if (confirmNewCode) {
+        AlertDialog(
+            onDismissRequest = { confirmNewCode = false },
+            shape = RectangleShape,
+            title = { Text("☠ NOUVEAU CODE SECRET ? ☠") },
+            text = { Text("L'ancien code ne marchera plus. Le nouveau ne sera montré qu'une fois.", style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmNewCode = false
+                    viewModel.newRecoveryCode()
+                }) { Text("NOUVEAU CODE") }
+            },
+            dismissButton = { TextButton(onClick = { confirmNewCode = false }) { Text("GARDER L'ANCIEN") } },
+        )
+    }
 
     if (confirmDelete) {
         AlertDialog(
@@ -81,8 +112,27 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
             Spacer(Modifier.height(12.dp))
             if (account.signedIn) {
                 Text("-- Compte gratuit --", style = MaterialTheme.typography.titleSmall)
-                val via = if (account.kind == "google") "Google" else "email"
-                Text("Connecté par $via${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
+                when {
+                    account.login != null -> Text("Identifiant (privé) : ${account.login}", style = MaterialTheme.typography.bodyMedium)
+                    account.kind == "google" -> Text("Connecté par Google", style = MaterialTheme.typography.bodyMedium)
+                    else -> Text("Connecté par email${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
+                }
+                if (account.kind == "password") {
+                    MenuItem("NOUVEAU CODE SECRET", onClick = { confirmNewCode = true }, dimmed = state.busy)
+                    MenuItem("CHANGER MON MOT DE PASSE", onClick = { changingPassword = !changingPassword })
+                    if (changingPassword) {
+                        PasswordField(currentPassword, { currentPassword = it }, "> mot de passe actuel")
+                        PasswordField(newPassword, { newPassword = it }, "> nouveau mot de passe (8 min.)")
+                        MenuItem(
+                            "VALIDER LE NOUVEAU MOT DE PASSE",
+                            onClick = { if (newPassword.length >= 8) viewModel.changePassword(currentPassword, newPassword) },
+                            dimmed = state.busy || currentPassword.isEmpty() || newPassword.length < 8,
+                        )
+                    }
+                    if (state.passwordChanged) {
+                        Text("Mot de passe changé, matelot !", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                    }
+                }
 
                 Spacer(Modifier.height(12.dp))
                 Text("-- Mes données publiques --", style = MaterialTheme.typography.titleSmall)
@@ -111,12 +161,13 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                 BusyAndError(state)
             } else {
                 NoAccountInfo()
-                Text("-- Créer un compte gratuit --", style = MaterialTheme.typography.titleSmall)
+                Text("-- Compte gratuit --", style = MaterialTheme.typography.titleSmall)
                 FreeAccountForm(
                     state = state,
-                    onStartEmail = viewModel::startEmail,
-                    onVerify = viewModel::verifyCode,
-                    onChangeEmail = viewModel::changeEmail,
+                    onMode = viewModel::setAuthMode,
+                    onRegister = viewModel::register,
+                    onLogin = viewModel::login,
+                    onRecover = viewModel::recover,
                 )
             }
         }

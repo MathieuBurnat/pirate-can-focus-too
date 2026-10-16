@@ -18,25 +18,35 @@ import java.util.UUID
 class ApiException(val status: Int, message: String) : Exception(message)
 
 /** Ce que le Worker sait du pirate connecté. */
-data class Me(val name: String, val public: Boolean, val kind: String, val email: String?)
+data class Me(val name: String, val public: Boolean, val kind: String, val email: String?, val login: String?)
 
-data class Session(val token: String, val created: Boolean, val me: Me)
+/** [recoveryCode] : le code secret, montré une seule fois (création du compte, mot de passe oublié). */
+data class Session(val token: String, val created: Boolean, val me: Me, val recoveryCode: String? = null)
 
 data class SyncResult(val logs: List<LogEntry>, val doubloons: Int, val voyages: Int)
 
 /** Le client de l'API du capitaine (backend/), sans dépendance : HttpURLConnection et org.json. */
 class PirateApi(private val baseUrl: String = BASE_URL) {
 
-    suspend fun startEmail(email: String) {
-        call("POST", "/auth/email/start", body = JSONObject().put("email", email))
+    /** Nouveau compte gratuit ; la session porte le code secret, à montrer une seule fois. */
+    suspend fun register(login: String, password: String, name: String?): Session {
+        val body = JSONObject().put("login", login).put("password", password)
+        if (name != null) body.put("name", name)
+        return session(call("POST", "/auth/register", body = body))
     }
 
-    /** [name] ne sert qu'à la création du pirate (premier passage). */
-    suspend fun verifyEmail(email: String, code: String, name: String?): Session {
-        val body = JSONObject().put("email", email).put("code", code)
-        if (name != null) body.put("name", name)
-        val json = call("POST", "/auth/email/verify", body = body)
-        return Session(json.getString("token"), json.optBoolean("created"), me(json.getJSONObject("me")))
+    suspend fun login(login: String, password: String): Session =
+        session(call("POST", "/auth/login", body = JSONObject().put("login", login).put("password", password)))
+
+    /** Mot de passe oublié : le code secret remet un mot de passe ; un nouveau code revient dans la session. */
+    suspend fun recover(login: String, code: String, newPassword: String): Session =
+        session(call("POST", "/auth/recover", body = JSONObject().put("login", login).put("code", code).put("newPassword", newPassword)))
+
+    /** Un nouveau code secret (l'ancien ne marche plus). */
+    suspend fun newRecoveryCode(token: String): String = call("POST", "/me/recovery", token, JSONObject()).getString("recoveryCode")
+
+    suspend fun changePassword(token: String, current: String, new: String) {
+        call("POST", "/me/password", token, JSONObject().put("current", current).put("new", new))
     }
 
     suspend fun me(token: String): Me = me(call("GET", "/me", token))
@@ -93,6 +103,13 @@ class PirateApi(private val baseUrl: String = BASE_URL) {
         }
     }
 
+    private fun session(json: JSONObject) = Session(
+        token = json.getString("token"),
+        created = json.optBoolean("created"),
+        me = me(json.getJSONObject("me")),
+        recoveryCode = json.takeUnless { it.isNull("recoveryCode") }?.optString("recoveryCode")?.ifEmpty { null },
+    )
+
     private fun me(json: JSONObject): Me {
         val account = json.optJSONObject("account")
         return Me(
@@ -100,6 +117,7 @@ class PirateApi(private val baseUrl: String = BASE_URL) {
             public = json.getBoolean("public"),
             kind = account?.optString("kind") ?: "email",
             email = account?.takeUnless { it.isNull("email") }?.optString("email"),
+            login = account?.takeUnless { it.isNull("login") || !it.has("login") }?.optString("login"),
         )
     }
 

@@ -18,6 +18,8 @@ accompagne l'utilisateur, avec une interface entièrement en **police monospace*
 - `minSdk 26`, `targetSdk`/`compileSdk 35`, JVM 17.
 - Sans compte, tout est local (journal et doublons sauvegardés sur le téléphone). Avec un compte gratuit,
   journal et coffre sont synchronisés avec le Worker Cloudflare de `backend/` (issue #8).
+  Le compte gratuit n'utilise pas d'email : identifiant privé + mot de passe + code secret
+  (montré une seule fois, il remet un mot de passe oublié). Les routes email/Google du Worker restent, inutilisées.
 
 ## Environnement du développeur
 
@@ -37,8 +39,8 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 ├── MainActivity.kt          # point d'entrée, démarre/arrête le gardien selon la phase, synchro avec le Worker
 ├── account/
 │   ├── Account.kt           # le compte tel que le téléphone le connaît (anonyme ou compte gratuit)
-│   ├── AccountStore.kt      # compte rangé dans les SharedPreferences (pseudo, jeton)
-│   ├── AccountViewModel.kt  # bienvenue, code email, mon compte, synchro
+│   ├── AccountStore.kt      # compte rangé dans les SharedPreferences (pseudo, identifiant, jeton)
+│   ├── AccountViewModel.kt  # bienvenue, créer un compte / se connecter / mot de passe oublié, code secret, synchro
 │   ├── AccountQuotes.kt     # textes du capitaine sur les comptes (avertissement sans compte...)
 │   ├── PirateApi.kt         # client de l'API backend/ (HttpURLConnection + org.json)
 │   └── PirateNames.kt       # pseudos de pirate tirés au sort (logique pure, testée)
@@ -76,8 +78,8 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── GuardNudgeDialog.kt  # pop-up du capitaine souriant : « SUIVRE LE CAPITAINE » vers les autorisations
     ├── BlockedAppsScreen.kt # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
-    ├── AccountScreen.kt     # « Ma fiche de matelot » (ex « Mon compte ») : pseudo, données publiques, déconnexion, suppression
-    ├── AccountForms.kt      # formulaire du compte gratuit (email puis code), info sans compte, dé
+    ├── AccountScreen.kt     # « Ma fiche de matelot » (ex « Mon compte ») : pseudo, données publiques, nouveau code secret, mot de passe, déconnexion, suppression
+    ├── AccountForms.kt      # compte gratuit (créer / j'ai déjà un compte / mot de passe oublié), code secret montré une fois, dé
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes
     ├── PixelPirate.kt       # le capitaine + palette et drawSprite() partagés
