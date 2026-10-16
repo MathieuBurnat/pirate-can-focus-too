@@ -48,6 +48,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 ├── guard/
 │   ├── BlacklistStore.kt    # liste noire (défaut : Instagram, TikTok, Reddit)
 │   ├── GuardPermissions.kt  # accès aux données d'utilisation + affichage par-dessus
+│   ├── GuardNudge.kt        # quand le capitaine réclame ses autorisations (1re fois, puis 1 fois sur 3 ; logique pure, testée)
 │   ├── FocusGuardService.kt # service au premier plan qui surveille l'appli ouverte
 │   └── CaughtActivity.kt    # le capitaine surgit sur une appli interdite
 ├── journal/                 # journal du capitaine : sport contre boissons
@@ -72,6 +73,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── SettingsScreen.kt    # paramètres : applications bloquées (et tout débloquer), déconnexion, mode dev caché (5 taps sur le titre)
     ├── ReallySureDialog.kt  # « T'es vraiment sûr ? » : CONFIRMER après 5 s (factory reset, liste noire vidée)
     ├── DevModeScreen.kt     # page du mode dev : activer/désactiver (l'éteindre recache le bouton) ; allumé : « fake data », factory reset, et « Hi daad » après 2 taps sur le titre
+    ├── GuardNudgeDialog.kt  # pop-up du capitaine souriant : « SUIVRE LE CAPITAINE » vers les autorisations
     ├── BlockedAppsScreen.kt # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
     ├── AccountScreen.kt     # « Ma fiche de matelot » (ex « Mon compte ») : pseudo, données publiques, déconnexion, suppression

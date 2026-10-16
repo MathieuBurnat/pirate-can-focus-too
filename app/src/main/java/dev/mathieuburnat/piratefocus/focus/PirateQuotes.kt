@@ -99,4 +99,20 @@ object PirateQuotes {
         val candidates = pool.filter { it != current }.ifEmpty { pool }
         return candidates.random(random)
     }
+
+    /** La toute première demande d'autorisations du gardien. */
+    const val GUARD_FIRST_TIME =
+        "Ahoy matelot, première fois, n'est-ce pas ? Je te conseille d'activer mes autorisations : " +
+            "comme ça, je pourrai aborder ton téléphone si tu te disperses pendant tes moments de concentration !"
+
+    /** Les rappels suivants, tant que le gardien n'a pas ses autorisations. */
+    private val guardReminders = listOf(
+        "Toujours pas d'autorisations ? Sans elles, je surveille le pont avec un bandeau sur les DEUX yeux.",
+        "Les sirènes se frottent les nageoires : personne ne monte la garde ! Donne-moi mes autorisations.",
+        "Un capitaine sans autorisations, c'est un perroquet sans biscuit. Triste. Très triste.",
+        "Laisse-moi aborder ton téléphone, matelot ! Promis, je ne touche qu'aux applis interdites.",
+        "Sans mes autorisations, Instagram te dévore et je regarde. Ce n'est pas ma façon de naviguer !",
+    )
+
+    fun guardReminder(random: Random = Random.Default): String = guardReminders.random(random)
 }

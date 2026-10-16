@@ -42,7 +42,7 @@ import java.text.Normalizer
 private data class AppEntry(val packageName: String, val label: String, val installed: Boolean)
 
 @Composable
-fun BlockedAppsScreen(onBack: () -> Unit) {
+fun BlockedAppsScreen(onBack: () -> Unit, backLabel: String = "< PARAMÈTRES") {
     val context = LocalContext.current
     val store = remember { BlacklistStore(context) }
     var blacklist by remember { mutableStateOf(store.load()) }
@@ -85,7 +85,7 @@ fun BlockedAppsScreen(onBack: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.safeDrawingPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(
-                "< PARAMÈTRES",
+                backLabel,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),

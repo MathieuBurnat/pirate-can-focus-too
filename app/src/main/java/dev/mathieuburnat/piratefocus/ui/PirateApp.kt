@@ -25,6 +25,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.mathieuburnat.piratefocus.account.AccountViewModel
 import dev.mathieuburnat.piratefocus.account.ApiException
 import dev.mathieuburnat.piratefocus.focus.FocusViewModel
+import dev.mathieuburnat.piratefocus.focus.Phase
+import dev.mathieuburnat.piratefocus.focus.PirateQuotes
+import dev.mathieuburnat.piratefocus.guard.GuardNudge
+import dev.mathieuburnat.piratefocus.guard.GuardNudgeStore
 import dev.mathieuburnat.piratefocus.guard.GuardPermissions
 import dev.mathieuburnat.piratefocus.journal.CrewMate
 import dev.mathieuburnat.piratefocus.journal.JournalViewModel
@@ -52,6 +56,11 @@ fun PirateApp(
     val phase = state.timer.phase
 
     var guardReady by rememberSaveable { mutableStateOf(true) }
+    val nudgeStore = remember { GuardNudgeStore(context) }
+    // La réplique du capitaine qui réclame ses autorisations (null : pas de pop-up).
+    var guardNudge by rememberSaveable { mutableStateOf<String?>(null) }
+    // Les applis bloquées s'ouvrent depuis les paramètres ou depuis le capitaine (focus) : on y revient.
+    var blockedAppsBack by rememberSaveable { mutableStateOf(Screen.SETTINGS) }
     LifecycleResumeEffect(Unit) {
         guardReady = GuardPermissions.isReady(context)
         onPauseOrDispose { }
@@ -60,7 +69,8 @@ fun PirateApp(
     BackHandler(enabled = screen != Screen.MENU && screen != Screen.WELCOME) {
         screen = when (screen) {
             Screen.CREW -> Screen.JOURNAL
-            Screen.BLOCKED_APPS, Screen.DEV_MODE -> Screen.SETTINGS
+            Screen.BLOCKED_APPS -> blockedAppsBack
+            Screen.DEV_MODE -> Screen.SETTINGS
             else -> Screen.MENU
         }
     }
@@ -73,7 +83,15 @@ fun PirateApp(
                 Screen.MENU -> MenuScreen(
                     phase = phase,
                     signedIn = accountState.account.signedIn,
-                    onFocus = { screen = Screen.FOCUS },
+                    onFocus = {
+                        val firstTime = nudgeStore.isFirstTime()
+                        val ready = GuardPermissions.isReady(context)
+                        if (GuardNudge.shouldShow(ready, voyageRunning = phase != Phase.IDLE, firstTime = firstTime)) {
+                            guardNudge = if (firstTime) PirateQuotes.GUARD_FIRST_TIME else PirateQuotes.guardReminder()
+                            nudgeStore.markAsked()
+                        }
+                        screen = Screen.FOCUS
+                    },
                     onJournal = { screen = Screen.JOURNAL },
                     onSettings = { screen = Screen.SETTINGS },
                     onAccount = { screen = Screen.ACCOUNT },
@@ -111,7 +129,10 @@ fun PirateApp(
                     devRevealed = devRevealed,
                     signedIn = accountState.account.signedIn,
                     onBack = { screen = Screen.MENU },
-                    onBlockedApps = { screen = Screen.BLOCKED_APPS },
+                    onBlockedApps = {
+                        blockedAppsBack = Screen.SETTINGS
+                        screen = Screen.BLOCKED_APPS
+                    },
                     onRevealDev = {
                         devModeStore.reveal()
                         devRevealed = true
@@ -153,10 +174,25 @@ fun PirateApp(
                         }
                     },
                 )
-                Screen.BLOCKED_APPS -> BlockedAppsScreen(onBack = { screen = Screen.SETTINGS })
+                Screen.BLOCKED_APPS -> BlockedAppsScreen(
+                    onBack = { screen = blockedAppsBack },
+                    backLabel = if (blockedAppsBack == Screen.FOCUS) "< FOCUS" else "< PARAMÈTRES",
+                )
                 Screen.ACCOUNT -> AccountScreen(accountViewModel, onBack = { screen = Screen.MENU })
             }
         }
         VersionFooter()
+    }
+
+    guardNudge?.let { text ->
+        GuardNudgeDialog(
+            text = text,
+            onFollow = {
+                guardNudge = null
+                blockedAppsBack = Screen.FOCUS
+                screen = Screen.BLOCKED_APPS
+            },
+            onLater = { guardNudge = null },
+        )
     }
 }

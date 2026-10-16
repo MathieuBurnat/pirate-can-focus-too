@@ -5,6 +5,7 @@ import dev.mathieuburnat.piratefocus.account.AccountStore
 import dev.mathieuburnat.piratefocus.focus.ChestStore
 import dev.mathieuburnat.piratefocus.guard.BlacklistStore
 import dev.mathieuburnat.piratefocus.guard.FocusGuardService
+import dev.mathieuburnat.piratefocus.guard.GuardNudgeStore
 import dev.mathieuburnat.piratefocus.journal.JournalStore
 
 /**
@@ -14,7 +15,7 @@ import dev.mathieuburnat.piratefocus.journal.JournalStore
 object FactoryReset {
 
     /** Les SharedPreferences rangées par l'app. */
-    val PREFS = listOf(AccountStore.PREFS, ChestStore.PREFS, DevModeStore.PREFS, BlacklistStore.PREFS)
+    val PREFS = listOf(AccountStore.PREFS, ChestStore.PREFS, DevModeStore.PREFS, BlacklistStore.PREFS, GuardNudgeStore.PREFS)
 
     fun wipe(context: Context) {
         FocusGuardService.stop(context)
