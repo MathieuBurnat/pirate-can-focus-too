@@ -25,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.delay
 import dev.mathieuburnat.piratefocus.focus.Phase
 
 /**
@@ -53,6 +55,7 @@ fun DevModeScreen(
 ) {
     var hello by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
+    var reallySure by remember { mutableStateOf(false) }
     var titleTaps by remember { mutableIntStateOf(0) }
 
     if (confirmReset) {
@@ -72,10 +75,20 @@ fun DevModeScreen(
             confirmButton = {
                 TextButton(onClick = {
                     confirmReset = false
-                    onFactoryReset()
+                    reallySure = true
                 }) { Text("TOUT COULER") }
             },
             dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("GARDER LE CAP") } },
+        )
+    }
+
+    if (reallySure) {
+        ReallySureDialog(
+            onConfirm = {
+                reallySure = false
+                onFactoryReset()
+            },
+            onCancel = { reallySure = false },
         )
     }
 
@@ -120,6 +133,47 @@ fun DevModeScreen(
     }
 
     if (hello) HelloDadDialog(onDismiss = { hello = false })
+}
+
+/** Secondes à attendre avant de pouvoir confirmer le factory reset. */
+private const val CONFIRM_WAIT_S = 5
+
+/** Dernière chance avant de tout couler : « CONFIRMER » ne répond qu'après [CONFIRM_WAIT_S] secondes. */
+@Composable
+private fun ReallySureDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
+    var left by remember { mutableIntStateOf(CONFIRM_WAIT_S) }
+    LaunchedEffect(Unit) {
+        while (left > 0) {
+            delay(1_000)
+            left--
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onCancel,
+        shape = RectangleShape,
+        title = { Text("☠ ATTENTION ☠") },
+        text = {
+            Text(
+                "T'es vraiment sûr ? Toutes les données seront coulées à jamais !!",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = left == 0) {
+                Text(if (left > 0) "CONFIRMER ($left)" else "CONFIRMER")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text(
+                    "non, annuler capitaine !",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            }
+        },
+    )
 }
 
 /** Taps sur le titre pour faire apparaître HI DAAD. */
