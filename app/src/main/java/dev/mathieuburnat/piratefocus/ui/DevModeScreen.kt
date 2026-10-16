@@ -1,5 +1,13 @@
 package dev.mathieuburnat.piratefocus.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -80,23 +88,45 @@ fun DevModeScreen(
             Spacer(Modifier.height(16.dp))
 
             MenuItem("1. MODE DEV  ${if (devMode) "[x]" else "[ ]"}", onClick = { onDevModeChange(!devMode) })
-            if (!devMode) return@Column
-            MenuItem("2. FAKE DATA  ${if (fakeData) "[x]" else "[ ]"}", onClick = { onFakeDataChange(!fakeData) })
-            Text(
-                if (fakeData) {
-                    "Les statistiques de l'équipage montrent des matelots inventés, codés en dur dans l'app."
-                } else {
-                    "Les statistiques de l'équipage montrent les vrais pirates publics. Aucune fausse donnée en base."
-                },
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(bottom = 8.dp),
-            )
-            MenuItem("3. HI DAAD", onClick = { hello = true })
-            MenuItem("4. FACTORY RESET", onClick = { confirmReset = true })
+            // Mode dev allumé : les autres options défilent depuis la gauche, l'une après l'autre.
+            ScrollIn(devMode, order = 0) {
+                Column {
+                    MenuItem("2. FAKE DATA  ${if (fakeData) "[x]" else "[ ]"}", onClick = { onFakeDataChange(!fakeData) })
+                    Text(
+                        if (fakeData) {
+                            "Les statistiques de l'équipage montrent des matelots inventés, codés en dur dans l'app."
+                        } else {
+                            "Les statistiques de l'équipage montrent les vrais pirates publics. Aucune fausse donnée en base."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
+            }
+            ScrollIn(devMode, order = 1) { MenuItem("3. HI DAAD", onClick = { hello = true }) }
+            ScrollIn(devMode, order = 2) { MenuItem("4. FACTORY RESET", onClick = { confirmReset = true }) }
         }
     }
 
     if (hello) HelloDadDialog(onDismiss = { hello = false })
+}
+
+/** Délai entre deux options qui défilent. */
+private const val SCROLL_STAGGER_MS = 90
+
+/** Une option qui arrive en défilant (aussi à l'ouverture de la page), [order] fois [SCROLL_STAGGER_MS] après la première. */
+@Composable
+private fun ScrollIn(visible: Boolean, order: Int, content: @Composable () -> Unit) {
+    val state = remember { MutableTransitionState(false) }
+    state.targetState = visible
+    val delay = order * SCROLL_STAGGER_MS
+    AnimatedVisibility(
+        visibleState = state,
+        enter = expandVertically(tween(220, delayMillis = delay)) +
+            slideInHorizontally(tween(320, delayMillis = delay)) { -it } +
+            fadeIn(tween(320, delayMillis = delay)),
+        exit = shrinkVertically() + fadeOut(),
+    ) { content() }
 }
 
 /** « HI DAAD » : le capitaine sourit, et les paillettes pleuvent sans fin. */
