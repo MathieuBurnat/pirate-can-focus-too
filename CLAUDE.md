@@ -68,7 +68,8 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── MenuScreen.kt        # menu de démarrage (focus, journal, paramètres, fiche de matelot)
     ├── JournalScreen.kt     # BISCOTOS VS TAVERNE (toucher un camp ouvre ses activités, commentées par une petite tête du capitaine), capitaine pompette si ça boit trop
     ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (vrais pirates publics, ou inventés en mode dev)
-    ├── SettingsScreen.kt    # paramètres : applications bloquées, déconnexion, mode dev caché (5 taps sur le titre, menu avec « Salut papa »)
+    ├── SettingsScreen.kt    # paramètres : applications bloquées, déconnexion, mode dev caché (5 taps sur le titre)
+    ├── DevModeScreen.kt     # page du mode dev : activer/désactiver, et « Salut papa » (pop-up à paillettes)
     ├── BlockedAppsScreen.kt # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
     ├── AccountScreen.kt     # « Ma fiche de matelot » (ex « Mon compte ») : pseudo, données publiques, déconnexion, suppression

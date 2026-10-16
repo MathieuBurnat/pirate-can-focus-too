@@ -29,7 +29,7 @@ import dev.mathieuburnat.piratefocus.journal.CrewMate
 import dev.mathieuburnat.piratefocus.journal.JournalViewModel
 import dev.mathieuburnat.piratefocus.settings.DevModeStore
 
-private enum class Screen { WELCOME, MENU, FOCUS, JOURNAL, CREW, SETTINGS, BLOCKED_APPS, ACCOUNT }
+private enum class Screen { WELCOME, MENU, FOCUS, JOURNAL, CREW, SETTINGS, DEV_MODE, BLOCKED_APPS, ACCOUNT }
 
 /** Racine de l'app : le menu de pirate et la navigation entre les écrans. */
 @Composable
@@ -57,7 +57,7 @@ fun PirateApp(
     BackHandler(enabled = screen != Screen.MENU && screen != Screen.WELCOME) {
         screen = when (screen) {
             Screen.CREW -> Screen.JOURNAL
-            Screen.BLOCKED_APPS -> Screen.SETTINGS
+            Screen.BLOCKED_APPS, Screen.DEV_MODE -> Screen.SETTINGS
             else -> Screen.MENU
         }
     }
@@ -113,11 +113,16 @@ fun PirateApp(
                         devModeStore.reveal()
                         devRevealed = true
                     },
+                    onDevMode = { screen = Screen.DEV_MODE },
+                    onLogout = accountViewModel::logout,
+                )
+                Screen.DEV_MODE -> DevModeScreen(
+                    devMode = devMode,
+                    onBack = { screen = Screen.SETTINGS },
                     onDevModeChange = {
                         devModeStore.set(it)
                         devMode = it
                     },
-                    onLogout = accountViewModel::logout,
                 )
                 Screen.BLOCKED_APPS -> BlockedAppsScreen(onBack = { screen = Screen.SETTINGS })
                 Screen.ACCOUNT -> AccountScreen(accountViewModel, onBack = { screen = Screen.MENU })
