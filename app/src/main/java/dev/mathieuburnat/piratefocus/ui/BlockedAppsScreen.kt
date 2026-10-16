@@ -6,6 +6,8 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,11 +26,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -36,6 +40,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.mathieuburnat.piratefocus.guard.BlacklistStore
 import dev.mathieuburnat.piratefocus.guard.GuardPermissions
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.text.Normalizer
 
@@ -184,12 +189,29 @@ private fun String.normalized(): String =
 /** Une autorisation du gardien : la toucher ouvre son réglage, pour la donner ou la retirer. */
 @Composable
 private fun PermissionRow(label: String, granted: Boolean, onOpen: () -> Unit) {
+    // Autorisation manquante : une bordure rouge clignote quelques secondes (à l'ouverture et au retour), puis s'éteint.
+    var visits by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) {
+        visits++
+        onPauseOrDispose { }
+    }
+    var blinkOn by remember { mutableStateOf(false) }
+    LaunchedEffect(granted, visits) {
+        blinkOn = false
+        if (granted) return@LaunchedEffect
+        repeat(BLINKS * 2) {
+            blinkOn = !blinkOn
+            delay(BLINK_MS)
+        }
+        blinkOn = false
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .border(BorderStroke(2.dp, if (blinkOn) MaterialTheme.colorScheme.error else Color.Transparent), RectangleShape)
             .clickable(onClick = onOpen)
-            .padding(vertical = 6.dp),
+            .padding(vertical = 6.dp, horizontal = 6.dp),
     ) {
         Text(
             if (granted) "[OK] " else "[!!] ",
@@ -202,3 +224,7 @@ private fun PermissionRow(label: String, granted: Boolean, onOpen: () -> Unit) {
         )
     }
 }
+
+/** La bordure d'une autorisation manquante clignote [BLINKS] fois (allumée puis éteinte [BLINK_MS] ms chacune). */
+private const val BLINKS = 5
+private const val BLINK_MS = 350L
