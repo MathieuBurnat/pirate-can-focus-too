@@ -42,6 +42,13 @@ fun SettingsScreen(
 ) {
     var taps by remember { mutableIntStateOf(0) }
     var reveals by remember { mutableIntStateOf(0) }
+    // Dès le 2e coup, le titre frémit, de plus en plus fort : quelque chose va se débloquer...
+    val shake = remember { Animatable(0f) }
+    LaunchedEffect(taps) {
+        if (taps < 2) return@LaunchedEffect
+        val force = taps.toFloat()
+        for (angle in listOf(-force, force, -force / 2, force / 2, 0f)) shake.animateTo(angle, tween(50))
+    }
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.safeDrawingPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -56,7 +63,7 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 // Pas d'effet de pression : le passage secret ne doit pas se voir.
-                modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                modifier = Modifier.graphicsLayer { rotationZ = shake.value }.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                     if (devRevealed) return@clickable
                     if (++taps >= TAPS_TO_REVEAL) {
                         taps = 0
