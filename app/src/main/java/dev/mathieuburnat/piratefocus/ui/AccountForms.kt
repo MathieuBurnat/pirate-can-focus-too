@@ -34,9 +34,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -48,6 +51,8 @@ import androidx.compose.ui.window.DialogProperties
 import dev.mathieuburnat.piratefocus.account.AccountQuotes
 import dev.mathieuburnat.piratefocus.account.AccountUiState
 import dev.mathieuburnat.piratefocus.account.AuthMode
+import dev.mathieuburnat.piratefocus.account.PasswordStrength
+import dev.mathieuburnat.piratefocus.account.PasswordStrengths
 import dev.mathieuburnat.piratefocus.account.PirateNames
 import kotlin.math.PI
 import kotlin.math.sin
@@ -71,6 +76,7 @@ fun FreeAccountForm(
 ) {
     var login by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var confirm by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf(state.account.pirateName.ifEmpty { PirateNames.random() }) }
     val loginOk = EMAIL.matches(login.trim())
@@ -90,14 +96,14 @@ fun FreeAccountForm(
         Text(AccountQuotes.LOGIN_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         when (state.authMode) {
             AuthMode.REGISTER -> {
-                PasswordField(password, { password = it }, "> mot de passe ($PASSWORD_MIN caractères min.)")
+                val confirmed = NewPasswordFields(password, { password = it }, confirm, { confirm = it }, "> mot de passe ($PASSWORD_MIN min.)", email = login)
                 Text("Ton pseudo de pirate (celui que l'équipage voit) :", style = MaterialTheme.typography.bodySmall)
                 PirateField(name, { name = it }, "> ton pseudo de pirate")
                 DiceReroll(onRoll = { name = PirateNames.random() })
                 MenuItem(
                     "CRÉER MON COMPTE GRATUIT",
-                    onClick = { if (loginOk && passwordOk) onRegister(login, password, name) },
-                    dimmed = state.busy || !loginOk || !passwordOk,
+                    onClick = { if (loginOk && passwordOk && confirmed) onRegister(login, password, name) },
+                    dimmed = state.busy || !loginOk || !passwordOk || !confirmed,
                 )
             }
             AuthMode.LOGIN -> {
@@ -113,11 +119,11 @@ fun FreeAccountForm(
             AuthMode.FORGOT -> {
                 Text(AccountQuotes.FORGOT_EXPLAINED, style = MaterialTheme.typography.bodySmall)
                 PirateField(code, { code = it.uppercase().take(30) }, "> code secret (XXXX-XXXX-...)")
-                PasswordField(password, { password = it }, "> nouveau mot de passe ($PASSWORD_MIN min.)")
+                val confirmed = NewPasswordFields(password, { password = it }, confirm, { confirm = it }, "> nouveau mot de passe ($PASSWORD_MIN min.)", email = login)
                 MenuItem(
                     "RETROUVER MON COMPTE",
-                    onClick = { if (loginOk && code.isNotBlank() && passwordOk) onRecover(login, code, password) },
-                    dimmed = state.busy || !loginOk || code.isBlank() || !passwordOk,
+                    onClick = { if (loginOk && code.isNotBlank() && passwordOk && confirmed) onRecover(login, code, password) },
+                    dimmed = state.busy || !loginOk || code.isBlank() || !passwordOk || !confirmed,
                 )
                 Text(
                     "< j'ai retrouvé mon mot de passe",
@@ -153,10 +159,60 @@ private fun AuthTab(label: String, selected: Boolean, onClick: () -> Unit, modif
     }
 }
 
-/** Un mot de passe masqué, avec « voir » / « cacher ». */
+/**
+ * Un NOUVEAU mot de passe : sa solidité, et, tant qu'il est masqué, un second champ pour le confirmer.
+ * Renvoie vrai quand il peut partir (confirmation identique, ou mot de passe affiché en clair).
+ */
+@Composable
+fun NewPasswordFields(
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    confirm: String,
+    onConfirmChange: (String) -> Unit,
+    placeholder: String,
+    email: String = "",
+): Boolean {
+    var visible by remember { mutableStateOf(false) }
+    PasswordField(password, onPasswordChange, placeholder, visible = visible, onToggle = { visible = !visible })
+    if (password.isNotEmpty()) PasswordStrengthHint(PasswordStrengths.of(password, email))
+    if (visible) return true
+    PasswordField(confirm, onConfirmChange, "> confirmer le mot de passe", visible = false, onToggle = { visible = true })
+    val differ = confirm.isNotEmpty() && confirm != password
+    if (differ) Text(AccountQuotes.PASSWORDS_DIFFER, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+    return confirm == password
+}
+
+/** Une petite barre de pixels (rouge, ambre, vert) et le verdict du capitaine. */
+@Composable
+private fun PasswordStrengthHint(strength: PasswordStrength) {
+    val level = strength.ordinal + 1
+    val color = when (strength) {
+        PasswordStrength.WEAK -> MaterialTheme.colorScheme.error
+        PasswordStrength.MEDIUM -> palette.getValue('G')
+        PasswordStrength.STRONG, PasswordStrength.VERY_STRONG -> STRONG_GREEN
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+        Text(
+            "▮".repeat(level) + "▯".repeat(PasswordStrength.entries.size - level),
+            style = MaterialTheme.typography.bodyMedium,
+            color = color,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(AccountQuotes.strength(strength), style = MaterialTheme.typography.bodySmall, color = color)
+    }
+}
+
+private val STRONG_GREEN = Color(0xFF6BBF59)
+
+/** Un mot de passe masqué ; l'œil le montre, le cache-œil le cache. */
 @Composable
 fun PasswordField(value: String, onValueChange: (String) -> Unit, placeholder: String) {
     var visible by remember { mutableStateOf(false) }
+    PasswordField(value, onValueChange, placeholder, visible = visible, onToggle = { visible = !visible })
+}
+
+@Composable
+private fun PasswordField(value: String, onValueChange: (String) -> Unit, placeholder: String, visible: Boolean, onToggle: () -> Unit) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -167,11 +223,12 @@ fun PasswordField(value: String, onValueChange: (String) -> Unit, placeholder: S
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         trailingIcon = {
-            Text(
-                if (visible) "cacher" else "voir",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.clickable { visible = !visible }.padding(horizontal = 8.dp),
+            PixelEye(
+                patched = visible,
+                modifier = Modifier
+                    .clickable(onClick = onToggle)
+                    .padding(horizontal = 8.dp)
+                    .semantics { contentDescription = if (visible) "masquer le mot de passe" else "afficher le mot de passe" },
             )
         },
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),

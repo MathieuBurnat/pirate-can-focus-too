@@ -17,6 +17,16 @@ object AccountQuotes {
         "Note ce code secret en lieu sûr : c'est la seule clé de ton coffre si tu oublies ton mot de passe. " +
             "Le capitaine ne le montrera plus jamais ! Code perdu et mot de passe oublié = compte perdu."
 
+    /** Le petit mot sous un nouveau mot de passe, selon sa solidité. */
+    fun strength(strength: PasswordStrength): String = when (strength) {
+        PasswordStrength.WEAK -> "Mot de passe faible, matelot ! Même un mousse le devinerait."
+        PasswordStrength.MEDIUM -> "Pas mal, mais ajoute des majuscules, des chiffres ou des symboles."
+        PasswordStrength.STRONG -> "Solide comme une coque de chêne !"
+        PasswordStrength.VERY_STRONG -> "Coffre-fort digne de Barbe-Noire !"
+    }
+
+    const val PASSWORDS_DIFFER = "Les deux mots de passe ne correspondent pas."
+
     const val FORGOT_EXPLAINED = "Ton email, ton code secret, et un nouveau mot de passe. Un nouveau code secret te sera donné."
 
     const val LOGIN_EXPLAINED = "Ton email reste privé : les autres pirates ne voient que ton pseudo."

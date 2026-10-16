@@ -23,9 +23,12 @@ accompagne l'utilisateur, avec une interface entièrement en **police monospace*
 
 ## Environnement du développeur
 
-- Le projet est ouvert dans **Android Studio sous Windows** (`C:\0_projects\pirate-can-focus-too`).
+- Le projet est ouvert dans **Android Studio sous Windows** (`C:\0_projets\pirate-can-focus-too`).
 - `git` et `gh` sont installés dans **WSL (Ubuntu)**, pas dans PowerShell :
-  lancer les commandes git via `wsl -e bash -lc "cd /mnt/c/0_projects/pirate-can-focus-too && git ..."`.
+  lancer les commandes git via `wsl -e bash -lc "cd /mnt/c/0_projets/pirate-can-focus-too && git ..."`.
+- Le backend (`node`, `npm`, `npx wrangler`) se lance aussi dans **WSL** :
+  `wsl -e bash -lc "cd /mnt/c/0_projets/pirate-can-focus-too/backend && npm ..."`. Si Node vient de nvm, un shell
+  non interactif ne le charge pas toujours : utiliser `bash -lic`, ou `source ~/.nvm/nvm.sh` avant la commande.
 - Le build se fait depuis Android Studio, ou avec `gradlew.bat` en utilisant le JDK 21 d'Android Studio
   (`$env:JAVA_HOME="$env:USERPROFILE\.jdks\jbr-21.0.11"`). Gradle 8.11.1 refuse le JDK 25.
 - Le téléphone de test (Galaxy A55) et un émulateur sont accessibles via `adb`.
@@ -42,6 +45,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   ├── AccountStore.kt      # compte rangé dans les SharedPreferences (pseudo, identifiant, jeton)
 │   ├── AccountViewModel.kt  # bienvenue, créer un compte / se connecter / mot de passe oublié, code secret, synchro
 │   ├── AccountQuotes.kt     # textes du capitaine sur les comptes (avertissement sans compte...)
+│   ├── PasswordStrength.kt  # solidité d'un mot de passe, indicative (logique pure, testée)
 │   ├── PirateApi.kt         # client de l'API backend/ (HttpURLConnection + org.json)
 │   └── PirateNames.kt       # pseudos de pirate tirés au sort (logique pure, testée)
 ├── settings/
@@ -84,6 +88,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes
     ├── PixelPirate.kt       # le capitaine + palette et drawSprite() partagés
     ├── PixelParrot.kt       # Coco le perroquet (pop-up au 8e verre)
+    ├── PixelEye.kt          # œil / cache-œil des champs de mot de passe (montrer / cacher)
     ├── PixelDice.kt         # le dé des pseudos de pirate (faces 1 à 6)
     ├── Sparkles.kt          # gerbe de paillettes en pixel art (SparkleBurst)
     ├── VersionFooter.kt     # version discrète en bas des pages (0.1.<nb de commits>)

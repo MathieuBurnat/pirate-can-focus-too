@@ -42,6 +42,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
     var changingPassword by rememberSaveable { mutableStateOf(false) }
     var currentPassword by rememberSaveable { mutableStateOf("") }
     var newPassword by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
 
     // Le Worker a peut-être changé d'avis (pseudo, visibilité) depuis un autre téléphone.
     LaunchedEffect(Unit) { viewModel.refresh() }
@@ -52,6 +53,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
             changingPassword = false
             currentPassword = ""
             newPassword = ""
+            confirmPassword = ""
         }
     }
 
@@ -122,11 +124,19 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                     MenuItem("CHANGER MON MOT DE PASSE", onClick = { changingPassword = !changingPassword })
                     if (changingPassword) {
                         PasswordField(currentPassword, { currentPassword = it }, "> mot de passe actuel")
-                        PasswordField(newPassword, { newPassword = it }, "> nouveau mot de passe (8 min.)")
+                        val confirmed = NewPasswordFields(
+                            newPassword,
+                            { newPassword = it },
+                            confirmPassword,
+                            { confirmPassword = it },
+                            "> nouveau mot de passe (8 min.)",
+                            email = account.login.orEmpty(),
+                        )
+                        val ready = currentPassword.isNotEmpty() && newPassword.length >= 8 && confirmed
                         MenuItem(
                             "VALIDER LE NOUVEAU MOT DE PASSE",
-                            onClick = { if (newPassword.length >= 8) viewModel.changePassword(currentPassword, newPassword) },
-                            dimmed = state.busy || currentPassword.isEmpty() || newPassword.length < 8,
+                            onClick = { if (ready) viewModel.changePassword(currentPassword, newPassword) },
+                            dimmed = state.busy || !ready,
                         )
                     }
                     if (state.passwordChanged) {
