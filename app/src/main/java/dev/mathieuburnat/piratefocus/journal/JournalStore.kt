@@ -7,7 +7,7 @@ import java.io.File
 /** Le journal de bord rangé dans un fichier sur le téléphone : il survit à la fermeture de l'app. */
 class JournalStore(context: Context) : LogBook {
 
-    private val file = AtomicFile(File(context.applicationContext.filesDir, "journal.tsv"))
+    private val file = journalFile(context)
 
     override fun load(): List<LogEntry> =
         runCatching { JournalCodec.decode(file.readFully().decodeToString()) }.getOrDefault(emptyList())
@@ -21,5 +21,10 @@ class JournalStore(context: Context) : LogBook {
         } catch (e: Exception) {
             file.failWrite(stream)
         }
+    }
+
+    companion object {
+        /** Le fichier du journal (aussi effacé par le factory reset). */
+        fun journalFile(context: Context) = AtomicFile(File(context.applicationContext.filesDir, "journal.tsv"))
     }
 }

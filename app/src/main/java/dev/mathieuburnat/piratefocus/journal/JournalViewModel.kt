@@ -136,6 +136,11 @@ class JournalViewModel(private val store: LogBook = LogBook.Forgetful) : ViewMod
 
     fun dismissParrot() = _uiState.update { it.copy(parrot = null) }
 
+    /** Factory reset : le journal repart d'une page blanche. */
+    fun reset() {
+        _uiState.value = initialState(emptyList())
+    }
+
     private fun initialState(logs: List<LogEntry>): JournalUiState {
         val myLogs = logs.sortedByDescending { it.at }
         val journal = JournalState.today(myLogs, LocalDate.now())

@@ -5,7 +5,7 @@ import android.content.Context
 /** Le compte rangé sur le téléphone (pseudo, jeton de session). */
 class AccountStore(context: Context) {
 
-    private val prefs = context.applicationContext.getSharedPreferences("compte", Context.MODE_PRIVATE)
+    private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun load(): Account = Account(
         onboarded = prefs.getBoolean(KEY_ONBOARDED, false),
@@ -27,12 +27,13 @@ class AccountStore(context: Context) {
             .apply()
     }
 
-    private companion object {
-        const val KEY_ONBOARDED = "accueil_passe"
-        const val KEY_NAME = "pseudo"
-        const val KEY_TOKEN = "jeton"
-        const val KEY_EMAIL = "email"
-        const val KEY_KIND = "type"
-        const val KEY_PUBLIC = "public"
+    companion object {
+        const val PREFS = "compte"
+        private const val KEY_ONBOARDED = "accueil_passe"
+        private const val KEY_NAME = "pseudo"
+        private const val KEY_TOKEN = "jeton"
+        private const val KEY_EMAIL = "email"
+        private const val KEY_KIND = "type"
+        private const val KEY_PUBLIC = "public"
     }
 }

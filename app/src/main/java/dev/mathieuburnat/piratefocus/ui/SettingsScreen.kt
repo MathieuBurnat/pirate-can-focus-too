@@ -11,16 +11,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
@@ -28,7 +32,7 @@ import kotlin.math.abs
 /** Coups à donner sur le titre des paramètres pour faire apparaître le mode dev. */
 private const val TAPS_TO_REVEAL = 5
 
-/** Les paramètres : applications bloquées, déconnexion, et le mode dev caché (5 taps sur le titre). */
+/** Les paramètres : applications bloquées, déconnexion, factory reset, et le mode dev caché (5 taps sur le titre). */
 @Composable
 fun SettingsScreen(
     devMode: Boolean,
@@ -39,8 +43,35 @@ fun SettingsScreen(
     onRevealDev: () -> Unit,
     onDevMode: () -> Unit,
     onLogout: () -> Unit,
+    onFactoryReset: () -> Unit,
 ) {
     var taps by remember { mutableIntStateOf(0) }
+    var confirmReset by remember { mutableStateOf(false) }
+
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            shape = RectangleShape,
+            title = { Text("☠ FACTORY RESET ☠") },
+            text = {
+                Text(
+                    "Tout ce que ce téléphone garde passe par-dessus bord : pseudo, journal de bord, " +
+                        "coffre et doublons, mode dev, applis bloquées.\n\n" +
+                        "Compte gratuit : tes données restent au chaud chez le Worker et reviennent à la prochaine connexion. " +
+                        "Matelot anonyme : tout coule pour de bon !",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmReset = false
+                    onFactoryReset()
+                }) { Text("TOUT COULER") }
+            },
+            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("GARDER LE CAP") } },
+        )
+    }
+
     var reveals by remember { mutableIntStateOf(0) }
     // Dès le 2e coup, le titre frémit, de plus en plus fort : quelque chose va se débloquer...
     val shake = remember { Animatable(0f) }
@@ -85,7 +116,8 @@ fun SettingsScreen(
             var number = 1
             MenuItem("${number++}. APPLICATIONS BLOQUÉES", onClick = onBlockedApps)
             if (devRevealed) DevModeItem("${number++}.", devMode, reveals, onDevMode)
-            if (signedIn) MenuItem("${number}. SE DÉCONNECTER", onClick = onLogout)
+            if (signedIn) MenuItem("${number++}. SE DÉCONNECTER", onClick = onLogout)
+            MenuItem("${number}. FACTORY RESET", onClick = { confirmReset = true })
         }
     }
 }

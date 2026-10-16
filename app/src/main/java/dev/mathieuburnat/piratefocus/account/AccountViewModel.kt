@@ -129,6 +129,16 @@ class AccountViewModel(
 
     fun clearError() = _uiState.update { it.copy(error = null) }
 
+    /**
+     * Factory reset : on oublie le compte sur le téléphone. Avec un compte gratuit, on se déconnecte
+     * chez le Worker au passage (sans insister si le réseau boude) ; ses données y restent.
+     */
+    fun reset() {
+        val token = account.token
+        _uiState.value = AccountUiState()
+        if (token != null) viewModelScope.launch { runCatching { api.logout(token) } }
+    }
+
     /** Synchronise journal et coffre ; null sans compte ou en cas de souci (on réessaiera au prochain changement). */
     suspend fun sync(logs: List<LogEntry>, doubloons: Int, voyages: Int): SyncResult? {
         val token = account.token ?: return null

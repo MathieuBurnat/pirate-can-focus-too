@@ -28,6 +28,7 @@ import dev.mathieuburnat.piratefocus.guard.GuardPermissions
 import dev.mathieuburnat.piratefocus.journal.CrewMate
 import dev.mathieuburnat.piratefocus.journal.JournalViewModel
 import dev.mathieuburnat.piratefocus.settings.DevModeStore
+import dev.mathieuburnat.piratefocus.settings.FactoryReset
 
 private enum class Screen { WELCOME, MENU, FOCUS, JOURNAL, CREW, SETTINGS, DEV_MODE, BLOCKED_APPS, ACCOUNT }
 
@@ -116,6 +117,17 @@ fun PirateApp(
                     },
                     onDevMode = { screen = Screen.DEV_MODE },
                     onLogout = accountViewModel::logout,
+                    onFactoryReset = {
+                        // D'abord l'état en mémoire (rien de périmé à l'écran), puis le téléphone.
+                        accountViewModel.reset()
+                        journalViewModel.reset()
+                        viewModel.reset()
+                        FactoryReset.wipe(context)
+                        devMode = false
+                        devRevealed = false
+                        fakeData = false
+                        screen = Screen.WELCOME
+                    },
                 )
                 Screen.DEV_MODE -> DevModeScreen(
                     devMode = devMode,

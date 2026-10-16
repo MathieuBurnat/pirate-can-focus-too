@@ -9,7 +9,7 @@ import android.content.Context
  */
 class DevModeStore(context: Context) {
 
-    private val prefs = context.applicationContext.getSharedPreferences("parametres", Context.MODE_PRIVATE)
+    private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun isOn(): Boolean = prefs.getBoolean(KEY, false)
 
@@ -40,9 +40,10 @@ class DevModeStore(context: Context) {
         prefs.edit().putBoolean(REVEALED, false).apply()
     }
 
-    private companion object {
-        const val KEY = "mode_dev"
-        const val REVEALED = "mode_dev_visible"
-        const val FAKE_DATA = "mode_dev_fake_data"
+    companion object {
+        const val PREFS = "parametres"
+        private const val KEY = "mode_dev"
+        private const val REVEALED = "mode_dev_visible"
+        private const val FAKE_DATA = "mode_dev_fake_data"
     }
 }

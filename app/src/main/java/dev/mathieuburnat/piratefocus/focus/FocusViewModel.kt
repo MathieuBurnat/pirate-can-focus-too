@@ -80,6 +80,12 @@ class FocusViewModel(private val chest: ChestStore? = null) : ViewModel() {
         }
     }
 
+    /** Factory reset : coffre vide, navire au port. */
+    fun reset() {
+        ticker?.cancel()
+        _uiState.value = FocusUiState()
+    }
+
     /** Le coffre venu du Worker : on garde le plus gros butin (sans inventer de traversée au journal). */
     fun mergeChest(doubloons: Int, voyages: Int) = _uiState.update {
         it.copy(timer = it.timer.copy(doubloons = maxOf(it.timer.doubloons, doubloons), voyages = maxOf(it.timer.voyages, voyages)))
