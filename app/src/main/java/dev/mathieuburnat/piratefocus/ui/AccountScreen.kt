@@ -60,7 +60,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
         }
     }
 
-    state.recoveryCode?.let { RecoveryCodeDialog(it, onNoted = viewModel::recoveryCodeNoted) }
+    state.recoveryCode?.let { RecoveryCodeDialog(it, onNoted = viewModel::recoveryCodeNoted, freshAccount = state.freshAccount) }
 
     if (confirmNewCode) {
         AlertDialog(

@@ -85,7 +85,7 @@ fun WelcomeScreen(viewModel: AccountViewModel, onDone: () -> Unit) {
     LaunchedEffect(ready) {
         if (ready) onDone()
     }
-    state.recoveryCode?.let { RecoveryCodeDialog(it, onNoted = viewModel::recoveryCodeNoted) }
+    state.recoveryCode?.let { RecoveryCodeDialog(it, onNoted = viewModel::recoveryCodeNoted, freshAccount = state.freshAccount) }
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(

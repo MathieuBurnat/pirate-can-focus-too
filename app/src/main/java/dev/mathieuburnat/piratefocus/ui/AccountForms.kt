@@ -62,9 +62,15 @@ import kotlinx.coroutines.launch
 /** Mot de passe : 8 caractères au moins (le Worker vérifie aussi). */
 private const val PASSWORD_MIN = 8
 
+/** Étapes de la création d'un compte gratuit ; la 3e, le code secret, est la pop-up [RecoveryCodeDialog]. */
+const val REGISTER_STEPS = 3
+
+/** Étapes de la connexion : l'email, puis le mot de passe. */
+private const val LOGIN_STEPS = 2
+
 /**
- * Le compte gratuit : créer un compte (email comme identifiant, mot de passe, pseudo), s'y connecter,
- * ou retrouver un mot de passe oublié avec le code secret.
+ * Le compte gratuit, une étape à la fois. Créer un compte : email et mot de passe, puis le pseudo, puis le code
+ * secret (montré une fois). Se connecter : l'email, puis le mot de passe (ou, de là, le mot de passe oublié).
  */
 @Composable
 fun FreeAccountForm(
@@ -79,8 +85,15 @@ fun FreeAccountForm(
     var confirm by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf(state.account.pirateName.ifEmpty { PirateNames.random() }) }
+    var registerStep by rememberSaveable { mutableIntStateOf(1) }
+    var loginStep by rememberSaveable { mutableIntStateOf(1) }
     val loginOk = EMAIL.matches(login.trim())
     val passwordOk = password.length >= PASSWORD_MIN
+    val emailField: @Composable () -> Unit = {
+        // L'email sert d'identifiant : jamais vérifié, aucun mail envoyé.
+        PirateField(login, { login = it.filter { c -> !c.isWhitespace() }.take(254) }, "ton-adresse@mail.com", KeyboardType.Email, autoCorrect = false)
+        Text(AccountQuotes.LOGIN_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+    }
 
     Column(Modifier.fillMaxWidth()) {
         TypewriterText(AccountQuotes.FREE_ACCOUNT, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
@@ -91,39 +104,51 @@ fun FreeAccountForm(
             AuthTab("J'AI DÉJÀ UN COMPTE", selected = state.authMode != AuthMode.REGISTER, onClick = { onMode(AuthMode.LOGIN) }, modifier = Modifier.weight(1f))
         }
         Spacer(Modifier.height(8.dp))
-        // L'email sert d'identifiant : jamais vérifié, aucun mail envoyé.
-        PirateField(login, { login = it.filter { c -> !c.isWhitespace() }.take(254) }, "ton-adresse@mail.com", KeyboardType.Email, autoCorrect = false)
-        Text(AccountQuotes.LOGIN_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         when (state.authMode) {
             AuthMode.REGISTER -> {
-                val confirmed = NewPasswordFields(password, { password = it }, confirm, { confirm = it }, "> mot de passe ($PASSWORD_MIN min.)", email = login)
-                Text("Ton pseudo de pirate (celui que l'équipage voit) :", style = MaterialTheme.typography.bodySmall)
-                PirateField(name, { name = it }, "> ton pseudo de pirate")
-                DiceReroll(onRoll = { name = PirateNames.random() })
-                MenuItem(
-                    "CRÉER MON COMPTE GRATUIT",
-                    onClick = { if (loginOk && passwordOk && confirmed) onRegister(login, password, name) },
-                    dimmed = state.busy || !loginOk || !passwordOk || !confirmed,
-                )
+                StepHeader(registerStep, REGISTER_STEPS, onBack = { registerStep-- })
+                if (registerStep == 1) {
+                    emailField()
+                    val confirmed = NewPasswordFields(password, { password = it }, confirm, { confirm = it }, "> mot de passe ($PASSWORD_MIN min.)", email = login)
+                    NextButton("LARGUER LES AMARRES", enabled = loginOk && passwordOk && confirmed, onClick = { registerStep = 2 })
+                } else {
+                    Text("Ton pseudo de pirate (celui que l'équipage voit) :", style = MaterialTheme.typography.bodySmall)
+                    PirateField(name, { name = it }, "> ton pseudo de pirate")
+                    DiceReroll(onRoll = { name = PirateNames.random() })
+                    NextButton(
+                        "HISSER LE PAVILLON",
+                        enabled = !state.busy && PirateNames.clean(name) != null,
+                        onClick = { onRegister(login, password, name) },
+                    )
+                }
             }
             AuthMode.LOGIN -> {
-                PasswordField(password, { password = it }, "> mot de passe")
-                MenuItem("MONTER À BORD", onClick = { if (loginOk && password.isNotEmpty()) onLogin(login, password) }, dimmed = state.busy || !loginOk || password.isEmpty())
-                Text(
-                    "mot de passe oublié ?",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.clickable { onMode(AuthMode.FORGOT) }.padding(vertical = 6.dp),
-                )
+                StepHeader(loginStep, LOGIN_STEPS, onBack = { loginStep-- })
+                if (loginStep == 1) {
+                    emailField()
+                    NextButton("À L'ABORDAGE", enabled = loginOk, onClick = { loginStep = 2 })
+                } else {
+                    Text("Email : ${login.trim()}", style = MaterialTheme.typography.bodyMedium)
+                    PasswordField(password, { password = it }, "> mot de passe")
+                    NextButton("MONTER À BORD", enabled = !state.busy && password.isNotEmpty(), onClick = { onLogin(login, password) })
+                    Text(
+                        "mot de passe oublié ?",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.clickable { onMode(AuthMode.FORGOT) }.padding(vertical = 6.dp),
+                    )
+                }
             }
             AuthMode.FORGOT -> {
+                // On arrive ici depuis l'étape du mot de passe : l'email est déjà connu (et modifiable au besoin).
+                emailField()
                 Text(AccountQuotes.FORGOT_EXPLAINED, style = MaterialTheme.typography.bodySmall)
                 PirateField(code, { code = it.uppercase().take(30) }, "> code secret (XXXX-XXXX-...)")
                 val confirmed = NewPasswordFields(password, { password = it }, confirm, { confirm = it }, "> nouveau mot de passe ($PASSWORD_MIN min.)", email = login)
-                MenuItem(
+                NextButton(
                     "RETROUVER MON COMPTE",
-                    onClick = { if (loginOk && code.isNotBlank() && passwordOk && confirmed) onRecover(login, code, password) },
-                    dimmed = state.busy || !loginOk || code.isBlank() || !passwordOk || !confirmed,
+                    enabled = !state.busy && loginOk && code.isNotBlank() && passwordOk && confirmed,
+                    onClick = { onRecover(login, code, password) },
                 )
                 Text(
                     "< j'ai retrouvé mon mot de passe",
@@ -135,6 +160,40 @@ fun FreeAccountForm(
         }
         BusyAndError(state)
     }
+}
+
+/** « étape 1/3 », discret, et le retour à l'étape précédente dès la 2e. */
+@Composable
+private fun StepHeader(step: Int, steps: Int, onBack: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        if (step > 1) {
+            Text(
+                "< étape précédente",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        StepLabel(step, steps)
+    }
+}
+
+@Composable
+fun StepLabel(step: Int, steps: Int) {
+    Text("étape $step/$steps", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+}
+
+/** Le bouton qui fait avancer d'une étape : doré, avec sa flèche ; grisé tant que l'étape n'est pas complète. */
+@Composable
+private fun NextButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+    MenuItem(
+        "$label  ->",
+        onClick = { if (enabled) onClick() },
+        dimmed = !enabled,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 8.dp),
+    )
 }
 
 /** Une adresse email plausible (une seule @, un domaine avec un point, pas d'espace). */
@@ -235,9 +294,9 @@ private fun PasswordField(value: String, onValueChange: (String) -> Unit, placeh
     )
 }
 
-/** Le code secret, montré une seule fois : à noter (ou copier) avant de continuer. */
+/** Le code secret, montré une seule fois : à noter (ou copier) avant de continuer. [freshAccount] : 3e étape de la création. */
 @Composable
-fun RecoveryCodeDialog(code: String, onNoted: () -> Unit) {
+fun RecoveryCodeDialog(code: String, onNoted: () -> Unit, freshAccount: Boolean = false) {
     val clipboard = LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = {}, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
@@ -247,6 +306,7 @@ fun RecoveryCodeDialog(code: String, onNoted: () -> Unit) {
             modifier = Modifier.border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), RectangleShape),
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(20.dp)) {
+                if (freshAccount) StepLabel(REGISTER_STEPS, REGISTER_STEPS)
                 Text("☠ TON CODE SECRET ☠", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
                 Spacer(Modifier.height(12.dp))
                 Text(

@@ -18,6 +18,8 @@ data class AccountUiState(
     val authMode: AuthMode = AuthMode.REGISTER,
     /** Le code secret à montrer une seule fois (null : rien à montrer). */
     val recoveryCode: String? = null,
+    /** Le code secret à montrer est celui d'un compte qui vient d'être créé (3e et dernière étape). */
+    val freshAccount: Boolean = false,
     /** Le mot de passe vient d'être changé (petit mot de confirmation). */
     val passwordChanged: Boolean = false,
     val busy: Boolean = false,
@@ -62,6 +64,7 @@ class AccountViewModel(
      */
     fun register(login: String, password: String, name: String) = launchBusy {
         signIn(api.register(login.trim(), password, PirateNames.clean(name)))
+        _uiState.update { it.copy(freshAccount = true) }
     }
 
     fun login(login: String, password: String) = launchBusy { signIn(api.login(login.trim(), password)) }
@@ -88,7 +91,7 @@ class AccountViewModel(
     }
 
     /** Le matelot a noté son code secret : on ne le montrera plus jamais. */
-    fun recoveryCodeNoted() = _uiState.update { it.copy(recoveryCode = null) }
+    fun recoveryCodeNoted() = _uiState.update { it.copy(recoveryCode = null, freshAccount = false) }
 
     private fun signIn(session: Session) {
         _uiState.update { it.copy(recoveryCode = session.recoveryCode, authMode = AuthMode.LOGIN) }
