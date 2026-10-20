@@ -33,7 +33,8 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.mathieuburnat.piratefocus"
+        // L'identifiant de l'app (Play Store, Google OAuth) ; le code garde son package dev.mathieuburnat.piratefocus.
+        applicationId = "ch.piratecanfocustoo"
         minSdk = 26
         targetSdk = 35
         versionCode = commitCount.coerceAtLeast(1)

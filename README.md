@@ -122,8 +122,8 @@ Le gardien a besoin de deux autorisations spéciales. Dans l'app, va dans **Para
 ou accorde-les d'un coup avec adb :
 
 ```bash
-adb shell appops set dev.mathieuburnat.piratefocus GET_USAGE_STATS allow
-adb shell appops set dev.mathieuburnat.piratefocus SYSTEM_ALERT_WINDOW allow
+adb shell appops set ch.piratecanfocustoo GET_USAGE_STATS allow
+adb shell appops set ch.piratecanfocustoo SYSTEM_ALERT_WINDOW allow
 ```
 
 Ajoute Chrome à la liste noire, lance une traversée, ouvre Chrome : à l'abordage !

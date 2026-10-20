@@ -16,6 +16,8 @@ accompagne l'utilisateur, avec une interface entièrement en **police monospace*
 - Kotlin, Jetpack Compose (Material 3), une seule Activity.
 - Gradle Kotlin DSL + catalogue de versions (`gradle/libs.versions.toml`).
 - `minSdk 26`, `targetSdk`/`compileSdk 35`, JVM 17.
+- Identifiant de l'app (`applicationId`, Play Store, client OAuth Google) : `ch.piratecanfocustoo`.
+  Le code Kotlin garde son package `dev.mathieuburnat.piratefocus` (namespace) : ne pas confondre les deux.
 - Sans compte, tout est local (journal et doublons sauvegardés sur le téléphone). Avec un compte gratuit,
   journal et coffre sont synchronisés avec le Worker Cloudflare de `backend/` (issue #8).
   Compte gratuit : email (simple identifiant privé, jamais vérifié, aucun mail envoyé) + mot de passe + code secret
