@@ -103,7 +103,7 @@ Aucun compte n'est obligatoire : au premier lancement, le capitaine te laisse ch
   le destructeur en rouge), et un CONFIRMER qui ne s'active qu'après 5 secondes
 - 🧪 **Mode dev caché** (5 taps sur le titre des paramètres) : équipage imaginaire *fake data*, factory reset, et un secret pour papa
 - 📱 **Petits écrans** pris en compte : le menu défile au lieu d'écraser ses boutons
-- 🏷️ **Numéro de version** discret en bas de chaque page (`0.1.x`, x = nombre de commits)
+- 🏷️ **Numéro de version** discret en bas de chaque page (`0.2.x`)
 - 🚫 **Pas de pub, pas de pistage** : sans compte, rien ne quitte le téléphone
 
 ## 🧭 Prochaines escales
@@ -180,8 +180,10 @@ Ajoute Chrome à la liste noire, lance une traversée, ouvre Chrome : à l'abord
 
 ### La version
 
-`versionName` vaut `0.1.<nombre de commits>`, calculé par Gradle avec `git rev-list --count HEAD`
-(et via `wsl git` sous Windows quand git n'est installé que dans WSL). Elle s'affiche en bas de chaque page.
+`versionName` vaut `<majeur.mineur>.<x>` : `majeur.mineur` vient de [`app/version.txt`](app/version.txt) (aujourd'hui `0.2`),
+et `x` compte les commits depuis le dernier changement de ce fichier (calculé par Gradle avec git, via `wsl git` sous Windows
+quand git n'est installé que dans WSL). Pour passer à `0.3.0`, il suffit de modifier `version.txt`.
+Le `versionCode` reste le nombre total de commits, pour toujours grimper. La version s'affiche en bas de chaque page.
 
 ### La cale (organisation du code)
 

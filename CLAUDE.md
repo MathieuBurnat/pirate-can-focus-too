@@ -97,7 +97,7 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── PixelEye.kt          # œil / cache-œil des champs de mot de passe (montrer / cacher)
     ├── PixelDice.kt         # le dé des pseudos de pirate (faces 1 à 6)
     ├── Sparkles.kt          # gerbe de paillettes en pixel art (SparkleBurst)
-    ├── VersionFooter.kt     # version discrète en bas des pages (0.1.<nb de commits>)
+    ├── VersionFooter.kt     # version discrète en bas des pages (<app/version.txt>.<commits depuis son dernier changement>)
     ├── PixelShip.kt         # le navire, centré, qui tangue pendant que les vagues défilent
     └── theme/Theme.kt       # couleurs "mer de nuit" + typo monospace partout
 
