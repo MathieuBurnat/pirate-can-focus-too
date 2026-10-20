@@ -339,8 +339,49 @@ async function me(env: Env, pirateId: string) {
   return {
     name: row.name,
     public: row.public === 1,
-    account: { kind, email: row.email, login: row.login },
+    // google : un compte Google est lié (connexion Google possible), qu'il soit l'identité principale ou ajouté ensuite.
+    account: { kind, email: row.email, login: row.login, google: row.google_sub !== null },
   };
+}
+
+/** Lier un compte Google au pirate connecté : ensuite, « CONTINUER AVEC GOOGLE » retombe sur ce même pirate. */
+async function linkGoogle(env: Env, request: Request, pirateId: string) {
+  const data = await body(request);
+  if (typeof data.idToken !== "string") throw new HttpError(400, "idToken attendu");
+  const clientIds = env.GOOGLE_CLIENT_IDS.split(",").map((id) => id.trim()).filter(Boolean);
+  const user = await verifyGoogleIdToken(data.idToken, clientIds);
+  if (!user) throw new HttpError(401, "Jeton Google refusé");
+
+  const owner = await env.DB.prepare("SELECT pirate_id FROM identities WHERE google_sub = ?").bind(user.sub).first<{ pirate_id: string }>();
+  if (owner && owner.pirate_id !== pirateId) {
+    throw new HttpError(409, "Ce compte Google navigue déjà sous un autre pavillon ! Un seul pirate par compte Google, matelot.");
+  }
+  if (!owner) {
+    const mine = await env.DB.prepare("SELECT google_sub FROM identities WHERE pirate_id = ?").bind(pirateId).first<{ google_sub: string | null }>();
+    if (mine?.google_sub) throw new HttpError(409, "Ton pirate a déjà un compte Google lié : délie-le d'abord.");
+    const email = user.email?.toLowerCase() ?? null;
+    // L'email Google n'est gardé que s'il n'est pas déjà celui d'une autre identité (il est unique).
+    const emailFree = email === null || !(await env.DB.prepare("SELECT 1 FROM identities WHERE email = ? AND pirate_id <> ?").bind(email, pirateId).first());
+    if (mine) {
+      await env.DB.prepare("UPDATE identities SET google_sub = ?, email = COALESCE(email, ?) WHERE pirate_id = ?")
+        .bind(user.sub, emailFree ? email : null, pirateId)
+        .run();
+    } else {
+      await env.DB.prepare("INSERT INTO identities (pirate_id, email, google_sub, created_at) VALUES (?, ?, ?, ?)")
+        .bind(pirateId, emailFree ? email : null, user.sub, nowIso())
+        .run();
+    }
+  }
+  return json(await me(env, pirateId));
+}
+
+/** Délier Google, seulement si le pirate garde une autre façon de monter à bord (identifiant et mot de passe). */
+async function unlinkGoogle(env: Env, pirateId: string) {
+  if (!(await env.DB.prepare("SELECT 1 FROM credentials WHERE pirate_id = ?").bind(pirateId).first())) {
+    throw new HttpError(400, "Sans mot de passe, Google est ta seule passerelle : impossible de la retirer.");
+  }
+  await env.DB.prepare("DELETE FROM identities WHERE pirate_id = ?").bind(pirateId).run();
+  return json(await me(env, pirateId));
 }
 
 async function updateMe(env: Env, request: Request, pirateId: string) {
@@ -484,6 +525,10 @@ async function route(request: Request, env: Env): Promise<Response> {
       return recover(env, request);
     case "POST /me/recovery":
       return newRecoveryCode(env, await pirateOf(env, request));
+    case "POST /me/google":
+      return linkGoogle(env, request, await pirateOf(env, request));
+    case "DELETE /me/google":
+      return unlinkGoogle(env, await pirateOf(env, request));
     case "POST /me/password":
       return changePassword(env, request, await pirateOf(env, request));
     case "POST /auth/logout":

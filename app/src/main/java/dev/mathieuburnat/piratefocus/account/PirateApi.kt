@@ -18,7 +18,7 @@ import java.util.UUID
 class ApiException(val status: Int, message: String) : Exception(message)
 
 /** Ce que le Worker sait du pirate connecté. */
-data class Me(val name: String, val public: Boolean, val kind: String, val email: String?, val login: String?)
+data class Me(val name: String, val public: Boolean, val kind: String, val email: String?, val login: String?, val google: Boolean = false)
 
 /** [recoveryCode] : le code secret, montré une seule fois (création du compte, mot de passe oublié). */
 data class Session(val token: String, val created: Boolean, val me: Me, val recoveryCode: String? = null)
@@ -35,8 +35,17 @@ class PirateApi(private val baseUrl: String = BASE_URL) {
         return session(call("POST", "/auth/register", body = body))
     }
 
-    /** Connexion Google : le Worker vérifie l'ID token, retrouve le pirate ou en crée un (pseudo tiré au sort). */
-    suspend fun google(idToken: String): Session = session(call("POST", "/auth/google", body = JSONObject().put("idToken", idToken)))
+    /** Connexion Google : le Worker vérifie l'ID token, retrouve le pirate ou en crée un (avec [name], sinon tiré au sort). */
+    suspend fun google(idToken: String, name: String?): Session {
+        val body = JSONObject().put("idToken", idToken)
+        if (name != null) body.put("name", name)
+        return session(call("POST", "/auth/google", body = body))
+    }
+
+    /** Lie un compte Google au pirate connecté (refusé s'il appartient déjà à un autre pirate). */
+    suspend fun linkGoogle(token: String, idToken: String): Me = me(call("POST", "/me/google", token, JSONObject().put("idToken", idToken)))
+
+    suspend fun unlinkGoogle(token: String): Me = me(call("DELETE", "/me/google", token))
 
     suspend fun login(login: String, password: String): Session =
         session(call("POST", "/auth/login", body = JSONObject().put("login", login).put("password", password)))
@@ -121,6 +130,7 @@ class PirateApi(private val baseUrl: String = BASE_URL) {
             kind = account?.optString("kind") ?: "email",
             email = account?.takeUnless { it.isNull("email") }?.optString("email"),
             login = account?.takeUnless { it.isNull("login") || !it.has("login") }?.optString("login"),
+            google = account?.optBoolean("google") ?: false,
         )
     }
 

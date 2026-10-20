@@ -12,6 +12,8 @@ data class Account(
     val login: String? = null,
     /** "password" (identifiant + mot de passe), ou les anciens "email" et "google". */
     val kind: String? = null,
+    /** Un compte Google est lié : « CONTINUER AVEC GOOGLE » mène à ce pirate ([email] est alors l'adresse Google). */
+    val google: Boolean = false,
     /** Visible dans les statistiques de l'équipage. */
     val public: Boolean = true,
 ) {

@@ -27,13 +27,20 @@ val GOOGLE_SIGN_IN_READY = GOOGLE_WEB_CLIENT_ID.isNotEmpty()
 
 /** Ce que fait le bouton « CONTINUER AVEC GOOGLE » : la fenêtre Google, puis le jeton part au Worker. */
 @Composable
-fun rememberGoogleSignIn(viewModel: AccountViewModel): () -> Unit {
+fun rememberGoogleSignIn(viewModel: AccountViewModel): () -> Unit = rememberGoogleToken(viewModel, viewModel::google)
+
+/** « LIER MON COMPTE GOOGLE » : la fenêtre Google, puis le jeton lie ce Google au pirate connecté. */
+@Composable
+fun rememberGoogleLink(viewModel: AccountViewModel): () -> Unit = rememberGoogleToken(viewModel, viewModel::linkGoogle)
+
+@Composable
+private fun rememberGoogleToken(viewModel: AccountViewModel, onToken: (String) -> Unit): () -> Unit {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     return {
         scope.launch {
             when (val result = googleIdToken(context)) {
-                is GoogleResult.Token -> viewModel.google(result.idToken)
+                is GoogleResult.Token -> onToken(result.idToken)
                 is GoogleResult.Failed -> viewModel.showError(result.message)
                 GoogleResult.Cancelled -> Unit
             }

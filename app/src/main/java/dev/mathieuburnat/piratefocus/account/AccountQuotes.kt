@@ -57,6 +57,12 @@ object AccountQuotes {
     /** Le petit mot (toast) quand il se déconnecte. */
     fun signedOut(name: String) = "Bon vent, $name ! Ton butin t'attend au port. $YAWKU"
 
+    /** Le petit mot (toast) quand il lie son compte Google. */
+    const val GOOGLE_LINKED = "Google est lié ! Tu peux désormais monter à bord avec lui. $YAWKU"
+
+    /** Ce que fait « LIER MON COMPTE GOOGLE », dans la fiche. */
+    const val GOOGLE_LINK_EXPLAINED = "Un seul pirate, deux passerelles : ton mot de passe, ou Google. Pas de second compte par erreur !"
+
     /** Le petit mot (toast) quand il supprime son compte. */
     const val DELETED = "Merci d'être passé, ancien matelot. Bon voyage ! $YAWKU"
 

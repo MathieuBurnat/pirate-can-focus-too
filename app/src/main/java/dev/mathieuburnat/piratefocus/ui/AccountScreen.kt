@@ -122,7 +122,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
             if (account.signedIn) {
                 when {
                     account.login != null -> Text("Email (privé) : ${account.login}", style = MaterialTheme.typography.bodyMedium)
-                    account.kind == "google" -> Text("Connecté par Google", style = MaterialTheme.typography.bodyMedium)
+                    account.kind == "google" -> Text("Connecté par Google${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
                     else -> Text("Connecté par email${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -152,6 +152,21 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                     }
                     if (state.passwordChanged) {
                         Text("Mot de passe changé, matelot !", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                    }
+                    if (GOOGLE_SIGN_IN_READY) {
+                        if (account.google) {
+                            // Google lié : on peut aussi monter à bord par là ; le délier reste possible (le mot de passe demeure).
+                            Text("Google lié${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
+                            Text(
+                                "délier Google",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.clickable(enabled = !state.busy, onClick = viewModel::unlinkGoogle).padding(vertical = 6.dp),
+                            )
+                        } else {
+                            MenuItem("LIER MON COMPTE GOOGLE", onClick = rememberGoogleLink(viewModel), dimmed = state.busy)
+                            Text(AccountQuotes.GOOGLE_LINK_EXPLAINED, style = MaterialTheme.typography.bodySmall)
+                        }
                     }
                     Spacer(Modifier.height(16.dp))
                 }

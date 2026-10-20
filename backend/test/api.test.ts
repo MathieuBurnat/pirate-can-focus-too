@@ -133,7 +133,60 @@ describe("connexion Google", () => {
     expect(response.status).toBe(200);
     const { me, created } = await response.json<any>();
     expect(created).toBe(true);
-    expect(me.account).toEqual({ kind: "google", email: "mary@read.fr", login: null });
+    expect(me.account).toEqual({ kind: "google", email: "mary@read.fr", login: null, google: true });
+  });
+
+  it("garde le pseudo envoyé à la création (celui du matelot local)", async () => {
+    const response = await api("/auth/google", { json: { idToken: await googleToken({ sub: "g-pseudo" }), name: "Calico Jack" } });
+    expect((await response.json<any>()).me.name).toBe("Calico Jack");
+  });
+});
+
+describe("lier Google à un compte existant", () => {
+  const register = async (login: string) =>
+    (await api("/auth/register", { json: { login, password: "motdepasse-solide", name: "Grace O'Malley" } })).json<any>();
+
+  it("lie Google au pirate connecté, puis la connexion Google retombe sur lui", async () => {
+    const { token, me } = await register("grace@flotte.fr");
+    expect(me.account.google).toBe(false);
+    const linked = await api("/me/google", { token, json: { idToken: await googleToken({ sub: "g-grace", email: "grace@gmail.com" }) } });
+    expect(linked.status).toBe(200);
+    expect((await linked.json<any>()).account).toMatchObject({ kind: "password", login: "grace@flotte.fr", google: true });
+
+    const viaGoogle = await (await api("/auth/google", { json: { idToken: await googleToken({ sub: "g-grace" }) } })).json<any>();
+    expect(viaGoogle.created).toBe(false);
+    expect(viaGoogle.me).toMatchObject({ name: "Grace O'Malley", account: { kind: "password", login: "grace@flotte.fr" } });
+
+    // Relier le même Google au même pirate : sans effet, sans erreur.
+    expect((await api("/me/google", { token, json: { idToken: await googleToken({ sub: "g-grace" }) } })).status).toBe(200);
+  });
+
+  it("refuse un Google déjà lié à un autre pirate, sans rien effacer", async () => {
+    await api("/auth/google", { json: { idToken: await googleToken({ sub: "g-pris" }), name: "Premier Occupant" } });
+    const { token } = await register("second@flotte.fr");
+    const refused = await api("/me/google", { token, json: { idToken: await googleToken({ sub: "g-pris" }) } });
+    expect(refused.status).toBe(409);
+    const owner = await (await api("/auth/google", { json: { idToken: await googleToken({ sub: "g-pris" }) } })).json<any>();
+    expect(owner.me.name).toBe("Premier Occupant");
+  });
+
+  it("refuse un second Google, et un jeton Google invalide", async () => {
+    const { token } = await register("deux@flotte.fr");
+    expect((await api("/me/google", { token, json: { idToken: await googleToken({ sub: "g-un" }) } })).status).toBe(200);
+    expect((await api("/me/google", { token, json: { idToken: await googleToken({ sub: "g-deux" }) } })).status).toBe(409);
+    expect((await api("/me/google", { token, json: { idToken: await googleToken({ sub: "g-x", aud: "autre-appli" }) } })).status).toBe(401);
+    expect((await api("/me/google", { json: { idToken: "x" } })).status).toBe(401);
+  });
+
+  it("délie Google s'il reste le mot de passe, jamais pour un pirate 100 % Google", async () => {
+    const { token } = await register("delie@flotte.fr");
+    await api("/me/google", { token, json: { idToken: await googleToken({ sub: "g-delie" }) } });
+    const unlinked = await api("/me/google", { method: "DELETE", token });
+    expect((await unlinked.json<any>()).account.google).toBe(false);
+    const fresh = await (await api("/auth/google", { json: { idToken: await googleToken({ sub: "g-delie" }) } })).json<any>();
+    expect(fresh.created).toBe(true);
+
+    expect((await api("/me/google", { method: "DELETE", token: fresh.token })).status).toBe(400);
   });
 
   it("refuse un jeton destiné à une autre application", async () => {

@@ -71,8 +71,25 @@ class AccountViewModel(
 
     fun login(login: String, password: String) = launchBusy { signIn(api.login(login.trim(), password)) }
 
-    /** Connexion (ou création) avec Google, à partir de l'ID token donné par le téléphone. */
-    fun google(idToken: String) = launchBusy { signIn(api.google(idToken)) }
+    /**
+     * Connexion (ou création) avec Google, à partir de l'ID token donné par le téléphone. À la création,
+     * le pseudo du matelot local le suit.
+     */
+    fun google(idToken: String) = launchBusy { signIn(api.google(idToken, PirateNames.clean(account.pirateName))) }
+
+    /** Lie un compte Google au pirate connecté : il pourra ensuite monter à bord par Google aussi. */
+    fun linkGoogle(idToken: String) {
+        val token = account.token ?: return
+        launchBusy {
+            saveMe(api.linkGoogle(token, idToken))
+            _uiState.update { it.copy(toast = AccountQuotes.GOOGLE_LINKED) }
+        }
+    }
+
+    fun unlinkGoogle() {
+        val token = account.token ?: return
+        launchBusy { saveMe(api.unlinkGoogle(token)) }
+    }
 
     /** Un souci venu d'ailleurs que du Worker (la fenêtre Google, par exemple), à afficher. */
     fun showError(message: String) = _uiState.update { it.copy(error = message) }
@@ -98,35 +115,30 @@ class AccountViewModel(
         }
     }
 
-    /** Le matelot a noté son code secret : on ne le montrera plus jamais. */
     fun toastShown() = _uiState.update { it.copy(toast = null) }
 
+    /** Le matelot a noté son code secret : on ne le montrera plus jamais. */
     fun recoveryCodeNoted() = _uiState.update { it.copy(recoveryCode = null, freshAccount = false) }
 
     private fun signIn(session: Session) {
         _uiState.update {
             it.copy(recoveryCode = session.recoveryCode, authMode = AuthMode.LOGIN, toast = AccountQuotes.signedIn(session.me.name))
         }
-        save(
-            account.copy(
-                onboarded = true,
-                pirateName = session.me.name,
-                token = session.token,
-                email = session.me.email,
-                login = session.me.login,
-                kind = session.me.kind,
-                public = session.me.public,
-            ),
-        )
+        save(account.copy(onboarded = true, token = session.token))
+        saveMe(session.me)
     }
+
+    /** Ce que le Worker sait du pirate, rangé sur le téléphone. */
+    private fun saveMe(me: Me) = save(
+        account.copy(pirateName = me.name, public = me.public, email = me.email, login = me.login, kind = me.kind, google = me.google),
+    )
 
     /** Relit le compte chez le Worker (pseudo, visibilité) ; un jeton refusé déconnecte en douceur. */
     fun refresh() {
         val token = account.token ?: return
         viewModelScope.launch {
             try {
-                val me = api.me(token)
-                save(account.copy(pirateName = me.name, public = me.public, email = me.email, login = me.login, kind = me.kind))
+                saveMe(api.me(token))
             } catch (e: ApiException) {
                 if (e.status == 401) signOutLocally()
             }
@@ -208,7 +220,7 @@ class AccountViewModel(
         return api.crew().filter { it.name != mine }
     }
 
-    private fun signOutLocally() = save(account.copy(token = null, email = null, login = null, kind = null))
+    private fun signOutLocally() = save(account.copy(token = null, email = null, login = null, kind = null, google = false))
 
     private fun save(next: Account) {
         store?.save(next)

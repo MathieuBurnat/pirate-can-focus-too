@@ -29,9 +29,11 @@ Supprimer un compte efface l'identité, les sessions et les petits mots du journ
 | `POST /me/password` `{current, new}` | ✓ | Change le mot de passe |
 | `POST /auth/email/start` `{email}` | | Envoie un code à 6 chiffres (valable 10 min, 1 envoi par minute par adresse, 10 par heure par IP) |
 | `POST /auth/email/verify` `{email, code, name?}` | | Connexion ; crée le pirate au premier passage (5 essais par code) |
-| `POST /auth/google` `{idToken, name?}` | | Connexion avec un ID token Google |
+| `POST /auth/google` `{idToken, name?}` | | Connexion avec un ID token Google (crée le pirate au premier passage, avec `name` s'il est donné) |
+| `POST /me/google` `{idToken}` | ✓ | Lie ce compte Google au pirate connecté (déjà lié à un autre pirate : 409, rien n'est fusionné ni effacé) |
+| `DELETE /me/google` | ✓ | Délie Google, seulement s'il reste l'identifiant et le mot de passe |
 | `POST /auth/logout` | ✓ | Révoque le jeton |
-| `GET /me` | ✓ | Pseudo, visibilité, type de compte |
+| `GET /me` | ✓ | Pseudo, visibilité, type de compte, Google lié ou non |
 | `PATCH /me` (ou `POST /me`) `{name?, public?}` | ✓ | Change le pseudo ou la visibilité publique |
 | `DELETE /me` | ✓ | Supprime le compte (anonymisation) |
 | `POST /sync` `{logs, chest?}` | ✓ | Envoie les nouvelles lignes et le coffre, reçoit tout en retour. Journal en ajout seulement : rien n'est modifié ni effacé |

@@ -14,6 +14,7 @@ class AccountStore(context: Context) {
         email = prefs.getString(KEY_EMAIL, null),
         login = prefs.getString(KEY_LOGIN, null),
         kind = prefs.getString(KEY_KIND, null),
+        google = prefs.getBoolean(KEY_GOOGLE, false),
         public = prefs.getBoolean(KEY_PUBLIC, true),
     )
 
@@ -25,6 +26,7 @@ class AccountStore(context: Context) {
             .putString(KEY_EMAIL, account.email)
             .putString(KEY_LOGIN, account.login)
             .putString(KEY_KIND, account.kind)
+            .putBoolean(KEY_GOOGLE, account.google)
             .putBoolean(KEY_PUBLIC, account.public)
             .apply()
     }
@@ -37,6 +39,7 @@ class AccountStore(context: Context) {
         private const val KEY_EMAIL = "email"
         private const val KEY_LOGIN = "identifiant"
         private const val KEY_KIND = "type"
+        private const val KEY_GOOGLE = "google_lie"
         private const val KEY_PUBLIC = "public"
     }
 }
