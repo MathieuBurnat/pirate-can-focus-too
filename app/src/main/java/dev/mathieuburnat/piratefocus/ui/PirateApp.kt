@@ -90,6 +90,7 @@ fun PirateApp(
                 Screen.MENU -> MenuScreen(
                     phase = phase,
                     signedIn = accountState.account.signedIn,
+                    devMode = devMode,
                     onFocus = {
                         val firstTime = nudgeStore.isFirstTime()
                         val ready = GuardPermissions.isReady(context)

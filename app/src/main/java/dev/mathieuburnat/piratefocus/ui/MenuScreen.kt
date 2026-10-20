@@ -43,6 +43,7 @@ import dev.mathieuburnat.piratefocus.focus.Phase
 fun MenuScreen(
     phase: Phase,
     signedIn: Boolean,
+    devMode: Boolean,
     onFocus: () -> Unit,
     onJournal: () -> Unit,
     onSettings: () -> Unit,
@@ -95,7 +96,9 @@ fun MenuScreen(
                 MenuItem(focusLabel, onClick = onFocus)
                 MenuItem("2. MON JOURNAL", onClick = onJournal)
                 MenuItem("3. PARAMÈTRES", onClick = onSettings)
-                if (signedIn) MenuItem("4. MA FICHE DE MATELOT", onClick = onAccount)
+                // La fiche est l'écran du pirate connecté (bientôt son personnage et ses points). Matelot local :
+                // il passe par le tag « Compte local », sauf en mode dev.
+                if (signedIn || devMode) MenuItem("4. MA FICHE DE MATELOT", onClick = onAccount)
             }
         }
     }
