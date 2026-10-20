@@ -74,6 +74,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // Connexion Google (Credential Manager) : le jeton part au Worker, qui le vérifie.
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)

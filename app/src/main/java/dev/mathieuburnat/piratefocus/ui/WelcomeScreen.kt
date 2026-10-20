@@ -165,6 +165,7 @@ fun WelcomeScreen(viewModel: AccountViewModel, onDone: () -> Unit) {
                     onRegister = viewModel::register,
                     onLogin = viewModel::login,
                     onRecover = viewModel::recover,
+                    onGoogle = rememberGoogleSignIn(viewModel),
                 )
             }
         }

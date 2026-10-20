@@ -79,6 +79,7 @@ fun FreeAccountForm(
     onRegister: (login: String, password: String, name: String) -> Unit,
     onLogin: (login: String, password: String) -> Unit,
     onRecover: (login: String, code: String, newPassword: String) -> Unit,
+    onGoogle: () -> Unit,
 ) {
     var login by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -111,6 +112,7 @@ fun FreeAccountForm(
                     emailField()
                     val confirmed = NewPasswordFields(password, { password = it }, confirm, { confirm = it }, "> mot de passe ($PASSWORD_MIN min.)", email = login)
                     NextButton("LARGUER LES AMARRES", enabled = loginOk && passwordOk && confirmed, onClick = { registerStep = 2 })
+                    GoogleButton(enabled = !state.busy, onClick = onGoogle)
                 } else {
                     Text("Ton pseudo de pirate (celui que l'équipage voit) :", style = MaterialTheme.typography.bodySmall)
                     PirateField(name, { name = it }, "> ton pseudo de pirate")
@@ -127,6 +129,7 @@ fun FreeAccountForm(
                 if (loginStep == 1) {
                     emailField()
                     NextButton("À L'ABORDAGE", enabled = loginOk, onClick = { loginStep = 2 })
+                    GoogleButton(enabled = !state.busy, onClick = onGoogle)
                 } else {
                     Text("Email : ${login.trim()}", style = MaterialTheme.typography.bodyMedium)
                     PasswordField(password, { password = it }, "> mot de passe")
@@ -182,6 +185,20 @@ private fun StepHeader(step: Int, steps: Int, onBack: () -> Unit) {
 @Composable
 fun StepLabel(step: Int, steps: Int) {
     Text("étape $step/$steps", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+}
+
+/** « ou » puis « CONTINUER AVEC GOOGLE » : un seul geste pour créer son compte ou s'y connecter. */
+@Composable
+private fun GoogleButton(enabled: Boolean, onClick: () -> Unit) {
+    if (!GOOGLE_SIGN_IN_READY) return
+    Text(
+        "~ ou ~",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+    )
+    MenuItem("CONTINUER AVEC GOOGLE", onClick = { if (enabled) onClick() }, dimmed = !enabled)
 }
 
 /** Le bouton qui fait avancer d'une étape : doré, avec sa flèche ; grisé tant que l'étape n'est pas complète. */

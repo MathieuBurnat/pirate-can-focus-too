@@ -18,10 +18,13 @@ accompagne l'utilisateur, avec une interface entièrement en **police monospace*
 - `minSdk 26`, `targetSdk`/`compileSdk 35`, JVM 17.
 - Identifiant de l'app (`applicationId`, Play Store, client OAuth Google) : `ch.piratecanfocustoo`.
   Le code Kotlin garde son package `dev.mathieuburnat.piratefocus` (namespace) : ne pas confondre les deux.
+- Connexion Google : Credential Manager avec l'ID client OAuth **Web** (`ui/GoogleSignIn.kt`, et `GOOGLE_CLIENT_IDS`
+  de `backend/wrangler.jsonc`). Le client Android (paquet + SHA-1 de la clé debug) existe aussi dans la console,
+  mais son ID ne sert nulle part dans le code. Une nouvelle clé de signature (release) = un nouveau client Android.
 - Sans compte, tout est local (journal et doublons sauvegardés sur le téléphone). Avec un compte gratuit,
   journal et coffre sont synchronisés avec le Worker Cloudflare de `backend/` (issue #8).
   Compte gratuit : email (simple identifiant privé, jamais vérifié, aucun mail envoyé) + mot de passe + code secret
-  (montré une seule fois, il remet un mot de passe oublié). Les routes email/Google du Worker restent, inutilisées.
+  (montré une seule fois, il remet un mot de passe oublié), ou « CONTINUER AVEC GOOGLE ». La route email du Worker reste, inutilisée.
 
 ## Environnement du développeur
 
@@ -85,7 +88,8 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
     ├── BlockedAppsScreen.kt # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
     ├── AccountScreen.kt     # « Ma fiche de matelot » : Identité, Sécurité, Visibilité, puis Zone dangereuse (déconnexion, suppression)
-    ├── AccountForms.kt      # compte gratuit (créer / j'ai déjà un compte / mot de passe oublié), code secret montré une fois, dé
+    ├── AccountForms.kt      # compte gratuit en étapes (créer 1/3 → 3/3, se connecter 1/2 → 2/2, mot de passe oublié), code secret montré une fois, dé
+    ├── GoogleSignIn.kt      # « CONTINUER AVEC GOOGLE » : Credential Manager, ID client Web, jeton envoyé au Worker
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes
     ├── PixelPirate.kt       # le capitaine + palette et drawSprite() partagés

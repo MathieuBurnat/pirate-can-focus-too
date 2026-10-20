@@ -35,6 +35,9 @@ class PirateApi(private val baseUrl: String = BASE_URL) {
         return session(call("POST", "/auth/register", body = body))
     }
 
+    /** Connexion Google : le Worker vérifie l'ID token, retrouve le pirate ou en crée un (pseudo tiré au sort). */
+    suspend fun google(idToken: String): Session = session(call("POST", "/auth/google", body = JSONObject().put("idToken", idToken)))
+
     suspend fun login(login: String, password: String): Session =
         session(call("POST", "/auth/login", body = JSONObject().put("login", login).put("password", password)))
 

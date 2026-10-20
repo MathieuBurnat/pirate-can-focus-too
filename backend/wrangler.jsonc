@@ -14,8 +14,9 @@
     }
   ],
   "vars": {
-    // Identifiants OAuth Google acceptés (séparés par des virgules) : le client Android et le client Web.
-    "GOOGLE_CLIENT_IDS": "",
+    // Identifiants OAuth Google acceptés (séparés par des virgules) : le client Web, pour qui l'app Android
+    // (Credential Manager, serverClientId) demande l'ID token. Pas un secret.
+    "GOOGLE_CLIENT_IDS": "11309267566-unsfipric4p0s0rusokd63c8taknsvjg.apps.googleusercontent.com",
     // Expéditeur des codes de connexion (domaine vérifié chez Brevo ou Resend).
     "EMAIL_FROM": "Le Capitaine <capitaine@helveticademia.ch>"
   }

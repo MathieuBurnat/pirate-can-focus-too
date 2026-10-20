@@ -71,6 +71,12 @@ class AccountViewModel(
 
     fun login(login: String, password: String) = launchBusy { signIn(api.login(login.trim(), password)) }
 
+    /** Connexion (ou création) avec Google, à partir de l'ID token donné par le téléphone. */
+    fun google(idToken: String) = launchBusy { signIn(api.google(idToken)) }
+
+    /** Un souci venu d'ailleurs que du Worker (la fenêtre Google, par exemple), à afficher. */
+    fun showError(message: String) = _uiState.update { it.copy(error = message) }
+
     /** Mot de passe oublié : un nouveau code secret remplace celui qui vient de servir. */
     fun recover(login: String, code: String, newPassword: String) = launchBusy {
         signIn(api.recover(login.trim(), code, newPassword))

@@ -196,6 +196,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                     onRegister = viewModel::register,
                     onLogin = viewModel::login,
                     onRecover = viewModel::recover,
+                    onGoogle = rememberGoogleSignIn(viewModel),
                 )
             }
         }
