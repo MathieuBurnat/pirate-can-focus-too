@@ -162,7 +162,7 @@ fun JournalScreen(viewModel: JournalViewModel, onBack: () -> Unit, onCrew: () ->
 
             Spacer(Modifier.height(16.dp))
             Text(
-                "> VOIR LES AUTRES MATELOTS [dev]",
+                "> VOIR LES AUTRES MATELOTS",
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier
