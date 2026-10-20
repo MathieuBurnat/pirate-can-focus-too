@@ -95,10 +95,11 @@ fun MenuScreen(
                 val focusLabel = if (phase == Phase.FOCUS) "1. FOCUS  (traversée en cours)" else "1. FOCUS"
                 MenuItem(focusLabel, onClick = onFocus)
                 MenuItem("2. MON JOURNAL", onClick = onJournal)
-                MenuItem("3. PARAMÈTRES", onClick = onSettings)
-                // La fiche est l'écran du pirate connecté (bientôt son personnage et ses points). Matelot local :
-                // il passe par le tag « Compte local », sauf en mode dev.
-                if (signedIn || devMode) MenuItem("4. MA FICHE DE MATELOT", onClick = onAccount)
+                // La fiche est l'écran du pirate connecté (bientôt son personnage et ses points), avant les paramètres.
+                // Matelot local : il passe par le tag « Compte local », sauf en mode dev.
+                val showAccount = signedIn || devMode
+                if (showAccount) MenuItem("3. MA FICHE DE MATELOT", onClick = onAccount)
+                MenuItem("${if (showAccount) 4 else 3}. PARAMÈTRES", onClick = onSettings)
             }
         }
     }
