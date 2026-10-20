@@ -16,15 +16,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -60,10 +57,9 @@ fun DevModeScreen(
     var titleTaps by remember { mutableIntStateOf(0) }
 
     if (confirmReset) {
-        AlertDialog(
-            onDismissRequest = { confirmReset = false },
-            shape = RectangleShape,
-            title = { Text("☠ FACTORY RESET ☠") },
+        DangerDialog(
+            title = "☠ FACTORY RESET ☠",
+            onDismiss = { confirmReset = false },
             text = {
                 Text(
                     "Tout ce qui est rangé sur ce téléphone sera effacé : pseudo, journal de bord, " +
@@ -73,21 +69,23 @@ fun DevModeScreen(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
-            // Boutons empilés : lier un compte d'abord (la sortie sûre), puis couler, puis garder le cap.
-            confirmButton = {
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (anonymous) {
-                        LinkAccountButton {
+            // Lier un compte d'abord (la sortie sûre), puis couler, puis garder le cap.
+            choices = buildList {
+                if (anonymous) {
+                    add(
+                        Choice(LINK_ACCOUNT_LABEL, ChoiceKind.ADVISED, {
                             confirmReset = false
                             onLinkAccount()
-                        }
-                    }
-                    TextButton(onClick = {
+                        }),
+                    )
+                }
+                add(
+                    Choice("TOUT COULER", ChoiceKind.DANGER, {
                         confirmReset = false
                         reallySure = true
-                    }) { Text("TOUT COULER") }
-                    TextButton(onClick = { confirmReset = false }) { Text("GARDER LE CAP") }
-                }
+                    }),
+                )
+                add(Choice("garder le cap", ChoiceKind.CANCEL, { confirmReset = false }))
             },
         )
     }
@@ -95,7 +93,7 @@ fun DevModeScreen(
     if (reallySure) {
         ReallySureDialog(
             message = "T'es vraiment sûr ? Toutes les données seront coulées à jamais !!",
-            confirmLabel = "OUI, JE SUIS VRAIMENT SÛR",
+            confirmLabel = "OUI, J'EN SUIS SÛR",
             onConfirm = {
                 reallySure = false
                 onFactoryReset()
