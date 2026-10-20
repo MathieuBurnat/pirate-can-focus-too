@@ -1,0 +1,24 @@
+{
+  // L'API du capitaine : un Worker Cloudflare et sa base D1.
+  "name": "pirate-can-focus-too-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  // L'adresse publique de l'API (domaine géré par Cloudflare).
+  "routes": [{ "pattern": "yaawwwk-pirate-can-focus-too.helveticademia.ch", "custom_domain": true }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pirate-can-focus-db",
+      "database_id": "c3a03cd3-029a-404a-b963-9155346e3587",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // Identifiants OAuth Google acceptés (séparés par des virgules) : le client Web, pour qui l'app Android
+    // (Credential Manager, serverClientId) demande l'ID token. Pas un secret.
+    "GOOGLE_CLIENT_IDS": "11309267566-unsfipric4p0s0rusokd63c8taknsvjg.apps.googleusercontent.com",
+    // Expéditeur des codes de connexion (domaine vérifié chez Brevo ou Resend).
+    "EMAIL_FROM": "Le Capitaine <capitaine@helveticademia.ch>"
+  }
+  // Secret à définir avec `npx wrangler secret put BREVO_API_KEY` (ou RESEND_API_KEY).
+}

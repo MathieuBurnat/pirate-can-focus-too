@@ -1,5 +1,7 @@
 package dev.mathieuburnat.piratefocus.journal
 
+import java.time.LocalDate
+
 /** SPORT et BOISSON se notent à la main ; FOCUS se note tout seul à chaque traversée terminée. */
 enum class Side { SPORT, BOISSON, FOCUS }
 
@@ -49,7 +51,7 @@ object JournalRules {
     fun parrotAppears(drinks: Int): Boolean = drinks >= PARROT_LIMIT && (drinks - PARROT_LIMIT) % 4 == 0
 }
 
-/** Le carnet de bord du jour (remis à zéro à chaque lancement, pour l'instant). */
+/** Le carnet de bord du jour : les compteurs de la journée en cours. */
 data class JournalState(val counts: Map<Entry, Int> = emptyMap()) {
 
     fun count(entry: Entry): Int = counts[entry] ?: 0
@@ -74,4 +76,10 @@ data class JournalState(val counts: Map<Entry, Int> = emptyMap()) {
 
     fun remove(entry: Entry): JournalState =
         copy(counts = counts + (entry to (count(entry) - 1).coerceAtLeast(0)))
+
+    companion object {
+        /** Les compteurs du jour, recomptés à partir des lignes du journal de bord. */
+        fun today(logs: List<LogEntry>, today: LocalDate): JournalState =
+            JournalState(logs.filter { it.at.toLocalDate() == today }.groupingBy { it.entry }.eachCount())
+    }
 }

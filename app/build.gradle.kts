@@ -5,39 +5,45 @@ plugins {
 }
 
 /**
- * Nombre de commits sur la branche courante : le dernier chiffre de la version (0.1.x).
- * Sous Windows, git vit dans WSL, d'où le second essai via `wsl`.
+ * Une commande git ; sous Windows, git vit dans WSL, d'où le second essai via `wsl`. Null si git ne répond pas.
  */
-fun gitCommitCount(): Int {
-    val attempts = listOf(
-        listOf("git", "rev-list", "--count", "HEAD"),
-        listOf("wsl", "git", "rev-list", "--count", "HEAD"),
-    )
-    for (command in attempts) {
-        val count = runCatching {
+fun git(vararg args: String): String? {
+    for (prefix in listOf(emptyList(), listOf("wsl"))) {
+        val out = runCatching {
             providers.exec {
-                commandLine(command)
+                commandLine(prefix + "git" + args.toList())
                 workingDir = rootDir
                 isIgnoreExitValue = true
-            }.standardOutput.asText.get().trim().toInt()
+            }.standardOutput.asText.get().trim()
         }.getOrNull()
-        if (count != null) return count
+        if (!out.isNullOrEmpty()) return out
     }
-    return 0
+    return null
 }
 
-val commitCount = gitCommitCount()
+/** Nombre de commits sur la branche courante : le versionCode, qui ne fait que grimper. */
+val commitCount = git("rev-list", "--count", "HEAD")?.toIntOrNull() ?: 0
+
+/**
+ * La version : « majeur.mineur » vient de app/version.txt, le dernier chiffre compte les commits depuis le
+ * dernier changement de ce fichier (0.2.0 sur ce commit-là, puis 0.2.1...). Ça survit à un merge ou à un squash.
+ */
+val versionBase = file("version.txt").readText().trim()
+val versionPatch = git("log", "-1", "--format=%H", "--", "app/version.txt")
+    ?.let { git("rev-list", "--count", "$it..HEAD")?.toIntOrNull() }
+    ?: 0
 
 android {
     namespace = "dev.mathieuburnat.piratefocus"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.mathieuburnat.piratefocus"
+        // L'identifiant de l'app (Play Store, Google OAuth) ; le code garde son package dev.mathieuburnat.piratefocus.
+        applicationId = "ch.piratecanfocustoo"
         minSdk = 26
         targetSdk = 35
         versionCode = commitCount.coerceAtLeast(1)
-        versionName = "0.1.$commitCount"
+        versionName = "$versionBase.$versionPatch"
     }
 
     buildTypes {
@@ -73,6 +79,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // Connexion Google (Credential Manager) : le jeton part au Worker, qui le vérifie.
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)

@@ -82,10 +82,4 @@ class JournalTest {
         assertNotNull(JournalQuotes.intervention(5))
         assertNotNull(JournalQuotes.intervention(10))
     }
-
-    @Test
-    fun `on frappe sept fois à la porte du journal`() {
-        assertNull(JournalQuotes.knock(6))
-        assertNotNull(JournalQuotes.knock(1))
-    }
 }

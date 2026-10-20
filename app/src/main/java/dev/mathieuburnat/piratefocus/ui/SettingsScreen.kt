@@ -1,86 +1,75 @@
 package dev.mathieuburnat.piratefocus.ui
 
-import android.Manifest
-import android.content.Intent
-import android.os.Build
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.mathieuburnat.piratefocus.guard.BlacklistStore
-import dev.mathieuburnat.piratefocus.guard.GuardPermissions
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.text.Normalizer
+import kotlin.math.abs
 
-private data class AppEntry(val packageName: String, val label: String, val installed: Boolean)
+/** Coups à donner sur le titre des paramètres pour faire apparaître le mode dev. */
+private const val TAPS_TO_REVEAL = 5
 
+/** Les paramètres : applications bloquées (et tout débloquer), déconnexion, et le mode dev caché (5 taps sur le titre). */
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
-    val context = LocalContext.current
-    val store = remember { BlacklistStore(context) }
-    var blacklist by remember { mutableStateOf(store.load()) }
-    var installedApps by remember { mutableStateOf<List<AppEntry>>(emptyList()) }
+fun SettingsScreen(
+    devMode: Boolean,
+    devRevealed: Boolean,
+    signedIn: Boolean,
+    onBack: () -> Unit,
+    onBlockedApps: () -> Unit,
+    onRevealDev: () -> Unit,
+    onDevMode: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    var taps by remember { mutableIntStateOf(0) }
 
-    var usageOk by remember { mutableStateOf(false) }
-    var overlayOk by remember { mutableStateOf(false) }
-    var notifOk by remember { mutableStateOf(false) }
-    LifecycleResumeEffect(Unit) {
-        usageOk = GuardPermissions.hasUsageAccess(context)
-        overlayOk = GuardPermissions.hasOverlay(context)
-        notifOk = GuardPermissions.hasNotifications(context)
-        onPauseOrDispose { }
+
+    var reveals by remember { mutableIntStateOf(0) }
+    val blacklistStore = BlacklistStore(LocalContext.current)
+    var blacklistEmpty by remember { mutableStateOf(blacklistStore.load().isEmpty()) }
+    var confirmClear by remember { mutableStateOf(false) }
+
+    if (confirmClear) {
+        ReallySureDialog(
+            message = "T'es vraiment sûr ? Toutes tes applis bloquées seront libérées, plus aucune sirène ne sera surveillée !",
+            onConfirm = {
+                confirmClear = false
+                blacklistStore.clear()
+                blacklistEmpty = true
+            },
+            onCancel = { confirmClear = false },
+        )
     }
-    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { notifOk = it }
-
-    LaunchedEffect(Unit) {
-        installedApps = withContext(Dispatchers.IO) {
-            val pm = context.packageManager
-            val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-            pm.queryIntentActivities(launcher, 0)
-                .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
-                .filter { (pkg, _) -> pkg != context.packageName }
-                .distinctBy { it.first }
-                .map { (pkg, label) -> AppEntry(pkg, label, installed = true) }
-        }
+    // Dès le 2e coup, le titre frémit, de plus en plus fort : quelque chose va se débloquer...
+    val shake = remember { Animatable(0f) }
+    LaunchedEffect(taps) {
+        if (taps < 2) return@LaunchedEffect
+        val force = taps.toFloat()
+        for (angle in listOf(-force, force, -force / 2, force / 2, 0f)) shake.animateTo(angle, tween(50))
     }
-
-    // Les applis de la liste noire d'abord, puis le reste par ordre alphabétique.
-    val installedPackages = installedApps.map { it.packageName }.toSet()
-    val missing = blacklist.filter { it !in installedPackages }.map { AppEntry(it, BlacklistStore.KNOWN_LABELS[it] ?: it, installed = false) }
-    var query by remember { mutableStateOf("") }
-    // Un seul toast à la fois, même si on coche vite plusieurs applis.
-    var toast by remember { mutableStateOf<Toast?>(null) }
-    val needle = query.normalized()
-    val entries = (installedApps + missing)
-        .filter { needle.isEmpty() || needle in it.label.normalized() || needle in it.packageName.lowercase() }
-        .sortedWith(compareByDescending<AppEntry> { it.packageName in blacklist }.thenBy { it.label.lowercase() })
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.safeDrawingPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -90,100 +79,63 @@ fun SettingsScreen(onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),
             )
-            Text("=== PARAMÈTRES ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(12.dp))
-
-            Text("-- Le gardien du navire --", style = MaterialTheme.typography.titleSmall)
             Text(
-                "Pour surprendre les sirènes, le capitaine a besoin de ces autorisations :",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            PermissionRow("Voir l'appli ouverte", usageOk) { context.startActivity(GuardPermissions.usageAccessIntent()) }
-            PermissionRow("Surgir par-dessus", overlayOk) { context.startActivity(GuardPermissions.overlayIntent(context)) }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                PermissionRow("Notification de veille", notifOk) {
-                    notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-            Text("-- Liste noire (${blacklist.size}) --", style = MaterialTheme.typography.titleSmall)
-            Text("Coche les applis interdites pendant une traversée.", style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text("> chercher une appli...") },
-                singleLine = true,
-                shape = RectangleShape,
-                textStyle = MaterialTheme.typography.bodyLarge,
-                trailingIcon = if (query.isNotEmpty()) {
-                    { Text("[x]", modifier = Modifier.clickable { query = "" }.padding(8.dp)) }
-                } else {
-                    null
+                "=== PARAMÈTRES ===",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                // Pas d'effet de pression : le passage secret ne doit pas se voir.
+                modifier = Modifier.align(Alignment.CenterHorizontally).graphicsLayer { rotationZ = shake.value }.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                    if (devRevealed) return@clickable
+                    if (++taps >= TAPS_TO_REVEAL) {
+                        taps = 0
+                        onRevealDev()
+                        reveals++
+                    }
                 },
-                modifier = Modifier.fillMaxWidth(),
             )
-            if (entries.isEmpty() && installedApps.isNotEmpty()) {
+            if (!devRevealed && taps >= 2) {
+                val left = TAPS_TO_REVEAL - taps
                 Text(
-                    "Aucune appli de ce nom à l'horizon, moussaillon.",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(vertical = 12.dp),
+                    "(encore $left coup${if (left > 1) "s" else ""} de sabre...)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary,
                 )
             }
+            Spacer(Modifier.height(16.dp))
 
-            LazyColumn(Modifier.fillMaxWidth()) {
-                items(entries, key = { it.packageName }) { app ->
-                    val banned = app.packageName in blacklist
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                blacklist = store.toggle(app.packageName)
-                                toast?.cancel()
-                                toast = Toast.makeText(context, "Paramètre sauvegardé, capitaine !", Toast.LENGTH_SHORT)
-                                    .also { it.show() }
-                            }
-                            .padding(vertical = 8.dp),
-                    ) {
-                        Text(
-                            if (banned) "[x] " else "[ ] ",
-                            color = if (banned) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                        Text(
-                            if (app.installed) app.label else "${app.label} (non installée)",
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
-                }
-            }
+            var number = 1
+            MenuItem("${number++}. APPLICATIONS BLOQUÉES", onClick = onBlockedApps)
+            MenuItem(
+                "${number++}. SUPPRIMER TOUTES LES APPLIS BLOQUÉES",
+                onClick = { if (!blacklistEmpty) confirmClear = true },
+                dimmed = blacklistEmpty,
+            )
+            if (devRevealed) DevModeItem("${number++}.", devMode, reveals, onDevMode)
+            if (signedIn) MenuItem("${number}. SE DÉCONNECTER", onClick = onLogout)
         }
     }
 }
 
-/** Minuscules sans accents, pour que « reglages » trouve « Réglages ». */
-private fun String.normalized(): String =
-    Normalizer.normalize(trim().lowercase(), Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
-
+/** Le bouton « Mode dev » : il se trémousse et lâche des paillettes en apparaissant, puis ouvre sa page. */
 @Composable
-private fun PermissionRow(label: String, granted: Boolean, onRequest: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !granted, onClick = onRequest)
-            .padding(vertical = 6.dp),
-    ) {
-        Text(
-            if (granted) "[OK] " else "[!!] ",
-            color = if (granted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyMedium,
+private fun DevModeItem(number: String, devMode: Boolean, reveals: Int, onClick: () -> Unit) {
+    val wiggle = remember { Animatable(0f) }
+
+    LaunchedEffect(reveals) {
+        if (reveals == 0) return@LaunchedEffect
+        for (angle in listOf(-6f, 6f, -5f, 5f, -3f, 3f, -1f, 0f)) wiggle.animateTo(angle, tween(70))
+    }
+
+    Box {
+        MenuItem(
+            "$number MODE DEV  ${if (devMode) "[x]" else "[ ]"}  >",
+            onClick = onClick,
+            modifier = Modifier.graphicsLayer {
+                rotationZ = wiggle.value
+                scaleX = 1f + abs(wiggle.value) / 60f
+                scaleY = scaleX
+            },
         )
-        Text(
-            if (granted) label else "$label  > autoriser",
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        SparkleBurst(reveals, Modifier.matchParentSize(), originX = 0.3f)
     }
 }

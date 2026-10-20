@@ -1,0 +1,438 @@
+package dev.mathieuburnat.piratefocus.ui
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import dev.mathieuburnat.piratefocus.account.AccountQuotes
+import dev.mathieuburnat.piratefocus.account.AccountUiState
+import dev.mathieuburnat.piratefocus.account.AuthMode
+import dev.mathieuburnat.piratefocus.account.PasswordStrength
+import dev.mathieuburnat.piratefocus.account.PasswordStrengths
+import dev.mathieuburnat.piratefocus.account.PirateNames
+import kotlin.math.PI
+import kotlin.math.sin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+/** Mot de passe : 8 caractères au moins (le Worker vérifie aussi). */
+private const val PASSWORD_MIN = 8
+
+/** Étapes de la création d'un compte gratuit ; la 3e, le code secret, est la pop-up [RecoveryCodeDialog]. */
+const val REGISTER_STEPS = 3
+
+/** Étapes de la connexion : l'email, puis le mot de passe. */
+private const val LOGIN_STEPS = 2
+
+/**
+ * Le compte gratuit, une étape à la fois. Créer un compte : email et mot de passe, puis le pseudo, puis le code
+ * secret (montré une fois). Se connecter : l'email, puis le mot de passe (ou, de là, le mot de passe oublié).
+ */
+@Composable
+fun FreeAccountForm(
+    state: AccountUiState,
+    onMode: (AuthMode) -> Unit,
+    onRegister: (login: String, password: String, name: String) -> Unit,
+    onLogin: (login: String, password: String) -> Unit,
+    onRecover: (login: String, code: String, newPassword: String) -> Unit,
+    onGoogle: () -> Unit,
+) {
+    var login by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var confirm by rememberSaveable { mutableStateOf("") }
+    var code by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf(state.account.pirateName.ifEmpty { PirateNames.random() }) }
+    var registerStep by rememberSaveable { mutableIntStateOf(1) }
+    var loginStep by rememberSaveable { mutableIntStateOf(1) }
+    val loginOk = EMAIL.matches(login.trim())
+    val passwordOk = password.length >= PASSWORD_MIN
+    val emailField: @Composable () -> Unit = {
+        // L'email sert d'identifiant : jamais vérifié, aucun mail envoyé.
+        PirateField(login, { login = it.filter { c -> !c.isWhitespace() }.take(254) }, "ton-adresse@mail.com", KeyboardType.Email, autoCorrect = false)
+        Text(AccountQuotes.LOGIN_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+    }
+
+    Column(Modifier.fillMaxWidth()) {
+        TypewriterText(AccountQuotes.FREE_ACCOUNT, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(12.dp))
+        // Deux onglets de même hauteur : créer un compte, ou monter à bord d'un compte existant.
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AuthTab("CRÉER MON COMPTE", selected = state.authMode == AuthMode.REGISTER, onClick = { onMode(AuthMode.REGISTER) }, modifier = Modifier.weight(1f))
+            AuthTab("J'AI DÉJÀ UN COMPTE", selected = state.authMode != AuthMode.REGISTER, onClick = { onMode(AuthMode.LOGIN) }, modifier = Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(8.dp))
+        when (state.authMode) {
+            AuthMode.REGISTER -> {
+                StepHeader(registerStep, REGISTER_STEPS, onBack = { registerStep-- })
+                if (registerStep == 1) {
+                    emailField()
+                    val confirmed = NewPasswordFields(password, { password = it }, confirm, { confirm = it }, "> mot de passe ($PASSWORD_MIN min.)", email = login)
+                    NextButton("LARGUER LES AMARRES", enabled = loginOk && passwordOk && confirmed, onClick = { registerStep = 2 })
+                    GoogleButton(enabled = !state.busy, onClick = onGoogle)
+                } else {
+                    Text("Ton pseudo de pirate (celui que l'équipage voit) :", style = MaterialTheme.typography.bodySmall)
+                    PirateField(name, { name = it }, "> ton pseudo de pirate")
+                    DiceReroll(onRoll = { name = PirateNames.random() })
+                    NextButton(
+                        "HISSER LE PAVILLON",
+                        enabled = !state.busy && PirateNames.clean(name) != null,
+                        onClick = { onRegister(login, password, name) },
+                    )
+                }
+            }
+            AuthMode.LOGIN -> {
+                StepHeader(loginStep, LOGIN_STEPS, onBack = { loginStep-- })
+                if (loginStep == 1) {
+                    emailField()
+                    NextButton("À L'ABORDAGE", enabled = loginOk, onClick = { loginStep = 2 })
+                    GoogleButton(enabled = !state.busy, onClick = onGoogle)
+                } else {
+                    Text("Email : ${login.trim()}", style = MaterialTheme.typography.bodyMedium)
+                    PasswordField(password, { password = it }, "> mot de passe")
+                    NextButton("MONTER À BORD", enabled = !state.busy && password.isNotEmpty(), onClick = { onLogin(login, password) })
+                    Text(
+                        "mot de passe oublié ?",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.clickable { onMode(AuthMode.FORGOT) }.padding(vertical = 6.dp),
+                    )
+                }
+            }
+            AuthMode.FORGOT -> {
+                // On arrive ici depuis l'étape du mot de passe : l'email est déjà connu (et modifiable au besoin).
+                emailField()
+                Text(AccountQuotes.FORGOT_EXPLAINED, style = MaterialTheme.typography.bodySmall)
+                PirateField(code, { code = it.uppercase().take(30) }, "> code secret (XXXX-XXXX-...)")
+                val confirmed = NewPasswordFields(password, { password = it }, confirm, { confirm = it }, "> nouveau mot de passe ($PASSWORD_MIN min.)", email = login)
+                NextButton(
+                    "RETROUVER MON COMPTE",
+                    enabled = !state.busy && loginOk && code.isNotBlank() && passwordOk && confirmed,
+                    onClick = { onRecover(login, code, password) },
+                )
+                Text(
+                    "< j'ai retrouvé mon mot de passe",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.clickable { onMode(AuthMode.LOGIN) }.padding(vertical = 6.dp),
+                )
+            }
+        }
+        BusyAndError(state)
+    }
+}
+
+/** « étape 1/3 », discret, et le retour à l'étape précédente dès la 2e. */
+@Composable
+private fun StepHeader(step: Int, steps: Int, onBack: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        if (step > 1) {
+            Text(
+                "< étape précédente",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        StepLabel(step, steps)
+    }
+}
+
+@Composable
+fun StepLabel(step: Int, steps: Int) {
+    Text("étape $step/$steps", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+}
+
+/** « ou » puis « CONTINUER AVEC GOOGLE » : un seul geste pour créer son compte ou s'y connecter. */
+@Composable
+private fun GoogleButton(enabled: Boolean, onClick: () -> Unit) {
+    if (!GOOGLE_SIGN_IN_READY) return
+    Text(
+        "~ ou ~",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+    )
+    MenuItem("CONTINUER AVEC GOOGLE", onClick = { if (enabled) onClick() }, dimmed = !enabled)
+}
+
+/** Le bouton qui fait avancer d'une étape : doré, avec sa flèche ; grisé tant que l'étape n'est pas complète. */
+@Composable
+private fun NextButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+    MenuItem(
+        "$label  ->",
+        onClick = { if (enabled) onClick() },
+        dimmed = !enabled,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 8.dp),
+    )
+}
+
+/** Une adresse email plausible (une seule @, un domaine avec un point, pas d'espace). */
+private val EMAIL = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
+
+@Composable
+private fun AuthTab(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxHeight()
+            .border(BorderStroke(2.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)), RectangleShape)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            textAlign = TextAlign.Center,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+        )
+    }
+}
+
+/**
+ * Un NOUVEAU mot de passe : sa solidité, et, tant qu'il est masqué, un second champ pour le confirmer.
+ * Renvoie vrai quand il peut partir (confirmation identique, ou mot de passe affiché en clair).
+ */
+@Composable
+fun NewPasswordFields(
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    confirm: String,
+    onConfirmChange: (String) -> Unit,
+    placeholder: String,
+    email: String = "",
+): Boolean {
+    var visible by remember { mutableStateOf(false) }
+    PasswordField(password, onPasswordChange, placeholder, visible = visible, onToggle = { visible = !visible })
+    if (password.isNotEmpty()) PasswordStrengthHint(PasswordStrengths.of(password, email))
+    if (visible) return true
+    PasswordField(confirm, onConfirmChange, "> confirmer le mot de passe", visible = false, onToggle = { visible = true })
+    val differ = confirm.isNotEmpty() && confirm != password
+    if (differ) Text(AccountQuotes.PASSWORDS_DIFFER, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+    return confirm == password
+}
+
+/** Une petite barre de pixels (rouge, ambre, vert) et le verdict du capitaine. */
+@Composable
+private fun PasswordStrengthHint(strength: PasswordStrength) {
+    val level = strength.ordinal + 1
+    val color = when (strength) {
+        PasswordStrength.WEAK -> MaterialTheme.colorScheme.error
+        PasswordStrength.MEDIUM -> palette.getValue('G')
+        PasswordStrength.STRONG, PasswordStrength.VERY_STRONG -> STRONG_GREEN
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+        Text(
+            "▮".repeat(level) + "▯".repeat(PasswordStrength.entries.size - level),
+            style = MaterialTheme.typography.bodyMedium,
+            color = color,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(AccountQuotes.strength(strength), style = MaterialTheme.typography.bodySmall, color = color)
+    }
+}
+
+private val STRONG_GREEN = Color(0xFF6BBF59)
+
+/** Un mot de passe masqué ; l'œil le montre, le cache-œil le cache. */
+@Composable
+fun PasswordField(value: String, onValueChange: (String) -> Unit, placeholder: String) {
+    var visible by remember { mutableStateOf(false) }
+    PasswordField(value, onValueChange, placeholder, visible = visible, onToggle = { visible = !visible })
+}
+
+@Composable
+private fun PasswordField(value: String, onValueChange: (String) -> Unit, placeholder: String, visible: Boolean, onToggle: () -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(placeholder) },
+        singleLine = true,
+        shape = RectangleShape,
+        textStyle = MaterialTheme.typography.bodyLarge,
+        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        trailingIcon = {
+            PixelEye(
+                patched = visible,
+                modifier = Modifier
+                    .clickable(onClick = onToggle)
+                    .padding(horizontal = 8.dp)
+                    .semantics { contentDescription = if (visible) "masquer le mot de passe" else "afficher le mot de passe" },
+            )
+        },
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+    )
+}
+
+/** Le code secret, montré une seule fois : à noter (ou copier) avant de continuer. [freshAccount] : 3e étape de la création. */
+@Composable
+fun RecoveryCodeDialog(code: String, onNoted: () -> Unit, freshAccount: Boolean = false) {
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+    Dialog(onDismissRequest = {}, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
+        Surface(
+            shape = RectangleShape,
+            color = MaterialTheme.colorScheme.background,
+            modifier = Modifier.border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), RectangleShape),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(20.dp)) {
+                if (freshAccount) StepLabel(REGISTER_STEPS, REGISTER_STEPS)
+                Text("☠ TON CODE SECRET ☠", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    code,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground), RectangleShape)
+                        .padding(12.dp),
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(AccountQuotes.RECOVERY_WARNING, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(12.dp))
+                MenuItem(
+                    if (copied) "COPIÉ !" else "COPIER",
+                    onClick = {
+                        clipboard.setText(AnnotatedString(code))
+                        copied = true
+                    },
+                )
+                MenuItem("J'AI NOTÉ MON CODE", onClick = onNoted)
+            }
+        }
+    }
+}
+
+@Composable
+fun BusyAndError(state: AccountUiState) {
+    if (state.busy) Text(AccountQuotes.FLYING, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+    state.error?.let { Text("[!!] $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+}
+
+@Composable
+fun PirateField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    keyboard: KeyboardType = KeyboardType.Text,
+    autoCorrect: Boolean = true,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(placeholder) },
+        singleLine = true,
+        shape = RectangleShape,
+        textStyle = MaterialTheme.typography.bodyLarge,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboard, autoCorrectEnabled = autoCorrect),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+    )
+}
+
+/** Le petit mot des matelots sans compte : où vit leur butin. */
+@Composable
+fun NoAccountInfo(modifier: Modifier = Modifier) {
+    Text(
+        "[i] ${AccountQuotes.NO_ACCOUNT_INFO}",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.secondary,
+        modifier = modifier.padding(vertical = 8.dp),
+    )
+}
+
+/** Le dé des pseudos, centré : on le lance, il saute, tourne, change de face et propose un autre pseudo en retombant. */
+@Composable
+fun DiceReroll(onRoll: () -> Unit) {
+    var face by rememberSaveable { mutableIntStateOf(5) }
+    var throws by remember { mutableIntStateOf(0) }
+    val spin = remember { Animatable(0f) }
+    val flight = remember { Animatable(0f) }
+    val latestOnRoll by rememberUpdatedState(onRoll)
+    LaunchedEffect(throws) {
+        if (throws == 0) return@LaunchedEffect
+        launch {
+            spin.snapTo(0f)
+            spin.animateTo(720f, tween(DICE_ROLL_MS, easing = FastOutSlowInEasing))
+        }
+        launch {
+            flight.snapTo(0f)
+            flight.animateTo(1f, tween(DICE_ROLL_MS, easing = LinearEasing))
+        }
+        // Le dé roule : il montre plusieurs faces avant de se poser sur la dernière.
+        repeat(DICE_ROLL_MS / DICE_FACE_MS) {
+            face = ((1..6) - face).random()
+            delay(DICE_FACE_MS.toLong())
+        }
+        latestOnRoll()
+    }
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { throws++ }
+            .padding(vertical = 8.dp),
+    ) {
+        PixelDice(
+            face,
+            modifier = Modifier.graphicsLayer {
+                rotationZ = spin.value
+                // Un petit saut en cloche : monte puis retombe.
+                translationY = -sin(flight.value * PI.toFloat()) * 14.dp.toPx()
+            },
+        )
+        Spacer(Modifier.width(10.dp))
+        Text("un autre pseudo", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+    }
+}
+
+private const val DICE_ROLL_MS = 600
+private const val DICE_FACE_MS = 75

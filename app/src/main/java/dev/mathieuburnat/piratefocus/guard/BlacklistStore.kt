@@ -5,13 +5,16 @@ import android.content.Context
 /** Liste noire des applis interdites pendant une traversée, stockée localement. */
 class BlacklistStore(context: Context) {
 
-    private val prefs = context.applicationContext.getSharedPreferences("blacklist", Context.MODE_PRIVATE)
+    private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun load(): Set<String> = prefs.getStringSet(KEY, null)?.toSet() ?: DEFAULTS
 
     fun save(packages: Set<String>) {
         prefs.edit().putStringSet(KEY, packages).apply()
     }
+
+    /** Plus aucune appli interdite : la liste vide est gardée telle quelle (pas de retour aux défauts). */
+    fun clear() = save(emptySet())
 
     fun toggle(packageName: String): Set<String> {
         val current = load()
@@ -21,6 +24,7 @@ class BlacklistStore(context: Context) {
     }
 
     companion object {
+        const val PREFS = "blacklist"
         private const val KEY = "packages"
 
         /** Les sirènes les plus dangereuses des sept mers. */
