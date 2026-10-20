@@ -45,7 +45,8 @@ private enum class WelcomeStep { CHOICE, ANONYMOUS, FREE_ACCOUNT }
 fun WelcomeScreen(viewModel: AccountViewModel, onDone: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var step by rememberSaveable { mutableStateOf(WelcomeStep.CHOICE) }
-    var name by rememberSaveable { mutableStateOf(PirateNames.random()) }
+    // Après une déconnexion, le matelot garde son pseudo ; au premier lancement, un pseudo tiré au sort.
+    var name by rememberSaveable { mutableStateOf(state.account.pirateName.ifEmpty { PirateNames.random() }) }
 
     // Le capitaine lève les yeux vers toi, puis sourit (une seule fois, à l'arrivée).
     var lookingAtYou by rememberSaveable { mutableStateOf(false) }

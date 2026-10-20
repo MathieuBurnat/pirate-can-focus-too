@@ -164,13 +164,14 @@ class AccountViewModel(
         launchBusy { save(account.copy(public = api.updateMe(token, public = public).public)) }
     }
 
-    /** Déconnexion : le journal reste sur le téléphone, on redevient matelot anonyme. */
-    fun logout() {
+    /** Déconnexion : le journal reste sur le téléphone, on redevient matelot anonyme. Puis [onSignedOut]. */
+    fun logout(onSignedOut: () -> Unit = {}) {
         val token = account.token ?: return
         launchBusy {
             runCatching { api.logout(token) }
             signOutLocally()
             _uiState.update { it.copy(toast = AccountQuotes.signedOut(account.pirateName)) }
+            onSignedOut()
         }
     }
 

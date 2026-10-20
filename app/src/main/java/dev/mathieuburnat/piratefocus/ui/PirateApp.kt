@@ -150,7 +150,8 @@ fun PirateApp(
                         devRevealed = true
                     },
                     onDevMode = { screen = Screen.DEV_MODE },
-                    onLogout = accountViewModel::logout,
+                    // Déconnecté : retour à l'accueil, comme au premier lancement.
+                    onLogout = { accountViewModel.logout(onSignedOut = { screen = Screen.WELCOME }) },
                 )
                 Screen.DEV_MODE -> DevModeScreen(
                     devMode = devMode,
@@ -190,7 +191,12 @@ fun PirateApp(
                     onBack = { screen = blockedAppsBack },
                     backLabel = if (blockedAppsBack == Screen.FOCUS) "< FOCUS" else "< PARAMÈTRES",
                 )
-                Screen.ACCOUNT -> AccountScreen(accountViewModel, onBack = { screen = Screen.MENU })
+                Screen.ACCOUNT -> AccountScreen(
+                    accountViewModel,
+                    onBack = { screen = Screen.MENU },
+                    // Déconnecté ou compte supprimé : retour à l'accueil, comme au premier lancement.
+                    onSignedOut = { screen = Screen.WELCOME },
+                )
             }
         }
         VersionFooter()

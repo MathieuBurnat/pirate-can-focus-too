@@ -36,7 +36,7 @@ import dev.mathieuburnat.piratefocus.account.AccountViewModel
 
 /** « Ma fiche de matelot » : pseudo, visibilité publique, déconnexion, suppression. Sans compte : de quoi en créer un. */
 @Composable
-fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
+fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit, onSignedOut: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val account = state.account
     var name by rememberSaveable(account.pirateName) { mutableStateOf(account.pirateName) }
@@ -83,8 +83,8 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
             message = "T'es vraiment sûr ? ${AccountQuotes.DELETE_WARNING}",
             onConfirm = {
                 confirmDelete = false
-                // Compte coulé : retour au menu de démarrage.
-                viewModel.deleteAccount(onDeleted = onBack)
+                // Compte coulé : retour à l'accueil (matelot anonyme ou compte gratuit).
+                viewModel.deleteAccount(onDeleted = onSignedOut)
             },
             onCancel = { confirmDelete = false },
         )
@@ -198,7 +198,7 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
                 Spacer(Modifier.height(8.dp))
                 SectionTitle("Zone dangereuse", color = MaterialTheme.colorScheme.error)
-                MenuItem("SE DÉCONNECTER", onClick = viewModel::logout, dimmed = state.busy)
+                MenuItem("SE DÉCONNECTER", onClick = { viewModel.logout(onSignedOut) }, dimmed = state.busy)
                 Text(AccountQuotes.LOGOUT_EXPLAINED, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
                 MenuItem("SUPPRIMER MON COMPTE", onClick = { confirmDelete = true }, dimmed = state.busy, color = MaterialTheme.colorScheme.error)
