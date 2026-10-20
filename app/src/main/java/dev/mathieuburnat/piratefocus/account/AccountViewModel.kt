@@ -146,12 +146,16 @@ class AccountViewModel(
         }
     }
 
-    /** Suppression du compte : l'identité disparaît chez le Worker, le pirate devient un « Ancien matelot ». */
-    fun deleteAccount() {
+    /**
+     * Suppression du compte : l'identité disparaît chez le Worker, le pirate devient un « Ancien matelot ».
+     * [onDeleted] n'est appelé qu'une fois la suppression réussie.
+     */
+    fun deleteAccount(onDeleted: () -> Unit = {}) {
         val token = account.token ?: return
         launchBusy {
             api.deleteMe(token)
             signOutLocally()
+            onDeleted()
         }
     }
 

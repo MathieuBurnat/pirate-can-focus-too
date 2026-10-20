@@ -76,18 +76,14 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
     }
 
     if (confirmDelete) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            shape = RectangleShape,
-            title = { Text("☠ SUPPRIMER LE COMPTE ? ☠") },
-            text = { Text(AccountQuotes.DELETE_WARNING, style = MaterialTheme.typography.bodyMedium) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDelete = false
-                    viewModel.deleteAccount()
-                }) { Text("PAR-DESSUS BORD", color = MaterialTheme.colorScheme.error) }
+        ReallySureDialog(
+            message = "T'es vraiment sûr ? ${AccountQuotes.DELETE_WARNING}",
+            onConfirm = {
+                confirmDelete = false
+                // Compte coulé : retour au menu de démarrage.
+                viewModel.deleteAccount(onDeleted = onBack)
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("NON, JE RESTE") } },
+            onCancel = { confirmDelete = false },
         )
     }
 
