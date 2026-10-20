@@ -4,6 +4,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import dev.mathieuburnat.piratefocus.account.AccountQuotes
@@ -60,47 +66,58 @@ fun MenuScreen(
     }
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .safeDrawingPadding()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text("=== PIRATE FOCUS ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-            Text("~ un pirate aussi peut se concentrer ~", style = MaterialTheme.typography.bodySmall)
-            if (!signedIn) {
-                // Sans compte, le butin ne vit que sur ce téléphone : un petit tag le rappelle, et ouvre la porte d'un compte.
-                Text(
-                    "[ Compte local ]",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(top = 4.dp).clickable { showNoAccount = true }.padding(horizontal = 8.dp, vertical = 4.dp),
-                )
-            }
-            Spacer(Modifier.height(24.dp))
-            PixelPirate(phase = Phase.IDLE)
-            Spacer(Modifier.height(32.dp))
+        // Centré quand tout tient ; sur un petit écran, le menu défile au lieu d'écraser les derniers boutons.
+        BoxWithConstraints(Modifier.safeDrawingPadding()) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = maxHeight)
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text("=== PIRATE FOCUS ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                Text("~ un pirate aussi peut se concentrer ~", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+                if (!signedIn) {
+                    // Sans compte, le butin ne vit que sur ce téléphone : un petit tag le rappelle, et ouvre la porte d'un compte.
+                    Text(
+                        "[ Compte local ]",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(top = 4.dp).clickable { showNoAccount = true }.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+                Spacer(Modifier.height(24.dp))
+                PixelPirate(phase = Phase.IDLE)
+                Spacer(Modifier.height(32.dp))
 
-            val focusLabel = if (phase == Phase.FOCUS) "1. FOCUS  (traversée en cours)" else "1. FOCUS"
-            MenuItem(focusLabel, onClick = onFocus)
-            MenuItem("2. MON JOURNAL", onClick = onJournal)
-            MenuItem("3. PARAMÈTRES", onClick = onSettings)
-            if (signedIn) MenuItem("4. MA FICHE DE MATELOT", onClick = onAccount)
+                val focusLabel = if (phase == Phase.FOCUS) "1. FOCUS  (traversée en cours)" else "1. FOCUS"
+                MenuItem(focusLabel, onClick = onFocus)
+                MenuItem("2. MON JOURNAL", onClick = onJournal)
+                MenuItem("3. PARAMÈTRES", onClick = onSettings)
+                if (signedIn) MenuItem("4. MA FICHE DE MATELOT", onClick = onAccount)
+            }
         }
     }
 }
 
 @Composable
-internal fun MenuItem(label: String, onClick: () -> Unit, dimmed: Boolean = false, modifier: Modifier = Modifier) {
+internal fun MenuItem(
+    label: String,
+    onClick: () -> Unit,
+    dimmed: Boolean = false,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onBackground,
+) {
     Text(
         text = "> $label",
         style = MaterialTheme.typography.titleMedium,
+        color = color,
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
             .alpha(if (dimmed) 0.4f else 1f)
-            .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground), RectangleShape)
+            .border(BorderStroke(2.dp, color), RectangleShape)
             .clickable(onClick = onClick)
             .padding(16.dp),
     )

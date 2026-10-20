@@ -73,16 +73,16 @@ app/src/main/java/dev/mathieuburnat/piratefocus/
 │   └── PirateQuotes.kt      # répliques du capitaine selon la phase
 └── ui/
     ├── PirateApp.kt         # navigation : menu, focus, paramètres
-    ├── MenuScreen.kt        # menu de démarrage (focus, journal, paramètres, fiche de matelot)
+    ├── MenuScreen.kt        # menu de démarrage (focus, journal, paramètres, fiche de matelot), tag « [ Compte local ] » sans compte
     ├── JournalScreen.kt     # BISCOTOS VS TAVERNE (toucher un camp ouvre ses activités, commentées par une petite tête du capitaine), capitaine pompette si ça boit trop
     ├── CrewScreen.kt        # « Et comment se portent les autres matelots ?! » (vrais pirates publics, ou inventés avec « fake data »)
     ├── SettingsScreen.kt    # paramètres : applications bloquées (et tout débloquer), déconnexion, mode dev caché (5 taps sur le titre)
-    ├── ReallySureDialog.kt  # « T'es vraiment sûr ? » : CONFIRMER après 5 s (factory reset, liste noire vidée)
+    ├── ReallySureDialog.kt  # ChoiceDialog (choix numérotés : conseillé, destructeur en rouge, annulation discrète) et « T'es vraiment sûr ? » : CONFIRMER après 5 s (factory reset, liste noire vidée, compte supprimé)
     ├── DevModeScreen.kt     # page du mode dev : activer/désactiver (l'éteindre recache le bouton) ; allumé : « fake data », factory reset, et « Hi daad » après 2 taps sur le titre
     ├── GuardNudgeDialog.kt  # pop-up du capitaine souriant : « SUIVRE LE CAPITAINE » vers les autorisations
     ├── BlockedAppsScreen.kt # autorisations du gardien + liste noire
     ├── WelcomeScreen.kt     # premier lancement : matelot anonyme ou compte gratuit
-    ├── AccountScreen.kt     # « Ma fiche de matelot » (ex « Mon compte ») : pseudo, données publiques, nouveau code secret, mot de passe, déconnexion, suppression
+    ├── AccountScreen.kt     # « Ma fiche de matelot » : Identité, Sécurité, Visibilité, puis Zone dangereuse (déconnexion, suppression)
     ├── AccountForms.kt      # compte gratuit (créer / j'ai déjà un compte / mot de passe oublié), code secret montré une fois, dé
     ├── FocusScreen.kt       # écran principal (durées 5/10/30 + ":" pour une durée sur mesure)
     ├── MinutesWheel.kt      # roue de défilement pour choisir les minutes

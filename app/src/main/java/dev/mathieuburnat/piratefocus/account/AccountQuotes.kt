@@ -45,5 +45,8 @@ object AccountQuotes {
         "Ton email et ta connexion seront jetés par-dessus bord, et tes petits mots effacés. " +
             "Tes exploits resteront au classement sous le nom d'un « Ancien matelot ». Le journal reste sur ce téléphone."
 
+    const val LOGOUT_EXPLAINED =
+        "Tu redeviens matelot anonyme sur ce téléphone : le journal y reste, et ton butin t'attend en ligne."
+
     const val FLYING = "~ le perroquet porte le message... ~"
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,7 +26,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.mathieuburnat.piratefocus.account.AccountQuotes
@@ -100,22 +103,34 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),
             )
-            Text("=== FICHE DE MATELOT ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+            // Sur un petit écran, les « === » sautent plutôt que de passer seuls à la ligne.
+            var narrow by remember { mutableStateOf(false) }
+            Text(
+                if (narrow) "FICHE DE MATELOT" else "=== FICHE DE MATELOT ===",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                onTextLayout = { if (it.hasVisualOverflow) narrow = true },
+                modifier = Modifier.fillMaxWidth(),
+            )
             Spacer(Modifier.height(12.dp))
 
-            Text("-- Pseudo --", style = MaterialTheme.typography.titleSmall)
+            SectionTitle("Identité")
             PirateField(name, { name = it }, "> ton pseudo de pirate")
             if (name.trim() != account.pirateName) MenuItem("RENOMMER", onClick = { viewModel.rename(name) })
-
-            Spacer(Modifier.height(12.dp))
             if (account.signedIn) {
-                Text("-- Compte gratuit --", style = MaterialTheme.typography.titleSmall)
                 when {
                     account.login != null -> Text("Email (privé) : ${account.login}", style = MaterialTheme.typography.bodyMedium)
                     account.kind == "google" -> Text("Connecté par Google", style = MaterialTheme.typography.bodyMedium)
                     else -> Text("Connecté par email${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
                 }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            if (account.signedIn) {
                 if (account.kind == "password") {
+                    SectionTitle("Sécurité")
                     MenuItem("NOUVEAU CODE SECRET", onClick = { confirmNewCode = true }, dimmed = state.busy)
                     MenuItem("CHANGER MON MOT DE PASSE", onClick = { changingPassword = !changingPassword })
                     if (changingPassword) {
@@ -138,10 +153,10 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                     if (state.passwordChanged) {
                         Text("Mot de passe changé, matelot !", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                     }
+                    Spacer(Modifier.height(16.dp))
                 }
 
-                Spacer(Modifier.height(12.dp))
-                Text("-- Mes données publiques --", style = MaterialTheme.typography.titleSmall)
+                SectionTitle("Visibilité")
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -161,13 +176,20 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                 )
 
-                Spacer(Modifier.height(16.dp))
-                MenuItem("SE DÉCONNECTER", onClick = viewModel::logout)
-                MenuItem("SUPPRIMER MON COMPTE", onClick = { confirmDelete = true })
                 BusyAndError(state)
+
+                // Tout en bas, bien à l'écart : ce qui fait quitter le navire.
+                Spacer(Modifier.height(32.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                Spacer(Modifier.height(8.dp))
+                SectionTitle("Zone dangereuse", color = MaterialTheme.colorScheme.error)
+                MenuItem("SE DÉCONNECTER", onClick = viewModel::logout, dimmed = state.busy)
+                Text(AccountQuotes.LOGOUT_EXPLAINED, style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                MenuItem("SUPPRIMER MON COMPTE", onClick = { confirmDelete = true }, dimmed = state.busy, color = MaterialTheme.colorScheme.error)
             } else {
                 NoAccountInfo()
-                Text("-- Compte gratuit --", style = MaterialTheme.typography.titleSmall)
+                SectionTitle("Compte gratuit")
                 FreeAccountForm(
                     state = state,
                     onMode = viewModel::setAuthMode,
@@ -178,4 +200,10 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
             }
         }
     }
+}
+
+/** Titre d'une section de la fiche, façon terminal : « -- Identité -- ». */
+@Composable
+private fun SectionTitle(title: String, color: Color = MaterialTheme.colorScheme.onBackground) {
+    Text("-- $title --", style = MaterialTheme.typography.titleSmall, color = color, modifier = Modifier.padding(bottom = 4.dp))
 }
