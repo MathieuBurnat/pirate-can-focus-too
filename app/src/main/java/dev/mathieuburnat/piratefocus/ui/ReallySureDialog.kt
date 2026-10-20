@@ -87,8 +87,8 @@ fun LinkAccountButton(onClick: () -> Unit) {
 }
 
 /**
- * « CONFIRMER » en rouge : bordure blanche en pointillés et compte à rebours tant qu'il faut patienter,
- * puis, d'un coup, bordure rouge pleine et bouton cliquable.
+ * « CONFIRMER » : tant qu'il faut patienter, bordure blanche en pointillés, texte grisé et compte à rebours
+ * (aucune trace de rouge) ; puis, d'un coup, bordure rouge pleine, texte rouge vif et bouton cliquable.
  */
 @Composable
 private fun ConfirmButton(label: String, left: Int, onConfirm: () -> Unit) {
@@ -98,7 +98,7 @@ private fun ConfirmButton(label: String, left: Int, onConfirm: () -> Unit) {
         if (ready) label else "$label ($left)",
         style = MaterialTheme.typography.labelLarge,
         textAlign = TextAlign.Center,
-        color = if (ready) red else red.copy(alpha = 0.5f),
+        color = if (ready) red else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
         modifier = Modifier
             .drawBehind {
                 val stroke = 2.dp.toPx()
