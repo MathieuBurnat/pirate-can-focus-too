@@ -48,5 +48,17 @@ object AccountQuotes {
     const val LOGOUT_EXPLAINED =
         "Tu redeviens matelot anonyme sur ce téléphone : le journal y reste, et ton butin t'attend en ligne."
 
+    /** Le cri de l'équipage, à la fin des toasts de compte. */
+    private const val YAWKU = "Yawkü !"
+
+    /** Le petit mot (toast) quand un matelot monte à bord de son compte. */
+    fun signedIn(name: String) = "Bienvenue à bord, $name ! $YAWKU"
+
+    /** Le petit mot (toast) quand il se déconnecte. */
+    fun signedOut(name: String) = "Bon vent, $name ! Ton butin t'attend au port. $YAWKU"
+
+    /** Le petit mot (toast) quand il supprime son compte. */
+    const val DELETED = "Merci d'être passé, ancien matelot. Bon voyage ! $YAWKU"
+
     const val FLYING = "~ le perroquet porte le message... ~"
 }

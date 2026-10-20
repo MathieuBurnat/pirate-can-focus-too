@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -46,6 +47,12 @@ fun PirateApp(
 ) {
     val context = LocalContext.current
     val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
+    // Connexion, déconnexion : le capitaine le dit en toast, comme au factory reset.
+    LaunchedEffect(accountState.toast) {
+        val toast = accountState.toast ?: return@LaunchedEffect
+        Toast.makeText(context.applicationContext, toast, Toast.LENGTH_LONG).show()
+        accountViewModel.toastShown()
+    }
     // Au tout premier lancement, l'écran de bienvenue : anonyme ou compte gratuit.
     var screen by rememberSaveable { mutableStateOf(if (accountState.account.onboarded) Screen.MENU else Screen.WELCOME) }
     val devModeStore = remember { DevModeStore(context) }

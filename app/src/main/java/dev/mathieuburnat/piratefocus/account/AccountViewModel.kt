@@ -25,6 +25,8 @@ data class AccountUiState(
     val busy: Boolean = false,
     /** Le dernier souci à afficher (déjà en français pirate). */
     val error: String? = null,
+    /** Un petit mot à montrer en toast (connexion, déconnexion), puis à oublier avec [AccountViewModel.toastShown]. */
+    val toast: String? = null,
 )
 
 /**
@@ -91,10 +93,14 @@ class AccountViewModel(
     }
 
     /** Le matelot a noté son code secret : on ne le montrera plus jamais. */
+    fun toastShown() = _uiState.update { it.copy(toast = null) }
+
     fun recoveryCodeNoted() = _uiState.update { it.copy(recoveryCode = null, freshAccount = false) }
 
     private fun signIn(session: Session) {
-        _uiState.update { it.copy(recoveryCode = session.recoveryCode, authMode = AuthMode.LOGIN) }
+        _uiState.update {
+            it.copy(recoveryCode = session.recoveryCode, authMode = AuthMode.LOGIN, toast = AccountQuotes.signedIn(session.me.name))
+        }
         save(
             account.copy(
                 onboarded = true,
@@ -146,6 +152,7 @@ class AccountViewModel(
         launchBusy {
             runCatching { api.logout(token) }
             signOutLocally()
+            _uiState.update { it.copy(toast = AccountQuotes.signedOut(account.pirateName)) }
         }
     }
 
@@ -158,6 +165,7 @@ class AccountViewModel(
         launchBusy {
             api.deleteMe(token)
             signOutLocally()
+            _uiState.update { it.copy(toast = AccountQuotes.DELETED) }
             onDeleted()
         }
     }
