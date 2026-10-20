@@ -1,6 +1,11 @@
 package dev.mathieuburnat.piratefocus.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -80,12 +85,7 @@ fun MenuScreen(
                 Text("~ un pirate aussi peut se concentrer ~", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
                 if (!signedIn) {
                     // Sans compte, le butin ne vit que sur ce téléphone : un petit tag le rappelle, et ouvre la porte d'un compte.
-                    Text(
-                        "[ Compte local ]",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(top = 4.dp).clickable { showNoAccount = true }.padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
+                    LocalAccountTag(onClick = { showNoAccount = true })
                 }
                 Spacer(Modifier.height(24.dp))
                 PixelPirate(phase = Phase.IDLE)
@@ -99,6 +99,31 @@ fun MenuScreen(
             }
         }
     }
+}
+
+/** Délai entre deux trémoussements du tag « [ Compte local ] ». */
+private const val TAG_WIGGLE_EVERY_MS = 10_000L
+
+/** « [ Compte local ] » : discret, mais il se trémousse toutes les 10 secondes pour qu'on le remarque. */
+@Composable
+private fun LocalAccountTag(onClick: () -> Unit) {
+    val wiggle = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(TAG_WIGGLE_EVERY_MS)
+            for (angle in listOf(-4f, 4f, -3f, 3f, -1f, 0f)) wiggle.animateTo(angle, tween(60))
+        }
+    }
+    Text(
+        "[ Compte local ]",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.secondary,
+        modifier = Modifier
+            .padding(top = 4.dp)
+            .graphicsLayer { rotationZ = wiggle.value }
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    )
 }
 
 @Composable
