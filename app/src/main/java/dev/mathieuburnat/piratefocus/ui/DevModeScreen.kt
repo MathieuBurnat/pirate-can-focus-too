@@ -57,7 +57,7 @@ fun DevModeScreen(
     var titleTaps by remember { mutableIntStateOf(0) }
 
     if (confirmReset) {
-        DangerDialog(
+        ChoiceDialog(
             title = "☠ FACTORY RESET ☠",
             onDismiss = { confirmReset = false },
             text = {

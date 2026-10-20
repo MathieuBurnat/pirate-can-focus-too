@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +25,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import dev.mathieuburnat.piratefocus.account.AccountQuotes
+import dev.mathieuburnat.piratefocus.account.AuthMode
 import dev.mathieuburnat.piratefocus.focus.Phase
 
 @Composable
@@ -37,22 +36,26 @@ fun MenuScreen(
     onJournal: () -> Unit,
     onSettings: () -> Unit,
     onAccount: () -> Unit,
+    onSignIn: (AuthMode) -> Unit,
 ) {
     var showNoAccount by remember { mutableStateOf(false) }
 
     if (showNoAccount) {
-        AlertDialog(
-            onDismissRequest = { showNoAccount = false },
-            shape = RectangleShape,
-            title = { Text("⚓ BON À SAVOIR ⚓") },
+        ChoiceDialog(
+            title = "⚓ COMPTE LOCAL ⚓",
+            onDismiss = { showNoAccount = false },
             text = { Text(AccountQuotes.NO_ACCOUNT_INFO, style = MaterialTheme.typography.bodyMedium) },
-            confirmButton = {
-                TextButton(onClick = {
+            choices = listOf(
+                Choice("CRÉER UN COMPTE", ChoiceKind.ADVISED, {
                     showNoAccount = false
-                    onAccount()
-                }) { Text("COMPTE GRATUIT") }
-            },
-            dismissButton = { TextButton(onClick = { showNoAccount = false }) { Text("COMPRIS") } },
+                    onSignIn(AuthMode.REGISTER)
+                }),
+                Choice("J'AI DÉJÀ UN COMPTE", ChoiceKind.NORMAL, {
+                    showNoAccount = false
+                    onSignIn(AuthMode.LOGIN)
+                }),
+                Choice("rester en local", ChoiceKind.CANCEL, { showNoAccount = false }),
+            ),
         )
     }
 
@@ -66,6 +69,15 @@ fun MenuScreen(
         ) {
             Text("=== PIRATE FOCUS ===", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
             Text("~ un pirate aussi peut se concentrer ~", style = MaterialTheme.typography.bodySmall)
+            if (!signedIn) {
+                // Sans compte, le butin ne vit que sur ce téléphone : un petit tag le rappelle, et ouvre la porte d'un compte.
+                Text(
+                    "[ Compte local ]",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(top = 4.dp).clickable { showNoAccount = true }.padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
             Spacer(Modifier.height(24.dp))
             PixelPirate(phase = Phase.IDLE)
             Spacer(Modifier.height(32.dp))
@@ -74,17 +86,7 @@ fun MenuScreen(
             MenuItem(focusLabel, onClick = onFocus)
             MenuItem("2. MON JOURNAL", onClick = onJournal)
             MenuItem("3. PARAMÈTRES", onClick = onSettings)
-            if (signedIn) {
-                MenuItem("4. MA FICHE DE MATELOT", onClick = onAccount)
-            } else {
-                // Sans compte, le butin ne vit que sur ce téléphone : le capitaine le rappelle, gentiment.
-                Text(
-                    "[i] sans compte : butin rangé sur ce téléphone",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.clickable { showNoAccount = true }.padding(vertical = 12.dp),
-                )
-            }
+            if (signedIn) MenuItem("4. MA FICHE DE MATELOT", onClick = onAccount)
         }
     }
 }

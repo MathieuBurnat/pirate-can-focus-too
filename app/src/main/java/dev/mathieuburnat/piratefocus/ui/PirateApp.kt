@@ -95,6 +95,10 @@ fun PirateApp(
                     onJournal = { screen = Screen.JOURNAL },
                     onSettings = { screen = Screen.SETTINGS },
                     onAccount = { screen = Screen.ACCOUNT },
+                    onSignIn = { mode ->
+                        accountViewModel.setAuthMode(mode)
+                        screen = Screen.ACCOUNT
+                    },
                 )
                 Screen.FOCUS -> FocusRoute(viewModel, guardReady = guardReady, onMenu = { screen = Screen.MENU })
                 Screen.JOURNAL -> JournalScreen(

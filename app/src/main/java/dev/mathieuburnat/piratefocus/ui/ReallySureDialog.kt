@@ -49,7 +49,7 @@ fun ReallySureDialog(
             left--
         }
     }
-    DangerDialog(
+    ChoiceDialog(
         title = "☠ ATTENTION ☠",
         onDismiss = onCancel,
         text = { TypewriterText(message, style = MaterialTheme.typography.bodyMedium) },
@@ -69,6 +69,9 @@ enum class ChoiceKind {
     /** La sortie conseillée : cadre et texte dorés. */
     ADVISED,
 
+    /** Un choix ordinaire, encadré comme les menus. */
+    NORMAL,
+
     /** L'action sans retour : en rouge (en pointillés blancs tant que [Choice.waitLeft] > 0). */
     DANGER,
 
@@ -79,11 +82,11 @@ enum class ChoiceKind {
 class Choice(val label: String, val kind: ChoiceKind, val onClick: () -> Unit, val waitLeft: Int = 0)
 
 /**
- * Pop-up d'une action dangereuse : les choix sont numérotés et empilés comme les menus de l'appli
+ * Pop-up à choix (actions dangereuses en tête) : les choix sont numérotés et empilés comme les menus de l'appli
  * (`> 1. ...`), le conseillé d'abord, le destructeur en rouge, l'annulation discrète en dernier.
  */
 @Composable
-fun DangerDialog(title: String, onDismiss: () -> Unit, text: @Composable () -> Unit, choices: List<Choice>) {
+fun ChoiceDialog(title: String, onDismiss: () -> Unit, text: @Composable () -> Unit, choices: List<Choice>) {
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RectangleShape,
@@ -118,7 +121,11 @@ private fun ChoiceButton(number: Int, choice: Choice) {
         )
         return
     }
-    val accent = if (choice.kind == ChoiceKind.ADVISED) colors.primary else colors.error
+    val accent = when (choice.kind) {
+        ChoiceKind.ADVISED -> colors.primary
+        ChoiceKind.DANGER -> colors.error
+        else -> colors.onSurface
+    }
     Text(
         label,
         style = MaterialTheme.typography.labelLarge,
