@@ -43,6 +43,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.mathieuburnat.piratefocus.focus.Phase
 import dev.mathieuburnat.piratefocus.guard.SirenShield
 import dev.mathieuburnat.piratefocus.guard.SirenShieldService
+import dev.mathieuburnat.piratefocus.settings.DevModeStore
+import androidx.compose.runtime.mutableLongStateOf
 
 /**
  * La page du mode dev (dénichée dans les paramètres) : l'activer ou non, et, mode dev allumé,
@@ -64,9 +66,38 @@ fun DevModeScreen(
     val context = LocalContext.current
     // Relu au retour des réglages d'accessibilité.
     var shieldEnabled by remember { mutableStateOf(SirenShieldService.isEnabled(context)) }
+    // La durée et la fin du blocage vivent dans les réglages : le service d'accessibilité les lit et les écrit aussi.
+    val store = remember { DevModeStore(context) }
+    var shieldMinutes by remember { mutableIntStateOf(store.sirenBlockMinutes()) }
+    var blockedUntil by remember { mutableLongStateOf(store.sirenBlockedUntil()) }
+    var shieldWindow by remember { mutableStateOf(false) }
     LifecycleResumeEffect(Unit) {
         shieldEnabled = SirenShieldService.isEnabled(context)
+        blockedUntil = store.sirenBlockedUntil()
         onPauseOrDispose { }
+    }
+
+    if (shieldWindow) {
+        SirenShieldDialog(
+            on = sirenShield,
+            minutes = shieldMinutes,
+            blockedUntil = blockedUntil,
+            accessibilityReady = shieldEnabled,
+            onToggle = {
+                onSirenShieldChange(it)
+                blockedUntil = store.sirenBlockedUntil()
+            },
+            onMinutes = {
+                store.setSirenBlockMinutes(it)
+                shieldMinutes = it
+            },
+            onUnblock = {
+                store.setSirenBlockedUntil(0L)
+                blockedUntil = 0L
+            },
+            onOpenAccessibility = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+            onDismiss = { shieldWindow = false },
+        )
     }
     var hello by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
@@ -164,24 +195,17 @@ fun DevModeScreen(
             }
             ScrollIn(devMode, order = 1) {
                 Column {
-                    MenuItem("3. BOUCLIER ANTI-SIRÈNES  ${if (sirenShield) "[x]" else "[ ]"}", onClick = { onSirenShieldChange(!sirenShield) })
+                    // Un tap ouvre la fenêtre du bouclier : l'allumer, régler la durée, lever le blocage.
+                    MenuItem("3. BOUCLIER ANTI-SIRÈNES  ${if (sirenShield) "[x]" else "[ ]"}", onClick = { shieldWindow = true })
                     Text(
-                        "Instagram : les stories se referment, et au ${SirenShield.SCROLL_LIMIT}e défilement le capitaine te chasse, " +
-                            "puis bloque Instagram ${SirenShield.BLOCK_MS / 60_000} minutes.",
+                        if (sirenShield) {
+                            "Instagram muselé : stories refermées, blocage de $shieldMinutes min au ${SirenShield.SCROLL_LIMIT}e défilement."
+                        } else {
+                            "Les sirènes d'Instagram chantent librement."
+                        },
                         style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp),
                     )
-                    // Le bouclier a besoin d'un service d'accessibilité, à activer à la main dans les réglages du téléphone.
-                    if (sirenShield && !shieldEnabled) {
-                        Text(
-                            "> ACTIVER « Pirate Focus : bouclier anti-sirènes » DANS L'ACCESSIBILITÉ",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier
-                                .clickable { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
-                                .padding(vertical = 6.dp),
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
                 }
             }
             ScrollIn(devMode, order = 2) { MenuItem("4. FACTORY RESET", onClick = { confirmReset = true }) }

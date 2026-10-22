@@ -61,11 +61,14 @@ class PirateHeadsTest {
     }
 
     @Test
-    fun `la tête 0 est celle du capitaine, et une tête inconnue aussi`() {
-        val captain = PirateHeads[0]
-        assertEquals(PirateHeads.Hat.TRICORNE_SKULL, captain.hat)
-        assertEquals(PirateHeads.Eyes.PATCH_LEFT, captain.eyes)
-        assertEquals(captain, PirateHeads[999])
+    fun `les mousses au bandana au départ, et personne ne porte la tête du capitaine`() {
+        listOf(0, 50, 100).forEach {
+            assertEquals(PirateHeads.Hat.BANDANA, PirateHeads[it].hat)
+            assertEquals(PirateHeads.Eyes.TWO_EYES, PirateHeads[it].eyes)
+        }
+        assertEquals(PirateHeads[0], PirateHeads[999])
+        val captain = PirateHeads.Head(-1, PirateHeads.Hat.TRICORNE_SKULL, PirateHeads.Eyes.PATCH_LEFT, PirateHeads.Beard.FULL, 0, 0, 0, 0, earring = true)
+        assertTrue(PirateHeads.all.none { it.look == captain.look })
     }
 
     @Test

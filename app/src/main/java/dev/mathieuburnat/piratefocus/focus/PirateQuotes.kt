@@ -129,7 +129,7 @@ object PirateQuotes {
     private val sirenCaught = listOf(
         "Cinq coups de pouce dans le vide ! Les sirènes t'appelaient, je t'ai attaché au mât.",
         "Tu scrolles comme on rame à contre-courant. Instagram est consigné à quai pour un moment !",
-        "Le chant des sirènes, ça suffit ! Instagram reste sous scellés une demi-heure.",
+        "Le chant des sirènes, ça suffit ! Instagram reste sous scellés un bon moment.",
     )
 
     fun sirenCaught(current: String? = null, random: Random = Random.Default): String =

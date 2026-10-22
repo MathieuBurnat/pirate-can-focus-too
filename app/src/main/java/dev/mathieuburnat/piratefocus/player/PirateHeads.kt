@@ -32,7 +32,8 @@ private fun cells(rows: IntRange, vararg columns: Int) = rows.flatMap { row -> c
 
 /**
  * Les têtes de matelots prédéfinies (#18), en grilles de caractères comme les autres sprites (un caractère = une couleur).
- * Chaque tête assemble un chapeau, des yeux, une barbe et des couleurs. La tête 0 est celle du capitaine.
+ * Chaque tête assemble un chapeau, des yeux, une barbe (ou des cheveux) et des couleurs. Les têtes 0, 50 et 100 sont
+ * celles des mousses, au départ ; la tête du capitaine n'est qu'à lui.
  * L'ordre ne doit jamais changer : le numéro d'une tête est gardé sur le téléphone et chez le Worker.
  * Logique pure (couleurs en ARGB), testée.
  */
@@ -230,8 +231,13 @@ object PirateHeads {
             }
     }
 
-    /** La tête du capitaine, celle de départ de tout matelot. */
-    private val captain = Head(0, Hat.TRICORNE_SKULL, Eyes.PATCH_LEFT, Beard.FULL, 0, 0, 0, 0, earring = true)
+    /** La tête du capitaine : elle n'est qu'à lui, aucun matelot ne peut la porter. */
+    private val captain = Head(-1, Hat.TRICORNE_SKULL, Eyes.PATCH_LEFT, Beard.FULL, 0, 0, 0, 0, earring = true)
+
+    /** Les têtes de départ : des mousses au bandana bleu, tout juste montés à bord (numéros 0, 50 et 100). */
+    private val cabinBoy = Head(0, Hat.BANDANA, Eyes.TWO_EYES, Beard.SHAVED, 0, 0, 0, 1, earring = false)
+    private val cabinGirl = Head(PER_KIND, Hat.BANDANA, Eyes.TWO_EYES, Beard.SHAVED, 0, 0, 0, 1, false, Kind.FILLE, Hair.BOB)
+    private val cabinSecret = Head(2 * PER_KIND, Hat.BANDANA, Eyes.TWO_EYES, Beard.SHAVED, 0, 1, 0, 1, false, Kind.ANDROGYNE, Hair.SHORT)
 
     /** Toutes les combinaisons possibles, dans un ordre fixe. */
     private fun combination(index: Int, id: Int): Head {
@@ -253,9 +259,6 @@ object PirateHeads {
     private val COMBINATIONS = Hat.entries.size * Eyes.entries.size * Beard.entries.size *
         SKINS.size * BEARDS.size * HATS.size * BANDS.size * 2
 
-    /** Les têtes de départ de la pirate fille et du pirate qui ne dit rien (numéros 50 et 100). */
-    private val captainGirl = Head(PER_KIND, Hat.TRICORNE_SKULL, Eyes.PATCH_LEFT, Beard.SHAVED, 0, 0, 0, 0, true, Kind.FILLE, Hair.LONG)
-    private val captainSecret = Head(2 * PER_KIND, Hat.TRICORNE_SKULL, Eyes.PATCH_LEFT, Beard.SHAVED, 0, 1, 0, 0, true, Kind.ANDROGYNE, Hair.SHORT)
 
     /** Les combinaisons d'une pirate fille ou d'un pirate qui ne dit rien : des cheveux au lieu de la barbe. */
     private fun combination(index: Int, id: Int, kind: Kind, hairs: List<Hair>): Head {
@@ -286,7 +289,7 @@ object PirateHeads {
         while (size < PER_KIND) {
             state = (state * 1_103_515_245L + 12_345L) and 0x7FFF_FFFFL
             val candidate = make(((state shr 8) % combinations).toInt(), starter.id + size)
-            if (none { it.look == candidate.look }) add(candidate)
+            if (candidate.look != captain.look && none { it.look == candidate.look }) add(candidate)
         }
     }
 
@@ -296,15 +299,15 @@ object PirateHeads {
 
     /** Numéros 0 à 49 : garçons ; 50 à 99 : filles ; 100 à 149 : pirates qui ne disent rien. */
     val all: List<Head> =
-        draw(captain, 1_717L, COMBINATIONS, ::combination) +
-            draw(captainGirl, 2_024L, combinations(GIRL_HAIRS.size)) { index, id -> combination(index, id, Kind.FILLE, GIRL_HAIRS) } +
-            draw(captainSecret, 1_337L, combinations(SECRET_HAIRS.size)) { index, id -> combination(index, id, Kind.ANDROGYNE, SECRET_HAIRS) }
+        draw(cabinBoy, 1_717L, COMBINATIONS, ::combination) +
+            draw(cabinGirl, 2_024L, combinations(GIRL_HAIRS.size)) { index, id -> combination(index, id, Kind.FILLE, GIRL_HAIRS) } +
+            draw(cabinSecret, 1_337L, combinations(SECRET_HAIRS.size)) { index, id -> combination(index, id, Kind.ANDROGYNE, SECRET_HAIRS) }
 
     /** Les têtes de départ, toujours permises (une par sorte de pirate). */
     val STARTERS = setOf(0, PER_KIND, 2 * PER_KIND)
 
     fun ofKind(kind: Kind): List<Head> = all.filter { it.kind == kind }
 
-    /** Une tête inconnue (Worker plus récent que l'app) : celle du capitaine. */
-    operator fun get(id: Int): Head = all.getOrElse(id) { captain }
+    /** Une tête inconnue (Worker plus récent que l'app) : celle du mousse. */
+    operator fun get(id: Int): Head = all.getOrElse(id) { cabinBoy }
 }

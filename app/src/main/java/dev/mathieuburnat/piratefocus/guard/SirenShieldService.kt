@@ -3,7 +3,6 @@ package dev.mathieuburnat.piratefocus.guard
 import android.accessibilityservice.AccessibilityService
 import android.content.ComponentName
 import android.content.Context
-import android.os.SystemClock
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -25,14 +24,20 @@ class SirenShieldService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val app = event.packageName?.toString() ?: return
         if (!devMode.isSirenShield()) return
-        val now = SystemClock.elapsedRealtime()
+        // L'heure du téléphone : la fin du blocage est rangée dans les réglages, la fenêtre du bouclier la lit (et la lève).
+        val now = System.currentTimeMillis()
 
         if (app != SirenShield.INSTAGRAM) {
             if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && app !in PASSING_BY) shield.onLeave()
             return
         }
+        shield.blockMs = devMode.sirenBlockMinutes() * 60_000L
+        shield.blockedUntil = devMode.sirenBlockedUntil()
         when (event.eventType) {
-            AccessibilityEvent.TYPE_VIEW_SCROLLED -> if (shield.onScroll(now)) sendAway(now)
+            AccessibilityEvent.TYPE_VIEW_SCROLLED -> if (shield.onScroll(now)) {
+                devMode.setSirenBlockedUntil(shield.blockedUntil)
+                sendAway(now)
+            }
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED, AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
                 if (shield.isBlocked(now)) return sendAway(now)
                 if (now - lastStoryCheck < STORY_CHECK_EVERY_MS) return

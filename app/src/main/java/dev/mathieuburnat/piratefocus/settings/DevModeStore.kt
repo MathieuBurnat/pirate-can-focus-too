@@ -25,8 +25,25 @@ class DevModeStore(context: Context) {
     /** Le bouclier anti-sirènes (stories d'Instagram refermées, Instagram chassé au 5e défilement) : mode dev seulement. */
     fun isSirenShield(): Boolean = isOn() && prefs.getBoolean(SIREN_SHIELD, false)
 
+    /** Éteindre le bouclier lève aussi le blocage en cours. */
     fun setSirenShield(on: Boolean) {
-        prefs.edit().putBoolean(SIREN_SHIELD, on).apply()
+        val edit = prefs.edit().putBoolean(SIREN_SHIELD, on)
+        if (!on) edit.remove(SIREN_BLOCKED_UNTIL)
+        edit.apply()
+    }
+
+    /** Combien de minutes Instagram reste bloqué après le 5e défilement. */
+    fun sirenBlockMinutes(): Int = prefs.getInt(SIREN_MINUTES, 30)
+
+    fun setSirenBlockMinutes(minutes: Int) {
+        prefs.edit().putInt(SIREN_MINUTES, minutes).apply()
+    }
+
+    /** Fin du blocage d'Instagram (heure du téléphone, en ms ; 0 : pas de blocage). */
+    fun sirenBlockedUntil(): Long = prefs.getLong(SIREN_BLOCKED_UNTIL, 0L)
+
+    fun setSirenBlockedUntil(at: Long) {
+        prefs.edit().putLong(SIREN_BLOCKED_UNTIL, at).apply()
     }
 
     fun setFakeData(on: Boolean) {
@@ -53,5 +70,7 @@ class DevModeStore(context: Context) {
         private const val REVEALED = "mode_dev_visible"
         private const val FAKE_DATA = "mode_dev_fake_data"
         private const val SIREN_SHIELD = "mode_dev_bouclier_sirenes"
+        private const val SIREN_MINUTES = "mode_dev_bouclier_minutes"
+        private const val SIREN_BLOCKED_UNTIL = "mode_dev_bouclier_bloque_jusqua"
     }
 }

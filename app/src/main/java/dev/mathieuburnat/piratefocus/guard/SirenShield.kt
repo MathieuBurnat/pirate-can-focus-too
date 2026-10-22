@@ -2,17 +2,20 @@ package dev.mathieuburnat.piratefocus.guard
 
 /**
  * Le bouclier anti-sirènes (mode dev) : les stories d'Instagram ne s'ouvrent pas, et Instagram est fermé au
- * [SCROLL_LIMIT]e défilement, puis bloqué [BLOCK_MS] ms. Logique pure, testée ; le service d'accessibilité
+ * [SCROLL_LIMIT]e défilement, puis bloqué [blockMs] ms (30 minutes par défaut). Logique pure, testée ; le service d'accessibilité
  * [SirenShieldService] lui raconte ce qu'il voit.
  */
 class SirenShield(
     private val scrollLimit: Int = SCROLL_LIMIT,
     private val gestureGapMs: Long = GESTURE_GAP_MS,
-    private val blockMs: Long = BLOCK_MS,
+    /** Durée du blocage, réglable dans la fenêtre du bouclier. */
+    var blockMs: Long = BLOCK_MS,
 ) {
     private var scrolls = 0
     private var lastScrollAt = Long.MIN_VALUE / 2
-    private var blockedUntil = Long.MIN_VALUE / 2
+
+    /** Fin du blocage en cours (rangée sur le téléphone : la fenêtre du bouclier l'affiche et peut la lever). */
+    var blockedUntil = 0L
 
     fun isBlocked(now: Long): Boolean = now < blockedUntil
 
@@ -40,6 +43,9 @@ class SirenShield(
         const val SCROLL_LIMIT = 5
         const val GESTURE_GAP_MS = 700L
         const val BLOCK_MS = 30 * 60 * 1000L
+
+        /** Les durées de blocage proposées, en minutes. */
+        val BLOCK_CHOICES = listOf(5, 15, 30, 60)
 
         /** Les écrans de stories d'Instagram (« reel » dans son code, à ne pas confondre avec les Reels, « clips »). */
         private val STORY_IDS = listOf("reel_viewer", "story_viewer")
