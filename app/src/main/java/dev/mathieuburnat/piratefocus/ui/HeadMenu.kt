@@ -31,8 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.activity.compose.BackHandler
 import dev.mathieuburnat.piratefocus.account.AccountQuotes
 import dev.mathieuburnat.piratefocus.account.AccountUiState
 import dev.mathieuburnat.piratefocus.player.PirateHeads
@@ -59,7 +58,8 @@ fun HeadMenu(
     var kind by rememberSaveable { mutableStateOf(PirateHeads[current].kind) }
     val freeSlots = PirateLevel.freeSlots(unlocked, level)
 
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    BackHandler(onBack = onDismiss)
+    run {
         Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
             Column(
                 Modifier
@@ -110,6 +110,8 @@ fun HeadMenu(
                                 onClick = { onChoose(head.id) },
                             )
                         }
+                        // Dernière rangée incomplète : les têtes gardent la même taille.
+                        repeat(HEADS_PER_ROW - row.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
                 BusyAndError(state)

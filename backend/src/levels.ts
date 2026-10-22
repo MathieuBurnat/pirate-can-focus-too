@@ -4,10 +4,11 @@
  */
 
 /**
- * Nombre de têtes prédéfinies dans l'app : 50 garçons (0 à 49), 50 filles (50 à 99), 50 « je ne dis rien » (100 à 149).
- * Les têtes de départ (0, 50, 100) sont toujours permises.
+ * Nombre de têtes prédéfinies dans l'app (PirateHeads.kt) : 50 flibustiers (0 à 49), 50 flibustières (50 à 99),
+ * 50 corsaires (100 à 149), 20 flibustiers aux cheveux longs, 20 flibustières aux cheveux courts, puis les têtes
+ * dessinées à la main (190 et suivantes). Les têtes de départ (0, 50, 100) sont toujours permises.
  */
-export const HEAD_COUNT = 150;
+export const HEAD_COUNT = 196;
 export const STARTER_HEADS = new Set([0, 50, 100]);
 export const HEADS_LEVEL = 5;
 export const HEADS_AT_LEVEL_5 = 3;

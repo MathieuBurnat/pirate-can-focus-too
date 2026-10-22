@@ -40,7 +40,12 @@ private fun cells(rows: IntRange, vararg columns: Int) = rows.flatMap { row -> c
 object PirateHeads {
 
     const val PER_KIND = 50
-    const val COUNT = 3 * PER_KIND
+
+    /** Têtes ajoutées ensuite : 20 flibustiers aux cheveux longs, puis 20 flibustières aux cheveux courts. */
+    private const val EXTRA = 20
+
+    /** 150 têtes assemblées, 40 de plus (cheveux longs, cheveux courts), puis les têtes dessinées à la main. */
+    val COUNT get() = all.size
 
     enum class Hat(val label: String, val rows: List<String>) {
         TRICORNE_SKULL(
@@ -196,17 +201,23 @@ object PirateHeads {
         val band: Int,
         val earring: Boolean,
         val kind: Kind = Kind.GARCON,
-        /** Les cheveux (pas pour les garçons, qui ont leur barbe) ; leur couleur est HAIRS[beardColor]. */
+        /** Les cheveux (les garçons n'en ont que dans les têtes ajoutées ensuite) ; leur couleur est HAIRS[beardColor]. */
         val hair: Hair = Hair.NONE,
+        /** Une tête dessinée à la main (Sparrow, Miku...) : elle remplace tout l'assemblage. */
+        val special: Special? = null,
     ) {
         /** 16 × 16 caractères, '.' = transparent. */
         val sprite: List<String>
             get() {
+                special?.let { return it.rows }
                 val eyeRows = eyes.rows.mapIndexed { i, row -> if (earring && i > 0) row.dropLast(1) + "G" else row }
-                if (kind == Kind.GARCON) return hat.rows + FACE + eyeRows + FACE + beard.rows
                 val top = if (hat == Hat.BALD) hair.top ?: hat.rows else hat.rows
-                val eyesWithLashes = if (kind == Kind.FILLE) listOf(lashes(eyeRows[0], eyeRows[1])) + eyeRows.drop(1) else eyeRows
-                val rows = (top + FACE + eyesWithLashes + FACE + if (kind == Kind.FILLE) LIPS else NEUTRAL).toMutableList()
+                val face = when (kind) {
+                    Kind.GARCON -> top + FACE + eyeRows + FACE + beard.rows
+                    Kind.FILLE -> top + FACE + listOf(lashes(eyeRows[0], eyeRows[1])) + eyeRows.drop(1) + FACE + LIPS
+                    Kind.ANDROGYNE -> top + FACE + eyeRows + FACE + NEUTRAL
+                }
+                val rows = face.toMutableList()
                 hair.cells.forEach { (row, column) ->
                     if (rows[row][column] == '.') rows[row] = rows[row].replaceRange(column, column + 1, "N")
                 }
@@ -215,15 +226,23 @@ object PirateHeads {
 
         /** Couleur ARGB de chaque caractère du sprite. */
         val colors: Map<Char, Long>
-            get() = FIXED + mapOf(
-                'S' to SKINS[skin],
-                'B' to BEARDS[beardColor],
-                'N' to HAIRS[beardColor],
-                'K' to HATS[hatColor],
-                'R' to BANDS[band],
-            )
+            get() = special?.colors ?: (
+                FIXED + mapOf(
+                    'S' to SKINS[skin],
+                    'B' to BEARDS[beardColor],
+                    'N' to HAIRS[beardColor],
+                    'K' to HATS[hatColor],
+                    'R' to BANDS[band],
+                )
+                )
 
-        val label: String get() = "${hat.label}, ${eyes.label}, ${if (kind == Kind.GARCON) beard.label else hair.label}"
+        val label: String
+            get() = special?.name ?: listOfNotNull(
+                hat.label,
+                eyes.label,
+                beard.label.takeIf { kind == Kind.GARCON },
+                hair.label.takeIf { hair != Hair.NONE },
+            ).joinToString(", ")
 
         /** Ce qu'on voit vraiment : deux têtes au même [look] se ressemblent comme deux gouttes de rhum. */
         val look: Pair<List<String>, Map<Char, Long>>
@@ -300,11 +319,59 @@ object PirateHeads {
     private val SECRET_HAIRS = listOf(Hair.SHORT, Hair.CROP)
     private fun combinations(hairs: Int) = Hat.entries.size * Eyes.entries.size * hairs * SKINS.size * HAIRS.size * HATS.size * BANDS.size * 2
 
-    /** Numéros 0 à 49 : garçons ; 50 à 99 : filles ; 100 à 149 : pirates qui ne disent rien. */
-    val all: List<Head> =
+    /** [count] têtes de plus, à partir du numéro qui suit [before], différentes de toutes celles déjà là. */
+    private fun drawMore(before: List<Head>, count: Int, seed: Long, combinations: Int, make: (index: Int, id: Int) -> Head): List<Head> {
+        val drawn = mutableListOf<Head>()
+        var state = seed
+        while (drawn.size < count) {
+            state = (state * 1_103_515_245L + 12_345L) and 0x7FFF_FFFFL
+            val candidate = make(((state shr 8) % combinations).toInt(), before.size + drawn.size)
+            if (candidate.look != captain.look && (before + drawn).none { it.look == candidate.look }) drawn += candidate
+        }
+        return drawn
+    }
+
+    /** Les flibustiers aux cheveux longs (coucou Sparrow) : une barbe et des cheveux. */
+    private fun longHairedBoy(index: Int, id: Int): Head {
+        var rest = index
+        fun next(radix: Int): Int = (rest % radix).also { rest /= radix }
+        return Head(
+            id = id,
+            hat = Hat.entries[next(Hat.entries.size)],
+            eyes = Eyes.entries[next(Eyes.entries.size)],
+            beard = Beard.entries[next(Beard.entries.size)],
+            hair = GIRL_HAIRS[next(GIRL_HAIRS.size)],
+            skin = next(SKINS.size),
+            beardColor = next(BEARDS.size),
+            hatColor = next(HATS.size),
+            band = next(BANDS.size),
+            earring = next(2) == 1,
+        )
+    }
+
+    /** Numéros 0 à 49 : flibustiers ; 50 à 99 : flibustières ; 100 à 149 : corsaires (neutres). */
+    private val first150: List<Head> =
         draw(cabinBoy, 1_717L, COMBINATIONS, ::combination) +
             draw(cabinGirl, 2_024L, combinations(GIRL_HAIRS.size)) { index, id -> combination(index, id, Kind.FILLE, GIRL_HAIRS) } +
             draw(cabinSecret, 1_337L, combinations(SECRET_HAIRS.size)) { index, id -> combination(index, id, Kind.ANDROGYNE, SECRET_HAIRS) }
+
+    /** Numéros 150 à 169 : flibustiers aux cheveux longs. */
+    private val longHairedBoys = drawMore(first150, EXTRA, 4_242L, COMBINATIONS * GIRL_HAIRS.size, ::longHairedBoy)
+
+    /** Numéros 170 à 189 : flibustières aux cheveux courts. */
+    private val shortHairedGirls = drawMore(first150 + longHairedBoys, EXTRA, 7_777L, combinations(SECRET_HAIRS.size)) { index, id ->
+        combination(index, id, Kind.FILLE, SECRET_HAIRS)
+    }
+
+    /**
+     * Toutes les têtes. Les nouvelles s'ajoutent toujours à la fin : 190 et suivantes, les têtes dessinées à la main
+     * ([SPECIALS]).
+     */
+    val all: List<Head> = (first150 + longHairedBoys + shortHairedGirls).let { drawn ->
+        drawn + SPECIALS.mapIndexed { i, special ->
+            Head(drawn.size + i, Hat.BALD, Eyes.TWO_EYES, Beard.SHAVED, 0, 0, 0, 0, false, special.kind, special = special)
+        }
+    }
 
     /** Les têtes de départ, toujours permises (une par sorte de pirate). */
     val STARTERS = setOf(0, PER_KIND, 2 * PER_KIND)
@@ -314,3 +381,166 @@ object PirateHeads {
     /** Une tête inconnue (Worker plus récent que l'app) : celle du mousse. */
     operator fun get(id: Int): Head = all.getOrElse(id) { cabinBoy }
 }
+
+/** Une tête dessinée à la main, pixel par pixel, avec ses propres couleurs (ARGB). */
+class Special(val name: String, val kind: PirateHeads.Kind, val rows: List<String>, val colors: Map<Char, Long>)
+
+/** Les têtes dessinées à la main, à la fin du catalogue (190 et suivantes). Toujours en ajouter à la fin ! */
+private val SPECIALS = listOf(
+    Special(
+        "Capitaine Sparrow",
+        PirateHeads.Kind.GARCON,
+        listOf(
+            "................",
+            "................",
+            "....RRRRRRRR....",
+            "..RRRRRRRRRRRR..",
+            ".RRRRRRRRRRRRRRR",
+            ".NRRRRRRRRRRRRNR",
+            ".NSSSSSSSSSSSSN.",
+            "NNSKKSSSSSSKKSNN",
+            "NNSEESSSSSSEESNN",
+            "GNSSSSSSSSSSSSNN",
+            "NNSSSSSSSSSSSSNN",
+            "NNSBBBMMMMBBBSNN",
+            "NNSSSSSSSSSSSSNG",
+            "GN.SSSSBBSSSS.NN",
+            "NN..SSSBBSSS..GN",
+            "N......BB.....N.",
+        ),
+        mapOf(
+            'R' to 0xFFD64545L, 'N' to 0xFF3B2414L, 'S' to 0xFFC68B59L, 'K' to 0xFF1A1A1AL,
+            'E' to 0xFF2B2B2BL, 'B' to 0xFF3B2414L, 'M' to 0xFF8C2F2FL, 'G' to 0xFFF4C542L,
+        ),
+    ),
+    Special(
+        "Goth de la Tortuga",
+        PirateHeads.Kind.FILLE,
+        listOf(
+            "......KKKK......",
+            "....KKKKKKKK....",
+            "..KKKKKWWKKKKK..",
+            ".KKKKKWKKWKKKKK.",
+            "KKKKKKKWWKKKKKKK",
+            ".NRRRRRRRRRRRRN.",
+            ".NSSSSSSSSSSSSN.",
+            "NNSDDSSSSSSDDSNN",
+            "NNSEESSSSSSEESNN",
+            "NNSSSSSSSSSSSSNN",
+            "NNSSSSSSSSSSSSNN",
+            "NNSSSSSLLSSSSSNN",
+            "NNNSSSSSSSSSSNNN",
+            "NNN.SSSSSSSS.NNN",
+            "NNN...SSSS...NNN",
+            "NN............NN",
+        ),
+        mapOf(
+            'K' to 0xFF1B1B1BL, 'W' to 0xFFF2E8CFL, 'R' to 0xFF6A1B9AL, 'N' to 0xFF0D0D0DL,
+            'S' to 0xFFF7F1ECL, 'D' to 0xFF4A148CL, 'E' to 0xFF111111L, 'L' to 0xFF6A1B9AL,
+        ),
+    ),
+    Special(
+        "Miku des Mers",
+        PirateHeads.Kind.ANDROGYNE,
+        listOf(
+            "................",
+            "....NNNNNNNN....",
+            "..NNNNNNNNNNNN..",
+            ".NNNNNNNNNNNNNN.",
+            "PNNNNNNNNNNNNNNP",
+            "PNNNNSSSSSSNNNNP",
+            "NNNSSSSSSSSSSNNN",
+            "NNSSSSSSSSSSSSNN",
+            "NNSSEESSSSEESSNN",
+            "NNSSEESSSSEESSNN",
+            "NNSCSSSSSSSSCSNN",
+            "NNSSSSSMMSSSSSNN",
+            "NN.SSSSSSSSSS.NN",
+            "NN..SSSSSSSS..NN",
+            "NN............NN",
+            "NN............NN",
+        ),
+        mapOf(
+            'N' to 0xFF39C5BBL, 'P' to 0xFFE8467CL, 'S' to 0xFFF5D6C0L, 'E' to 0xFF1E8C84L,
+            'C' to 0xFFF28B82L, 'M' to 0xFFC2185BL,
+        ),
+    ),
+    Special(
+        "Emo du Kraken",
+        PirateHeads.Kind.ANDROGYNE,
+        listOf(
+            "................",
+            "....NNNNNNNN....",
+            "..NNNNNNNNNQQN..",
+            ".NNNNNNNNNNNNNN.",
+            ".NNNNNNNNNNNNNN.",
+            ".NNNNNNNNNSSSNN.",
+            ".NNNNNNNNSSSSSN.",
+            ".NNNNNNNSSSSSSN.",
+            ".NNNNNNSSSKEESN.",
+            ".NNNNNSSSSSSSSN.",
+            "..NNNSSSSSSSSS..",
+            "..NNSSSSMMMSSS..",
+            "..NSSSSSSGSSSS..",
+            "...SSSSSSSSSS...",
+            "....SSSSSSSS....",
+            "................",
+        ),
+        mapOf(
+            'N' to 0xFF151515L, 'Q' to 0xFFE91E63L, 'S' to 0xFFF2E6DAL, 'K' to 0xFF000000L,
+            'E' to 0xFF6A1B9AL, 'M' to 0xFF4A4A4AL, 'G' to 0xFFC0C0C0L,
+        ),
+    ),
+    Special(
+        "Punk des Caraïbes",
+        PirateHeads.Kind.ANDROGYNE,
+        listOf(
+            ".......QQ.......",
+            "......QQQQ......",
+            "......QQQQ......",
+            ".....QQQQQQ.....",
+            "....SSQQQQSS....",
+            "..SSSSQQQQSSSS..",
+            "..SSSSSSSSSSSS..",
+            "..SSSSSSSSSSSS..",
+            "..SSEESSSSEESSG.",
+            "..SSSSSSSSSSSSG.",
+            "..SSFSSSSSSFSS..",
+            "..SSSSMMMMSSSS..",
+            "..SSSSSGSSSSSS..",
+            "...SSSSSSSSSS...",
+            "....SSSSSSSS....",
+            "................",
+        ),
+        mapOf(
+            'Q' to 0xFFFF4FA3L, 'S' to 0xFFE0AC80L, 'E' to 0xFF2B2B2BL, 'G' to 0xFFC0C0C0L,
+            'F' to 0xFFB5774AL, 'M' to 0xFF8C2F2FL,
+        ),
+    ),
+    Special(
+        "Fantôme du Hollandais",
+        PirateHeads.Kind.ANDROGYNE,
+        listOf(
+            "......KKKK......",
+            "....KKKKKKKK....",
+            "..KKKKKKKKKKKK..",
+            ".KKKK.KKKK.KKKK.",
+            "KKKKKKKKKKKKKKKK",
+            "..RRRRRRRRRRRR..",
+            "..SSSSSSSSSSSS..",
+            "..SSSSSSSSSSSS..",
+            "..SEESSSSSSEES..",
+            "..SEESSSSSSEES..",
+            "..SSSSSSSSSSSS..",
+            "..SSSMMMMMMSSS..",
+            "..BSSSSSSSSSSB..",
+            "...BBSSSSSSBB...",
+            "....BBBBBBBB....",
+            ".....B.BB.B.....",
+        ),
+        mapOf(
+            'K' to 0xFF2F4F4FL, 'R' to 0xFF4F7F7FL, 'S' to 0xFF9FE0D8L, 'E' to 0xFF0B3B3BL,
+            'M' to 0xFF0B3B3BL, 'B' to 0xFF3E7D5AL,
+        ),
+    ),
+)

@@ -46,11 +46,14 @@ class PirateLevelTest {
 class PirateHeadsTest {
 
     @Test
-    fun `cinquante têtes de 16 sur 16 par sorte de pirate, toutes différentes`() {
-        assertEquals(150, PirateHeads.all.size)
-        PirateHeads.Kind.entries.forEach { assertEquals(PirateHeads.PER_KIND, PirateHeads.ofKind(it).size) }
+    fun `toutes les têtes font 16 sur 16 et sont toutes différentes`() {
+        assertEquals(196, PirateHeads.all.size)
         assertEquals(PirateHeads.Kind.FILLE, PirateHeads[50].kind)
         assertEquals(PirateHeads.Kind.ANDROGYNE, PirateHeads[149].kind)
+        // Ajoutées ensuite : flibustiers aux cheveux longs, flibustières aux cheveux courts, têtes dessinées à la main.
+        assertTrue((150..169).all { PirateHeads[it].kind == PirateHeads.Kind.GARCON && PirateHeads[it].hair != PirateHeads.Hair.NONE })
+        assertTrue((170..189).all { PirateHeads[it].kind == PirateHeads.Kind.FILLE && PirateHeads[it].hair in listOf(PirateHeads.Hair.SHORT, PirateHeads.Hair.CROP) })
+        assertEquals("Capitaine Sparrow", PirateHeads[190].label)
         PirateHeads.all.forEachIndexed { id, head ->
             assertEquals(id, head.id)
             assertEquals(16, head.sprite.size)

@@ -57,7 +57,8 @@ fun AccountScreen(viewModel: AccountViewModel, doubloons: Int, devMode: Boolean,
     // Le Worker a peut-être changé d'avis (pseudo, tête) depuis un autre téléphone.
     LaunchedEffect(Unit) { viewModel.refresh() }
 
-    if (choosingHead) {
+    // Le menu des têtes prend toute la page (dans une Dialog, la grille ne défilait pas).
+    val headMenu: @Composable () -> Unit = {
         HeadMenu(
             current = account.head,
             unlocked = account.heads,
@@ -102,6 +103,11 @@ fun AccountScreen(viewModel: AccountViewModel, doubloons: Int, devMode: Boolean,
                 Choice("réfléchir encore", ChoiceKind.CANCEL, { unlocking = null }),
             ),
         )
+    }
+
+    if (choosingHead) {
+        headMenu()
+        return
     }
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {

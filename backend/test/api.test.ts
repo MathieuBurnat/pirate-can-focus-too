@@ -432,7 +432,8 @@ describe("niveaux et têtes du pirate", () => {
 
   it("refuse une tête qui n'existe pas", async () => {
     const token = await sailor("perdu@tetes.fr", 5000);
-    for (const head of [-1, 150, 2.5, "3"]) expect((await chooseHead(token, head)).status).toBe(400);
+    for (const head of [-1, 196, 2.5, "3"]) expect((await chooseHead(token, head)).status).toBe(400);
+    expect((await chooseHead(token, 195)).status).toBe(200);
   });
 });
 
