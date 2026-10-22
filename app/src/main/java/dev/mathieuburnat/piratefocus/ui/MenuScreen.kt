@@ -46,6 +46,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 @Composable
 fun MenuScreen(
     phase: Phase,
+    greet: Boolean,
+    onGreeted: () -> Unit,
     signedIn: Boolean,
     pirateName: String,
     devMode: Boolean,
@@ -95,8 +97,11 @@ fun MenuScreen(
                 }
                 Spacer(Modifier.height(24.dp))
                 // Environ une fois sur 5, le capitaine salue le matelot par son pseudo (tiré à chaque retour au menu).
-                val greeting = rememberSaveable { if (CaptainHello.shouldGreet(pirateName)) CaptainHello.greeting(pirateName) else "" }
-                    .ifEmpty { null }
+                // [greet] : le matelot vient de se connecter, le capitaine salue à coup sûr.
+                val greeting = rememberSaveable {
+                    if (pirateName.isNotBlank() && (greet || CaptainHello.shouldGreet(pirateName))) CaptainHello.greeting(pirateName) else ""
+                }.ifEmpty { null }
+                LaunchedEffect(Unit) { if (greet) onGreeted() }
                 Box {
                     PixelPirate(phase = Phase.IDLE, happy = greeting != null, lookingAtYou = greeting != null)
                     if (greeting != null) PixelWavingHand(Modifier.align(Alignment.CenterEnd).offset(x = 28.dp, y = 16.dp))

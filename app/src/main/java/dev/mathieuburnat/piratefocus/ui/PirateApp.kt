@@ -75,6 +75,19 @@ fun PirateApp(
         connectionBack = from
         screen = Screen.CONNECTION
     }
+    // Tout juste connecté : retour au menu, où le capitaine salue à coup sûr (une fois le code secret noté).
+    var greetNext by rememberSaveable { mutableStateOf(false) }
+    var wasSignedIn by rememberSaveable { mutableStateOf(accountState.account.signedIn) }
+    LaunchedEffect(accountState.account.signedIn, accountState.recoveryCode) {
+        val signedIn = accountState.account.signedIn
+        if (!signedIn) {
+            wasSignedIn = false
+        } else if (!wasSignedIn && accountState.recoveryCode == null) {
+            wasSignedIn = true
+            greetNext = true
+            if (screen == Screen.CONNECTION) screen = Screen.MENU
+        }
+    }
     LifecycleResumeEffect(Unit) {
         guardReady = GuardPermissions.isReady(context)
         onPauseOrDispose { }
@@ -97,6 +110,8 @@ fun PirateApp(
                 Screen.WELCOME -> WelcomeScreen(accountViewModel, onDone = { screen = Screen.MENU })
                 Screen.MENU -> MenuScreen(
                     phase = phase,
+                    greet = greetNext,
+                    onGreeted = { greetNext = false },
                     signedIn = accountState.account.signedIn,
                     pirateName = accountState.account.pirateName,
                     devMode = devMode,
