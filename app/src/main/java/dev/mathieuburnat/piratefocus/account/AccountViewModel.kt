@@ -192,6 +192,12 @@ class AccountViewModel(
         launchBusy { saveMe(api.chooseHead(token, head)) }
     }
 
+    /**
+     * Mode dev : essayer n'importe quelle tête, sur ce téléphone seulement (rien n'est débloqué ni envoyé au Worker,
+     * qui remettra la vraie tête à la prochaine relecture du compte).
+     */
+    fun tryHead(head: Int) = save(account.copy(head = head))
+
     fun setPublic(public: Boolean) {
         val token = account.token ?: return
         launchBusy { save(account.copy(public = api.updateMe(token, public = public).public)) }

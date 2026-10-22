@@ -225,6 +225,7 @@ fun PirateApp(
                 Screen.ACCOUNT -> AccountScreen(
                     accountViewModel,
                     doubloons = state.timer.doubloons,
+                    devMode = devMode,
                     onBack = { screen = Screen.MENU },
                     onConnection = { openConnection(from = Screen.ACCOUNT) },
                 )

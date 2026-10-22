@@ -44,7 +44,7 @@ import dev.mathieuburnat.piratefocus.player.PirateLevel
  * Tout ce qui touche au compte est derrière « INFORMATIONS DE CONNEXION ».
  */
 @Composable
-fun AccountScreen(viewModel: AccountViewModel, doubloons: Int, onBack: () -> Unit, onConnection: () -> Unit) {
+fun AccountScreen(viewModel: AccountViewModel, doubloons: Int, devMode: Boolean, onBack: () -> Unit, onConnection: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val account = state.account
     var name by rememberSaveable(account.pirateName) { mutableStateOf(account.pirateName) }
@@ -63,10 +63,12 @@ fun AccountScreen(viewModel: AccountViewModel, doubloons: Int, onBack: () -> Uni
             unlocked = account.heads,
             level = level,
             state = state,
+            devMode = devMode,
             onChoose = { head ->
                 when {
                     head == account.head -> Unit
                     PirateLevel.canWear(head, account.heads, level) -> viewModel.chooseHead(head, doubloons)
+                    devMode -> viewModel.tryHead(head) // essayage du mode dev : rien n'est débloqué
                     freeSlots > 0 -> unlocking = head
                     else -> viewModel.chooseHead(head, doubloons) // le capitaine dit pourquoi c'est non
                 }
@@ -120,7 +122,7 @@ fun AccountScreen(viewModel: AccountViewModel, doubloons: Int, onBack: () -> Uni
 
             // Le pirate en grand, son pseudo et son niveau.
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                // Toucher la tête ouvre le menu des têtes (garçon, fille, ou je ne dis rien).
+                // Toucher la tête ouvre le menu des têtes (garçon, fille, ou neutre).
                 PixelHead(account.head, size = 128.dp, modifier = Modifier.clickable { choosingHead = true })
                 Text("~ touche ta tête pour en changer ~", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
                 Text(account.pirateName, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)

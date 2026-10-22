@@ -43,7 +43,7 @@ private const val HEADS_PER_ROW = 5
 
 /**
  * Le menu des têtes, ouvert en touchant la tête du pirate sur sa fiche : pirate garçon, pirate fille,
- * ou « je ne dis rien » (plus androgyne), puis les 50 têtes de cette sorte.
+ * ou pirate neutre (plus androgyne), puis les 50 têtes de cette sorte. En mode dev, toutes les têtes s'essaient.
  */
 @Composable
 fun HeadMenu(
@@ -51,6 +51,7 @@ fun HeadMenu(
     unlocked: List<Int>,
     level: Int,
     state: AccountUiState,
+    devMode: Boolean,
     onChoose: (Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -88,6 +89,14 @@ fun HeadMenu(
 
                 SectionTitle("Têtes")
                 Text(AccountQuotes.headsExplained(level, freeSlots), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp))
+                if (devMode) {
+                    Text(
+                        "[ mode dev ] Toutes les têtes s'essaient, sans rien débloquer.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
                 PirateHeads.ofKind(kind).chunked(HEADS_PER_ROW).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
                         row.forEach { head ->
@@ -96,7 +105,7 @@ fun HeadMenu(
                                 head = head.id,
                                 worn = head.id == current,
                                 wearable = wearable,
-                                unlockable = !wearable && freeSlots > 0,
+                                unlockable = !wearable && (freeSlots > 0 || devMode),
                                 modifier = Modifier.weight(1f),
                                 onClick = { onChoose(head.id) },
                             )

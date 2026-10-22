@@ -141,7 +141,7 @@ object PirateHeads {
     enum class Kind(val label: String) {
         GARCON("GARÇON"),
         FILLE("FILLE"),
-        ANDROGYNE("JE NE DIS RIEN"),
+        ANDROGYNE("NEUTRE"),
     }
 
     /** Les cheveux : [top] sans chapeau, et les mèches ([cells], ligne et colonne) posées là où il n'y a rien. */
