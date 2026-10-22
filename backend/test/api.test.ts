@@ -409,7 +409,9 @@ describe("niveaux et têtes du pirate", () => {
   it("refuse de changer de tête avant le niveau 5, sauf pour la tête de départ", async () => {
     const token = await sailor("mousse@tetes.fr", 499);
     expect((await chooseHead(token, 7)).status).toBe(403);
-    expect((await chooseHead(token, 0)).status).toBe(200);
+    // Les têtes de départ : garçon, fille, je ne dis rien.
+    for (const head of [0, 50, 100]) expect((await chooseHead(token, head)).status).toBe(200);
+    expect(await (await api("/me", { token })).json<any>()).toMatchObject({ head: 100, heads: [] });
   });
 
   it("au niveau 5, 3 têtes au choix, puis on navigue librement entre elles", async () => {
@@ -424,13 +426,13 @@ describe("niveaux et têtes du pirate", () => {
 
   it("au niveau 10, toutes les têtes, sans les compter", async () => {
     const token = await sailor("capitaine@tetes.fr", 2250);
-    for (const head of [1, 2, 3, 4, 49]) expect((await chooseHead(token, head)).status).toBe(200);
-    expect(await (await api("/me", { token })).json<any>()).toMatchObject({ level: 10, head: 49, heads: [] });
+    for (const head of [1, 2, 3, 4, 149]) expect((await chooseHead(token, head)).status).toBe(200);
+    expect(await (await api("/me", { token })).json<any>()).toMatchObject({ level: 10, head: 149, heads: [] });
   });
 
   it("refuse une tête qui n'existe pas", async () => {
     const token = await sailor("perdu@tetes.fr", 5000);
-    for (const head of [-1, 50, 2.5, "3"]) expect((await chooseHead(token, head)).status).toBe(400);
+    for (const head of [-1, 150, 2.5, "3"]) expect((await chooseHead(token, head)).status).toBe(400);
   });
 });
 

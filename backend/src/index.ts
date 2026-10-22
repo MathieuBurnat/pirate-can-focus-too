@@ -2,7 +2,7 @@ import { hashPassword, normalizeRecoveryCode, randomCode, randomRecoveryCode, ra
 import { sendLoginCode } from "./email";
 import type { Env } from "./env";
 import { verifyGoogleIdToken } from "./google";
-import { ALL_HEADS_LEVEL, HEAD_COUNT, HEADS_AT_LEVEL_5, HEADS_LEVEL, headSlots, levelOf, parseHeads } from "./levels";
+import { ALL_HEADS_LEVEL, HEAD_COUNT, HEADS_AT_LEVEL_5, HEADS_LEVEL, headSlots, levelOf, parseHeads, STARTER_HEADS } from "./levels";
 import { cleanPirateName, formerPirateName, randomPirateName } from "./names";
 
 /** Les lignes que le journal du téléphone sait écrire (enum Entry côté app). */
@@ -378,7 +378,7 @@ async function chooseHead(env: Env, request: Request, pirateId: string) {
   const row = await meRow(env, pirateId);
   const unlocked = parseHeads(row.heads);
   const level = levelOf(row.doubloons ?? 0);
-  if (head !== 0 && !unlocked.includes(head)) {
+  if (!STARTER_HEADS.has(head) && !unlocked.includes(head)) {
     if (level < HEADS_LEVEL) throw new HttpError(403, `Changer de tête, c'est au niveau ${HEADS_LEVEL}, moussaillon !`);
     if (unlocked.length >= headSlots(level)) {
       throw new HttpError(403, `Tes ${HEADS_AT_LEVEL_5} têtes sont choisies : les autres attendront le niveau ${ALL_HEADS_LEVEL} !`);

@@ -33,9 +33,9 @@ object PirateLevel {
         else -> 0
     }
 
-    /** Peut-on porter [head] tout de suite (tête de départ, déjà débloquée, ou niveau 10) ? */
+    /** Peut-on porter [head] tout de suite (une tête de départ, déjà débloquée, ou niveau 10) ? */
     fun canWear(head: Int, unlocked: List<Int>, level: Int): Boolean =
-        head == 0 || head in unlocked || level >= ALL_HEADS_LEVEL
+        head in PirateHeads.STARTERS || head in unlocked || level >= ALL_HEADS_LEVEL
 
     /** Places encore libres pour débloquer une tête (0 avant le niveau 5, ou une fois les 3 choisies). */
     fun freeSlots(unlocked: List<Int>, level: Int): Int = (headSlots(level) - unlocked.size).coerceAtLeast(0)

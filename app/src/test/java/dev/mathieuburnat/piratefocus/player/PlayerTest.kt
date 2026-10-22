@@ -21,8 +21,8 @@ class PirateLevelTest {
     }
 
     @Test
-    fun `avant le niveau 5, seule la tête de départ`() {
-        assertEquals(emptyList<Int>(), PirateLevel.choose(0, emptyList(), level = 4))
+    fun `avant le niveau 5, seules les têtes de départ (garçon, fille, je ne dis rien)`() {
+        listOf(0, 50, 100).forEach { assertEquals(emptyList<Int>(), PirateLevel.choose(it, emptyList(), level = 4)) }
         assertNull(PirateLevel.choose(7, emptyList(), level = 4))
     }
 
@@ -46,8 +46,11 @@ class PirateLevelTest {
 class PirateHeadsTest {
 
     @Test
-    fun `cinquante têtes de 16 sur 16, toutes différentes`() {
-        assertEquals(PirateHeads.COUNT, PirateHeads.all.size)
+    fun `cinquante têtes de 16 sur 16 par sorte de pirate, toutes différentes`() {
+        assertEquals(150, PirateHeads.all.size)
+        PirateHeads.Kind.entries.forEach { assertEquals(PirateHeads.PER_KIND, PirateHeads.ofKind(it).size) }
+        assertEquals(PirateHeads.Kind.FILLE, PirateHeads[50].kind)
+        assertEquals(PirateHeads.Kind.ANDROGYNE, PirateHeads[149].kind)
         PirateHeads.all.forEachIndexed { id, head ->
             assertEquals(id, head.id)
             assertEquals(16, head.sprite.size)

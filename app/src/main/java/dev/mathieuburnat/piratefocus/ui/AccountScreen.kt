@@ -39,9 +39,6 @@ import dev.mathieuburnat.piratefocus.account.AccountViewModel
 import dev.mathieuburnat.piratefocus.player.PirateHeads
 import dev.mathieuburnat.piratefocus.player.PirateLevel
 
-/** Têtes par rangée dans la fiche. */
-private const val HEADS_PER_ROW = 5
-
 /**
  * « Ma fiche de matelot » (#18) : le joueur, pas le compte. Sa tête, son pseudo, son niveau et les têtes à choisir.
  * Tout ce qui touche au compte est derrière « INFORMATIONS DE CONNEXION ».
@@ -53,11 +50,33 @@ fun AccountScreen(viewModel: AccountViewModel, doubloons: Int, onBack: () -> Uni
     var name by rememberSaveable(account.pirateName) { mutableStateOf(account.pirateName) }
     // La tête que le matelot hésite à débloquer (null : pas de question).
     var unlocking by remember { mutableStateOf<Int?>(null) }
+    var choosingHead by rememberSaveable { mutableStateOf(false) }
     val level = PirateLevel.of(doubloons)
     val freeSlots = PirateLevel.freeSlots(account.heads, level)
 
     // Le Worker a peut-être changé d'avis (pseudo, tête) depuis un autre téléphone.
     LaunchedEffect(Unit) { viewModel.refresh() }
+
+    if (choosingHead) {
+        HeadMenu(
+            current = account.head,
+            unlocked = account.heads,
+            level = level,
+            state = state,
+            onChoose = { head ->
+                when {
+                    head == account.head -> Unit
+                    PirateLevel.canWear(head, account.heads, level) -> viewModel.chooseHead(head, doubloons)
+                    freeSlots > 0 -> unlocking = head
+                    else -> viewModel.chooseHead(head, doubloons) // le capitaine dit pourquoi c'est non
+                }
+            },
+            onDismiss = {
+                choosingHead = false
+                viewModel.clearError()
+            },
+        )
+    }
 
     unlocking?.let { head ->
         ChoiceDialog(
@@ -101,7 +120,9 @@ fun AccountScreen(viewModel: AccountViewModel, doubloons: Int, onBack: () -> Uni
 
             // Le pirate en grand, son pseudo et son niveau.
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                PixelHead(account.head, size = 128.dp)
+                // Toucher la tête ouvre le menu des têtes (garçon, fille, ou je ne dis rien).
+                PixelHead(account.head, size = 128.dp, modifier = Modifier.clickable { choosingHead = true })
+                Text("~ touche ta tête pour en changer ~", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
                 Text(account.pirateName, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                 Text("Niveau $level", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                 Text(levelBar(doubloons), style = MaterialTheme.typography.bodySmall)
@@ -118,57 +139,12 @@ fun AccountScreen(viewModel: AccountViewModel, doubloons: Int, onBack: () -> Uni
             if (name.trim() != account.pirateName) MenuItem("RENOMMER", onClick = { viewModel.rename(name) }, dimmed = state.busy)
             Spacer(Modifier.height(16.dp))
 
-            SectionTitle("Têtes")
-            Text(AccountQuotes.headsExplained(level, freeSlots), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp))
-            PirateHeads.all.chunked(HEADS_PER_ROW).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-                    row.forEach { head ->
-                        val wearable = PirateLevel.canWear(head.id, account.heads, level)
-                        HeadCell(
-                            head = head.id,
-                            worn = head.id == account.head,
-                            wearable = wearable,
-                            unlockable = !wearable && freeSlots > 0,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                when {
-                                    head.id == account.head -> Unit
-                                    wearable -> viewModel.chooseHead(head.id, doubloons)
-                                    freeSlots > 0 -> unlocking = head.id
-                                    else -> viewModel.chooseHead(head.id, doubloons) // le capitaine dit pourquoi c'est non
-                                }
-                            },
-                        )
-                    }
-                }
-            }
             BusyAndError(state)
 
             Spacer(Modifier.height(24.dp))
             MenuItem(if (account.signedIn) "INFORMATIONS DE CONNEXION" else "CRÉER UN COMPTE GRATUIT", onClick = onConnection)
             if (!account.signedIn) Text(AccountQuotes.NO_ACCOUNT_INFO, style = MaterialTheme.typography.bodySmall)
         }
-    }
-}
-
-/** Une tête de la fiche : portée (cadre doré), permise (cadre fin), à débloquer, ou encore verrouillée (pâle). */
-@Composable
-private fun HeadCell(head: Int, worn: Boolean, wearable: Boolean, unlockable: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val border = when {
-        worn -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-        wearable -> BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
-        unlockable -> BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f))
-        else -> BorderStroke(1.dp, Color.Transparent)
-    }
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .aspectRatio(1f)
-            .border(border, RectangleShape)
-            .clickable(onClick = onClick)
-            .alpha(if (wearable || unlockable) 1f else 0.3f),
-    ) {
-        PixelHead(head, size = 56.dp)
     }
 }
 
