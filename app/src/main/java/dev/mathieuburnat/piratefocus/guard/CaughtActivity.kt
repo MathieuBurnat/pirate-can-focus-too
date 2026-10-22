@@ -47,11 +47,14 @@ class CaughtActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val appName = intent.getStringExtra(EXTRA_PACKAGE)?.let(::labelFor) ?: "cette appli"
+        // Chassé par le bouclier anti-sirènes (mode dev) plutôt que par le gardien des traversées.
+        val siren = intent.getBooleanExtra(EXTRA_SIREN, false)
+        fun nextQuote(current: String?) = if (siren) PirateQuotes.sirenCaught(current) else PirateQuotes.caught(appName, current)
 
         setContent {
             PirateFocusTheme {
                 BackHandler { backToShip() }
-                var quote by remember { mutableStateOf(PirateQuotes.caught(appName)) }
+                var quote by remember { mutableStateOf(nextQuote(null)) }
                 Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
                   Column {
                     Column(
@@ -72,7 +75,7 @@ class CaughtActivity : ComponentActivity() {
                             "« $quote »",
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.clickable { quote = PirateQuotes.caught(appName, current = quote) },
+                            modifier = Modifier.clickable { quote = nextQuote(quote) },
                         )
                         Spacer(Modifier.height(32.dp))
                         Button(onClick = ::backToShip, shape = RectangleShape, modifier = Modifier.fillMaxWidth()) {
@@ -97,6 +100,10 @@ class CaughtActivity : ComponentActivity() {
 
     companion object {
         private const val EXTRA_PACKAGE = "package"
+        private const val EXTRA_SIREN = "sirene"
+
+        fun sirenIntent(context: Context): Intent =
+            intent(context, SirenShield.INSTAGRAM).putExtra(EXTRA_SIREN, true)
 
         fun intent(context: Context, packageName: String): Intent =
             Intent(context, CaughtActivity::class.java)

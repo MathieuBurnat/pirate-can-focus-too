@@ -22,6 +22,13 @@ class DevModeStore(context: Context) {
     /** Les fausses données ne servent que mode dev allumé. */
     fun isFakeData(): Boolean = isOn() && prefs.getBoolean(FAKE_DATA, false)
 
+    /** Le bouclier anti-sirènes (stories d'Instagram refermées, Instagram chassé au 5e défilement) : mode dev seulement. */
+    fun isSirenShield(): Boolean = isOn() && prefs.getBoolean(SIREN_SHIELD, false)
+
+    fun setSirenShield(on: Boolean) {
+        prefs.edit().putBoolean(SIREN_SHIELD, on).apply()
+    }
+
     fun setFakeData(on: Boolean) {
         prefs.edit().putBoolean(FAKE_DATA, on).apply()
     }
@@ -45,5 +52,6 @@ class DevModeStore(context: Context) {
         private const val KEY = "mode_dev"
         private const val REVEALED = "mode_dev_visible"
         private const val FAKE_DATA = "mode_dev_fake_data"
+        private const val SIREN_SHIELD = "mode_dev_bouclier_sirenes"
     }
 }

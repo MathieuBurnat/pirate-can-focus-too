@@ -59,6 +59,7 @@ fun PirateApp(
     var devMode by remember { mutableStateOf(devModeStore.isOn()) }
     var devRevealed by remember { mutableStateOf(devModeStore.isRevealed()) }
     var fakeData by remember { mutableStateOf(devModeStore.isFakeData()) }
+    var sirenShield by remember { mutableStateOf(devModeStore.isSirenShield()) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val phase = state.timer.phase
 
@@ -174,10 +175,16 @@ fun PirateApp(
                         devMode = false
                         devRevealed = false
                         fakeData = false
+                        sirenShield = false
                         screen = Screen.WELCOME
                         Toast.makeText(context.applicationContext, "Merci pour tout. Bon voyage !", Toast.LENGTH_LONG).show()
                     },
                     anonymous = !accountState.account.signedIn,
+                    sirenShield = sirenShield,
+                    onSirenShieldChange = {
+                        devModeStore.setSirenShield(it)
+                        sirenShield = it
+                    },
                     onLinkAccount = { openConnection(from = Screen.DEV_MODE) },
                     onFakeDataChange = {
                         devModeStore.setFakeData(it)
@@ -187,6 +194,7 @@ fun PirateApp(
                         devModeStore.set(it)
                         devMode = it
                         fakeData = devModeStore.isFakeData()
+                        sirenShield = devModeStore.isSirenShield()
                         // Mode dev éteint : le bouton se recache, retour aux paramètres.
                         if (!it) {
                             devModeStore.hide()

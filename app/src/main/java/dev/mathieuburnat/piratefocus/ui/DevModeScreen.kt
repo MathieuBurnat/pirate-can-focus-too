@@ -34,7 +34,15 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import android.content.Intent
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.mathieuburnat.piratefocus.focus.Phase
+import dev.mathieuburnat.piratefocus.guard.SirenShield
+import dev.mathieuburnat.piratefocus.guard.SirenShieldService
 
 /**
  * La page du mode dev (dénichée dans les paramètres) : l'activer ou non, et, mode dev allumé,
@@ -50,7 +58,16 @@ fun DevModeScreen(
     onFactoryReset: () -> Unit,
     anonymous: Boolean,
     onLinkAccount: () -> Unit,
+    sirenShield: Boolean,
+    onSirenShieldChange: (Boolean) -> Unit,
 ) {
+    val context = LocalContext.current
+    // Relu au retour des réglages d'accessibilité.
+    var shieldEnabled by remember { mutableStateOf(SirenShieldService.isEnabled(context)) }
+    LifecycleResumeEffect(Unit) {
+        shieldEnabled = SirenShieldService.isEnabled(context)
+        onPauseOrDispose { }
+    }
     var hello by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
     var reallySure by remember { mutableStateOf(false) }
@@ -111,7 +128,7 @@ fun DevModeScreen(
     }
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
-        Column(Modifier.safeDrawingPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(
                 "< PARAMÈTRES",
                 style = MaterialTheme.typography.labelLarge,
@@ -145,8 +162,30 @@ fun DevModeScreen(
                     )
                 }
             }
-            ScrollIn(devMode, order = 1) { MenuItem("3. FACTORY RESET", onClick = { confirmReset = true }) }
-            ScrollIn(devMode && titleTaps >= HELLO_TAPS, order = 0) { MenuItem("4. HI DAAD", onClick = { hello = true }) }
+            ScrollIn(devMode, order = 1) {
+                Column {
+                    MenuItem("3. BOUCLIER ANTI-SIRÈNES  ${if (sirenShield) "[x]" else "[ ]"}", onClick = { onSirenShieldChange(!sirenShield) })
+                    Text(
+                        "Instagram : les stories se referment, et au ${SirenShield.SCROLL_LIMIT}e défilement le capitaine te chasse, " +
+                            "puis bloque Instagram ${SirenShield.BLOCK_MS / 60_000} minutes.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    // Le bouclier a besoin d'un service d'accessibilité, à activer à la main dans les réglages du téléphone.
+                    if (sirenShield && !shieldEnabled) {
+                        Text(
+                            "> ACTIVER « Pirate Focus : bouclier anti-sirènes » DANS L'ACCESSIBILITÉ",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier
+                                .clickable { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+                                .padding(vertical = 6.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+            }
+            ScrollIn(devMode, order = 2) { MenuItem("4. FACTORY RESET", onClick = { confirmReset = true }) }
+            ScrollIn(devMode && titleTaps >= HELLO_TAPS, order = 0) { MenuItem("5. HI DAAD", onClick = { hello = true }) }
         }
     }
 

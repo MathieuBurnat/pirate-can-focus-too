@@ -115,4 +115,23 @@ object PirateQuotes {
     )
 
     fun guardReminder(random: Random = Random.Default): String = guardReminders.random(random)
+
+    /** Bouclier anti-sirènes (mode dev) : une story qui voulait s'ouvrir. */
+    private val sirenStories = listOf(
+        "Les stories ? Des sirènes, matelot. On se bouche les oreilles.",
+        "Story refermée ! Le capitaine a l'œil. Enfin, celui qui reste.",
+        "Pas de stories à bord. Ordre du capitaine !",
+    )
+
+    fun sirenStory(random: Random = Random.Default): String = sirenStories.random(random)
+
+    /** Bouclier anti-sirènes : chassé d'Instagram au 5e défilement, puis bloqué un moment. */
+    private val sirenCaught = listOf(
+        "Cinq coups de pouce dans le vide ! Les sirènes t'appelaient, je t'ai attaché au mât.",
+        "Tu scrolles comme on rame à contre-courant. Instagram est consigné à quai pour un moment !",
+        "Le chant des sirènes, ça suffit ! Instagram reste sous scellés une demi-heure.",
+    )
+
+    fun sirenCaught(current: String? = null, random: Random = Random.Default): String =
+        sirenCaught.filter { it != current }.ifEmpty { sirenCaught }.random(random)
 }

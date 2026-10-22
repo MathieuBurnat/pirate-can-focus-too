@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Pirate Focus</string>
+    <string name="siren_shield_label">Pirate Focus : bouclier anti-sirènes</string>
+    <string name="siren_shield_description">Option du mode dev de Pirate Focus. Referme les stories d\'Instagram et ferme Instagram au 5e défilement, puis le bloque 30 minutes. Le capitaine ne lit rien : il regarde seulement quel écran d\'Instagram est ouvert.</string>
 </resources>
