@@ -137,11 +137,14 @@ object PirateHeads {
         ),
     }
 
-    /** Pirate garçon, pirate fille, ou pirate qui ne dit rien (plus androgyne) : 50 têtes chacun. */
+    /**
+     * Pirate garçon, pirate fille, ou pirate neutre (plus androgyne) : 50 têtes chacun.
+     * À l'écran, des noms de pirates : flibustier, flibustière, et corsaire (le même mot pour tout le monde).
+     */
     enum class Kind(val label: String) {
-        GARCON("GARÇON"),
-        FILLE("FILLE"),
-        ANDROGYNE("NEUTRE"),
+        GARCON("FLIBUSTIER"),
+        FILLE("FLIBUSTIÈRE"),
+        ANDROGYNE("CORSAIRE"),
     }
 
     /** Les cheveux : [top] sans chapeau, et les mèches ([cells], ligne et colonne) posées là où il n'y a rien. */
