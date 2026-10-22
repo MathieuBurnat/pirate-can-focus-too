@@ -17,8 +17,20 @@ import java.util.UUID
 /** Une réponse d'erreur du Worker (son message est déjà en français pirate), ou un réseau absent (status 0). */
 class ApiException(val status: Int, message: String) : Exception(message)
 
-/** Ce que le Worker sait du pirate connecté. */
-data class Me(val name: String, val public: Boolean, val kind: String, val email: String?, val login: String?, val google: Boolean = false)
+/**
+ * Ce que le Worker sait du pirate connecté. [head] et [heads] : null si le Worker ne connaît pas encore les têtes
+ * (le téléphone garde alors les siennes).
+ */
+data class Me(
+    val name: String,
+    val public: Boolean,
+    val kind: String,
+    val email: String?,
+    val login: String?,
+    val google: Boolean = false,
+    val head: Int? = null,
+    val heads: List<Int>? = null,
+)
 
 /** [recoveryCode] : le code secret, montré une seule fois (création du compte, mot de passe oublié). */
 data class Session(val token: String, val created: Boolean, val me: Me, val recoveryCode: String? = null)
@@ -70,6 +82,9 @@ class PirateApi(private val baseUrl: String = BASE_URL) {
         if (public != null) body.put("public", public)
         return me(call("POST", "/me", token, body))
     }
+
+    /** Changer de tête ; le Worker vérifie le niveau et les 3 places du niveau 5. */
+    suspend fun chooseHead(token: String, head: Int): Me = me(call("POST", "/me/head", token, JSONObject().put("head", head)))
 
     suspend fun deleteMe(token: String) {
         call("DELETE", "/me", token)
@@ -131,6 +146,8 @@ class PirateApi(private val baseUrl: String = BASE_URL) {
             email = account?.takeUnless { it.isNull("email") }?.optString("email"),
             login = account?.takeUnless { it.isNull("login") || !it.has("login") }?.optString("login"),
             google = account?.optBoolean("google") ?: false,
+            head = json.takeIf { it.has("head") }?.optInt("head"),
+            heads = json.optJSONArray("heads")?.let { heads -> (0 until heads.length()).map { heads.getInt(it) } },
         )
     }
 

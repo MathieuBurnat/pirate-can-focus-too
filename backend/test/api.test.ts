@@ -393,6 +393,47 @@ describe("identifiant, mot de passe et code secret", () => {
   });
 });
 
+describe("niveaux et têtes du pirate", () => {
+  const sailor = async (login: string, doubloons: number) => {
+    const { token } = await (await api("/auth/register", { json: { login, password: "tete-de-mort", name: "Tête Brûlée" } })).json<any>();
+    await api("/sync", { token, json: { logs: [], chest: { doubloons, voyages: 1 } } });
+    return token as string;
+  };
+  const chooseHead = (token: string, head: unknown) => api("/me/head", { token, json: { head } });
+
+  it("donne le niveau tiré des doublons, avec la tête de départ", async () => {
+    const token = await sailor("novice@tetes.fr", 149);
+    expect(await (await api("/me", { token })).json<any>()).toMatchObject({ level: 2, head: 0, heads: [] });
+  });
+
+  it("refuse de changer de tête avant le niveau 5, sauf pour la tête de départ", async () => {
+    const token = await sailor("mousse@tetes.fr", 499);
+    expect((await chooseHead(token, 7)).status).toBe(403);
+    expect((await chooseHead(token, 0)).status).toBe(200);
+  });
+
+  it("au niveau 5, 3 têtes au choix, puis on navigue librement entre elles", async () => {
+    const token = await sailor("bosco@tetes.fr", 500);
+    for (const head of [3, 9, 12]) expect((await chooseHead(token, head)).status).toBe(200);
+    const refused = await chooseHead(token, 20);
+    expect(refused.status).toBe(403);
+    const back = await (await chooseHead(token, 9)).json<any>();
+    expect(back).toMatchObject({ level: 5, head: 9, heads: [3, 9, 12] });
+    expect((await chooseHead(token, 0)).status).toBe(200);
+  });
+
+  it("au niveau 10, toutes les têtes, sans les compter", async () => {
+    const token = await sailor("capitaine@tetes.fr", 2250);
+    for (const head of [1, 2, 3, 4, 49]) expect((await chooseHead(token, head)).status).toBe(200);
+    expect(await (await api("/me", { token })).json<any>()).toMatchObject({ level: 10, head: 49, heads: [] });
+  });
+
+  it("refuse une tête qui n'existe pas", async () => {
+    const token = await sailor("perdu@tetes.fr", 5000);
+    for (const head of [-1, 50, 2.5, "3"]) expect((await chooseHead(token, head)).status).toBe(400);
+  });
+});
+
 describe("envoi des codes", () => {
   it("passe par Brevo quand sa clé est là, avec l'expéditeur découpé en nom et adresse", async () => {
     env.BREVO_API_KEY = "xkeysib-test";

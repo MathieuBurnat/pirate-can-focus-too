@@ -16,6 +16,8 @@ class AccountStore(context: Context) {
         kind = prefs.getString(KEY_KIND, null),
         google = prefs.getBoolean(KEY_GOOGLE, false),
         public = prefs.getBoolean(KEY_PUBLIC, true),
+        head = prefs.getInt(KEY_HEAD, 0),
+        heads = prefs.getString(KEY_HEADS, null).orEmpty().split(',').mapNotNull { it.toIntOrNull() },
     )
 
     fun save(account: Account) {
@@ -28,6 +30,8 @@ class AccountStore(context: Context) {
             .putString(KEY_KIND, account.kind)
             .putBoolean(KEY_GOOGLE, account.google)
             .putBoolean(KEY_PUBLIC, account.public)
+            .putInt(KEY_HEAD, account.head)
+            .putString(KEY_HEADS, account.heads.joinToString(","))
             .apply()
     }
 
@@ -41,5 +45,7 @@ class AccountStore(context: Context) {
         private const val KEY_KIND = "type"
         private const val KEY_GOOGLE = "google_lie"
         private const val KEY_PUBLIC = "public"
+        private const val KEY_HEAD = "tete"
+        private const val KEY_HEADS = "tetes"
     }
 }

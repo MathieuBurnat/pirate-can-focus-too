@@ -2,6 +2,7 @@ import { hashPassword, normalizeRecoveryCode, randomCode, randomRecoveryCode, ra
 import { sendLoginCode } from "./email";
 import type { Env } from "./env";
 import { verifyGoogleIdToken } from "./google";
+import { ALL_HEADS_LEVEL, HEAD_COUNT, HEADS_AT_LEVEL_5, HEADS_LEVEL, headSlots, levelOf, parseHeads } from "./levels";
 import { cleanPirateName, formerPirateName, randomPirateName } from "./names";
 
 /** Les lignes que le journal du téléphone sait écrire (enum Entry côté app). */
@@ -327,21 +328,66 @@ async function changePassword(env: Env, request: Request, pirateId: string) {
 
 // --- Mon compte --------------------------------------------------------------
 
-async function me(env: Env, pirateId: string) {
+interface MeRow {
+  name: string;
+  public: number;
+  email: string | null;
+  google_sub: string | null;
+  login: string | null;
+  head: number;
+  heads: string;
+  doubloons: number | null;
+}
+
+async function meRow(env: Env, pirateId: string): Promise<MeRow> {
   const row = await env.DB.prepare(
-    `SELECT p.name, p.public, i.email, i.google_sub, c.login FROM pirates p
-     LEFT JOIN identities i ON i.pirate_id = p.id LEFT JOIN credentials c ON c.pirate_id = p.id WHERE p.id = ?`,
+    `SELECT p.name, p.public, p.head, p.heads, i.email, i.google_sub, c.login, ch.doubloons FROM pirates p
+     LEFT JOIN identities i ON i.pirate_id = p.id LEFT JOIN credentials c ON c.pirate_id = p.id
+     LEFT JOIN chests ch ON ch.pirate_id = p.id WHERE p.id = ?`,
   )
     .bind(pirateId)
-    .first<{ name: string; public: number; email: string | null; google_sub: string | null; login: string | null }>();
+    .first<MeRow>();
   if (!row) throw new HttpError(404, "Pirate introuvable");
+  return row;
+}
+
+async function me(env: Env, pirateId: string) {
+  const row = await meRow(env, pirateId);
   const kind = row.login ? "password" : row.google_sub ? "google" : "email";
   return {
     name: row.name,
     public: row.public === 1,
+    // La tête portée, celles débloquées au niveau 5, et le niveau (tiré des doublons du coffre).
+    head: row.head,
+    heads: parseHeads(row.heads),
+    level: levelOf(row.doubloons ?? 0),
     // google : un compte Google est lié (connexion Google possible), qu'il soit l'identité principale ou ajouté ensuite.
     account: { kind, email: row.email, login: row.login, google: row.google_sub !== null },
   };
+}
+
+/**
+ * Changer de tête (#18) : la tête de départ et les têtes déjà débloquées sont toujours permises. Au niveau 5,
+ * une nouvelle tête se débloque tant qu'il reste une des 3 places ; au niveau 10, toutes sont permises.
+ */
+async function chooseHead(env: Env, request: Request, pirateId: string) {
+  const head = (await body(request)).head;
+  if (typeof head !== "number" || !Number.isInteger(head) || head < 0 || head >= HEAD_COUNT) {
+    throw new HttpError(400, `Tête de 0 à ${HEAD_COUNT - 1} attendue`);
+  }
+  const row = await meRow(env, pirateId);
+  const unlocked = parseHeads(row.heads);
+  const level = levelOf(row.doubloons ?? 0);
+  if (head !== 0 && !unlocked.includes(head)) {
+    if (level < HEADS_LEVEL) throw new HttpError(403, `Changer de tête, c'est au niveau ${HEADS_LEVEL}, moussaillon !`);
+    if (unlocked.length >= headSlots(level)) {
+      throw new HttpError(403, `Tes ${HEADS_AT_LEVEL_5} têtes sont choisies : les autres attendront le niveau ${ALL_HEADS_LEVEL} !`);
+    }
+    // Au niveau 10, inutile de compter : toutes les têtes sont permises.
+    if (level < ALL_HEADS_LEVEL) unlocked.push(head);
+  }
+  await env.DB.prepare("UPDATE pirates SET head = ?, heads = ? WHERE id = ?").bind(head, unlocked.join(","), pirateId).run();
+  return json(await me(env, pirateId));
 }
 
 /** Lier un compte Google au pirate connecté : ensuite, « CONTINUER AVEC GOOGLE » retombe sur ce même pirate. */
@@ -540,6 +586,8 @@ async function route(request: Request, env: Env): Promise<Response> {
       return updateMe(env, request, await pirateOf(env, request));
     case "DELETE /me":
       return deleteMe(env, await pirateOf(env, request));
+    case "POST /me/head":
+      return chooseHead(env, request, await pirateOf(env, request));
     case "POST /sync":
       return sync(env, request, await pirateOf(env, request));
     case "GET /crew":

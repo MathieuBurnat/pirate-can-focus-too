@@ -36,7 +36,7 @@ import dev.mathieuburnat.piratefocus.journal.JournalViewModel
 import dev.mathieuburnat.piratefocus.settings.DevModeStore
 import dev.mathieuburnat.piratefocus.settings.FactoryReset
 
-private enum class Screen { WELCOME, MENU, FOCUS, JOURNAL, CREW, SETTINGS, DEV_MODE, BLOCKED_APPS, ACCOUNT }
+private enum class Screen { WELCOME, MENU, FOCUS, JOURNAL, CREW, SETTINGS, DEV_MODE, BLOCKED_APPS, ACCOUNT, CONNECTION }
 
 /** Racine de l'app : le menu de pirate et la navigation entre les écrans. */
 @Composable
@@ -68,6 +68,12 @@ fun PirateApp(
     var guardNudge by rememberSaveable { mutableStateOf<String?>(null) }
     // Les applis bloquées s'ouvrent depuis les paramètres ou depuis le capitaine (focus) : on y revient.
     var blockedAppsBack by rememberSaveable { mutableStateOf(Screen.SETTINGS) }
+    // La page de connexion s'ouvre depuis la fiche, le menu (tag « Compte local ») ou le mode dev : on y revient.
+    var connectionBack by rememberSaveable { mutableStateOf(Screen.ACCOUNT) }
+    fun openConnection(from: Screen) {
+        connectionBack = from
+        screen = Screen.CONNECTION
+    }
     LifecycleResumeEffect(Unit) {
         guardReady = GuardPermissions.isReady(context)
         onPauseOrDispose { }
@@ -78,6 +84,7 @@ fun PirateApp(
             Screen.CREW -> Screen.JOURNAL
             Screen.BLOCKED_APPS -> blockedAppsBack
             Screen.DEV_MODE -> Screen.SETTINGS
+            Screen.CONNECTION -> connectionBack
             else -> Screen.MENU
         }
     }
@@ -90,6 +97,7 @@ fun PirateApp(
                 Screen.MENU -> MenuScreen(
                     phase = phase,
                     signedIn = accountState.account.signedIn,
+                    pirateName = accountState.account.pirateName,
                     devMode = devMode,
                     onFocus = {
                         val firstTime = nudgeStore.isFirstTime()
@@ -105,7 +113,7 @@ fun PirateApp(
                     onAccount = { screen = Screen.ACCOUNT },
                     onSignIn = { mode ->
                         accountViewModel.setAuthMode(mode)
-                        screen = Screen.ACCOUNT
+                        openConnection(from = Screen.MENU)
                     },
                 )
                 Screen.FOCUS -> FocusRoute(viewModel, guardReady = guardReady, onMenu = { screen = Screen.MENU })
@@ -170,7 +178,7 @@ fun PirateApp(
                         Toast.makeText(context.applicationContext, "Merci pour tout. Bon voyage !", Toast.LENGTH_LONG).show()
                     },
                     anonymous = !accountState.account.signedIn,
-                    onLinkAccount = { screen = Screen.ACCOUNT },
+                    onLinkAccount = { openConnection(from = Screen.DEV_MODE) },
                     onFakeDataChange = {
                         devModeStore.setFakeData(it)
                         fakeData = it
@@ -193,7 +201,18 @@ fun PirateApp(
                 )
                 Screen.ACCOUNT -> AccountScreen(
                     accountViewModel,
+                    doubloons = state.timer.doubloons,
                     onBack = { screen = Screen.MENU },
+                    onConnection = { openConnection(from = Screen.ACCOUNT) },
+                )
+                Screen.CONNECTION -> ConnectionScreen(
+                    accountViewModel,
+                    backLabel = when (connectionBack) {
+                        Screen.MENU -> "< MENU"
+                        Screen.DEV_MODE -> "< MODE DEV"
+                        else -> "< MA FICHE"
+                    },
+                    onBack = { screen = connectionBack },
                     // Déconnecté ou compte supprimé : retour à l'accueil, comme au premier lancement.
                     onSignedOut = { screen = Screen.WELCOME },
                 )

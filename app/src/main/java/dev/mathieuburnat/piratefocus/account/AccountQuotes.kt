@@ -1,5 +1,7 @@
 package dev.mathieuburnat.piratefocus.account
 
+import dev.mathieuburnat.piratefocus.player.PirateLevel
+
 /** Ce que le capitaine raconte à propos des comptes. */
 object AccountQuotes {
 
@@ -56,6 +58,25 @@ object AccountQuotes {
 
     /** Le petit mot (toast) quand il se déconnecte. */
     fun signedOut(name: String) = "Bon vent, $name ! Ton butin t'attend au port. $YAWKU"
+
+    /** Le petit mot (toast) après un renommage réussi (#17). */
+    fun renamed(name: String) = "Félicitations, tu t'appelles désormais $name ! $YAWKU"
+
+    /** Une tête pas encore permise. */
+    fun headLocked(level: Int) = if (level < PirateLevel.HEADS_LEVEL) {
+        "Changer de tête, c'est au niveau ${PirateLevel.HEADS_LEVEL}, moussaillon ! Rapporte des doublons."
+    } else {
+        "Tes ${PirateLevel.HEADS_AT_LEVEL_5} têtes sont choisies : les autres attendront le niveau ${PirateLevel.ALL_HEADS_LEVEL} !"
+    }
+
+    /** Sous les têtes de la fiche : ce que débloquent les niveaux. */
+    fun headsExplained(level: Int, freeSlots: Int) = when {
+        level >= PirateLevel.ALL_HEADS_LEVEL -> "Niveau ${PirateLevel.ALL_HEADS_LEVEL} : toutes les têtes sont à toi, capitaine !"
+        level >= PirateLevel.HEADS_LEVEL && freeSlots > 0 ->
+            "Encore $freeSlots tête${if (freeSlots > 1) "s" else ""} à choisir. Choisis bien : c'est pour de bon jusqu'au niveau ${PirateLevel.ALL_HEADS_LEVEL} !"
+        level >= PirateLevel.HEADS_LEVEL -> "Tes ${PirateLevel.HEADS_AT_LEVEL_5} têtes sont choisies. Au niveau ${PirateLevel.ALL_HEADS_LEVEL}, toutes !"
+        else -> "Au niveau ${PirateLevel.HEADS_LEVEL}, tu choisis ${PirateLevel.HEADS_AT_LEVEL_5} têtes. Au niveau ${PirateLevel.ALL_HEADS_LEVEL}, toutes !"
+    }
 
     /** Le petit mot (toast) quand il lie son compte Google. */
     const val GOOGLE_LINKED = "Google est lié ! Tu peux désormais monter à bord avec lui. $YAWKU"

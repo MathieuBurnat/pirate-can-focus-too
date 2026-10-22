@@ -1,9 +1,14 @@
 package dev.mathieuburnat.piratefocus.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -11,12 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextAlign
@@ -33,60 +36,50 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.mathieuburnat.piratefocus.account.AccountQuotes
 import dev.mathieuburnat.piratefocus.account.AccountViewModel
+import dev.mathieuburnat.piratefocus.player.PirateHeads
+import dev.mathieuburnat.piratefocus.player.PirateLevel
 
-/** « Ma fiche de matelot » : pseudo, visibilité publique, déconnexion, suppression. Sans compte : de quoi en créer un. */
+/** Têtes par rangée dans la fiche. */
+private const val HEADS_PER_ROW = 5
+
+/**
+ * « Ma fiche de matelot » (#18) : le joueur, pas le compte. Sa tête, son pseudo, son niveau et les têtes à choisir.
+ * Tout ce qui touche au compte est derrière « INFORMATIONS DE CONNEXION ».
+ */
 @Composable
-fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit, onSignedOut: () -> Unit) {
+fun AccountScreen(viewModel: AccountViewModel, doubloons: Int, onBack: () -> Unit, onConnection: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val account = state.account
     var name by rememberSaveable(account.pirateName) { mutableStateOf(account.pirateName) }
-    var confirmDelete by remember { mutableStateOf(false) }
-    var confirmNewCode by remember { mutableStateOf(false) }
-    var changingPassword by rememberSaveable { mutableStateOf(false) }
-    var currentPassword by rememberSaveable { mutableStateOf("") }
-    var newPassword by rememberSaveable { mutableStateOf("") }
-    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    // La tête que le matelot hésite à débloquer (null : pas de question).
+    var unlocking by remember { mutableStateOf<Int?>(null) }
+    val level = PirateLevel.of(doubloons)
+    val freeSlots = PirateLevel.freeSlots(account.heads, level)
 
-    // Le Worker a peut-être changé d'avis (pseudo, visibilité) depuis un autre téléphone.
+    // Le Worker a peut-être changé d'avis (pseudo, tête) depuis un autre téléphone.
     LaunchedEffect(Unit) { viewModel.refresh() }
 
-    // Mot de passe changé : on replie le formulaire.
-    LaunchedEffect(state.passwordChanged) {
-        if (state.passwordChanged) {
-            changingPassword = false
-            currentPassword = ""
-            newPassword = ""
-            confirmPassword = ""
-        }
-    }
-
-    state.recoveryCode?.let { RecoveryCodeDialog(it, onNoted = viewModel::recoveryCodeNoted, freshAccount = state.freshAccount) }
-
-    if (confirmNewCode) {
-        AlertDialog(
-            onDismissRequest = { confirmNewCode = false },
-            shape = RectangleShape,
-            title = { Text("☠ NOUVEAU CODE SECRET ? ☠") },
-            text = { Text("L'ancien code ne marchera plus. Le nouveau ne sera montré qu'une fois.", style = MaterialTheme.typography.bodyMedium) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmNewCode = false
-                    viewModel.newRecoveryCode()
-                }) { Text("NOUVEAU CODE") }
+    unlocking?.let { head ->
+        ChoiceDialog(
+            title = "⚓ NOUVELLE TÊTE ? ⚓",
+            onDismiss = { unlocking = null },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    PixelHead(head, size = 96.dp)
+                    Text(
+                        "Tu peux encore choisir $freeSlots tête${if (freeSlots > 1) "s" else ""}. " +
+                            "Celle-ci restera à toi jusqu'au niveau ${PirateLevel.ALL_HEADS_LEVEL}, où toutes se débloquent.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             },
-            dismissButton = { TextButton(onClick = { confirmNewCode = false }) { Text("GARDER L'ANCIEN") } },
-        )
-    }
-
-    if (confirmDelete) {
-        ReallySureDialog(
-            message = "T'es vraiment sûr ? ${AccountQuotes.DELETE_WARNING}",
-            onConfirm = {
-                confirmDelete = false
-                // Compte coulé : retour à l'accueil (matelot anonyme ou compte gratuit).
-                viewModel.deleteAccount(onDeleted = onSignedOut)
-            },
-            onCancel = { confirmDelete = false },
+            choices = listOf(
+                Choice("PRENDRE CETTE TÊTE", ChoiceKind.ADVISED, {
+                    unlocking = null
+                    viewModel.chooseHead(head, doubloons)
+                }),
+                Choice("réfléchir encore", ChoiceKind.CANCEL, { unlocking = null }),
+            ),
         )
     }
 
@@ -103,123 +96,105 @@ fun AccountScreen(viewModel: AccountViewModel, onBack: () -> Unit, onSignedOut: 
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),
             )
-            // Sur un petit écran, les « === » sautent plutôt que de passer seuls à la ligne.
-            var narrow by remember { mutableStateOf(false) }
-            Text(
-                if (narrow) "FICHE DE MATELOT" else "=== FICHE DE MATELOT ===",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                onTextLayout = { if (it.hasVisualOverflow) narrow = true },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(12.dp))
+            ScreenTitle("FICHE DE MATELOT")
+            Spacer(Modifier.height(8.dp))
+
+            // Le pirate en grand, son pseudo et son niveau.
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                PixelHead(account.head, size = 128.dp)
+                Text(account.pirateName, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                Text("Niveau $level", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                Text(levelBar(doubloons), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "${doubloons - PirateLevel.doubloonsFor(level)} / ${PirateLevel.doubloonsFor(level + 1) - PirateLevel.doubloonsFor(level)} doublons " +
+                        "avant le niveau ${level + 1}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Spacer(Modifier.height(16.dp))
 
             SectionTitle("Identité")
             PirateField(name, { name = it }, "> ton pseudo de pirate")
-            if (name.trim() != account.pirateName) MenuItem("RENOMMER", onClick = { viewModel.rename(name) })
-            if (account.signedIn) {
-                when {
-                    account.login != null -> Text("Email (privé) : ${account.login}", style = MaterialTheme.typography.bodyMedium)
-                    account.kind == "google" -> Text("Connecté par Google${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
-                    else -> Text("Connecté par email${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-
+            if (name.trim() != account.pirateName) MenuItem("RENOMMER", onClick = { viewModel.rename(name) }, dimmed = state.busy)
             Spacer(Modifier.height(16.dp))
-            if (account.signedIn) {
-                if (account.kind == "password") {
-                    SectionTitle("Sécurité")
-                    MenuItem("NOUVEAU CODE SECRET", onClick = { confirmNewCode = true }, dimmed = state.busy)
-                    MenuItem("CHANGER MON MOT DE PASSE", onClick = { changingPassword = !changingPassword })
-                    if (changingPassword) {
-                        PasswordField(currentPassword, { currentPassword = it }, "> mot de passe actuel")
-                        val confirmed = NewPasswordFields(
-                            newPassword,
-                            { newPassword = it },
-                            confirmPassword,
-                            { confirmPassword = it },
-                            "> nouveau mot de passe (8 min.)",
-                            email = account.login.orEmpty(),
+
+            SectionTitle("Têtes")
+            Text(AccountQuotes.headsExplained(level, freeSlots), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp))
+            PirateHeads.all.chunked(HEADS_PER_ROW).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+                    row.forEach { head ->
+                        val wearable = PirateLevel.canWear(head.id, account.heads, level)
+                        HeadCell(
+                            head = head.id,
+                            worn = head.id == account.head,
+                            wearable = wearable,
+                            unlockable = !wearable && freeSlots > 0,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                when {
+                                    head.id == account.head -> Unit
+                                    wearable -> viewModel.chooseHead(head.id, doubloons)
+                                    freeSlots > 0 -> unlocking = head.id
+                                    else -> viewModel.chooseHead(head.id, doubloons) // le capitaine dit pourquoi c'est non
+                                }
+                            },
                         )
-                        val ready = currentPassword.isNotEmpty() && newPassword.length >= 8 && confirmed
-                        MenuItem(
-                            "VALIDER LE NOUVEAU MOT DE PASSE",
-                            onClick = { if (ready) viewModel.changePassword(currentPassword, newPassword) },
-                            dimmed = state.busy || !ready,
-                        )
                     }
-                    if (state.passwordChanged) {
-                        Text("Mot de passe changé, matelot !", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
-                    }
-                    if (GOOGLE_SIGN_IN_READY) {
-                        if (account.google) {
-                            // Google lié : on peut aussi monter à bord par là ; le délier reste possible (le mot de passe demeure).
-                            Text("Google lié${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
-                            Text(
-                                "délier Google",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.clickable(enabled = !state.busy, onClick = viewModel::unlinkGoogle).padding(vertical = 6.dp),
-                            )
-                        } else {
-                            MenuItem("LIER MON COMPTE GOOGLE", onClick = rememberGoogleLink(viewModel), dimmed = state.busy)
-                            Text(AccountQuotes.GOOGLE_LINK_EXPLAINED, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    Spacer(Modifier.height(16.dp))
                 }
-
-                SectionTitle("Visibilité")
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = !state.busy) { viewModel.setPublic(!account.public) }
-                        .padding(vertical = 8.dp),
-                ) {
-                    Text(
-                        if (account.public) "[x] " else "[ ] ",
-                        color = if (account.public) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text("Afficher mes données publiquement", style = MaterialTheme.typography.bodyLarge)
-                }
-                Text(
-                    if (account.public) AccountQuotes.PUBLIC_EXPLAINED else AccountQuotes.PRIVATE_EXPLAINED,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-
-                BusyAndError(state)
-
-                // Tout en bas, bien à l'écart : ce qui fait quitter le navire.
-                Spacer(Modifier.height(32.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
-                Spacer(Modifier.height(8.dp))
-                SectionTitle("Zone dangereuse", color = MaterialTheme.colorScheme.error)
-                MenuItem("SE DÉCONNECTER", onClick = { viewModel.logout(onSignedOut) }, dimmed = state.busy)
-                Text(AccountQuotes.LOGOUT_EXPLAINED, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(8.dp))
-                MenuItem("SUPPRIMER MON COMPTE", onClick = { confirmDelete = true }, dimmed = state.busy, color = MaterialTheme.colorScheme.error)
-            } else {
-                NoAccountInfo()
-                SectionTitle("Compte gratuit")
-                FreeAccountForm(
-                    state = state,
-                    onMode = viewModel::setAuthMode,
-                    onRegister = viewModel::register,
-                    onLogin = viewModel::login,
-                    onRecover = viewModel::recover,
-                    onGoogle = rememberGoogleSignIn(viewModel),
-                )
             }
+            BusyAndError(state)
+
+            Spacer(Modifier.height(24.dp))
+            MenuItem(if (account.signedIn) "INFORMATIONS DE CONNEXION" else "CRÉER UN COMPTE GRATUIT", onClick = onConnection)
+            if (!account.signedIn) Text(AccountQuotes.NO_ACCOUNT_INFO, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
 
+/** Une tête de la fiche : portée (cadre doré), permise (cadre fin), à débloquer, ou encore verrouillée (pâle). */
+@Composable
+private fun HeadCell(head: Int, worn: Boolean, wearable: Boolean, unlockable: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val border = when {
+        worn -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        wearable -> BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
+        unlockable -> BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f))
+        else -> BorderStroke(1.dp, Color.Transparent)
+    }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .aspectRatio(1f)
+            .border(border, RectangleShape)
+            .clickable(onClick = onClick)
+            .alpha(if (wearable || unlockable) 1f else 0.3f),
+    ) {
+        PixelHead(head, size = 56.dp)
+    }
+}
+
+/** La barre de niveau, façon terminal : « [######....] ». */
+private fun levelBar(doubloons: Int, width: Int = 16): String {
+    val filled = (PirateLevel.progress(doubloons) * width).toInt().coerceIn(0, width)
+    return "[" + "#".repeat(filled) + ".".repeat(width - filled) + "]"
+}
+
+/** Titre d'une page de la fiche ; sur un petit écran, les « === » sautent plutôt que de passer seuls à la ligne. */
+@Composable
+internal fun ScreenTitle(title: String) {
+    var narrow by remember { mutableStateOf(false) }
+    Text(
+        if (narrow) title else "=== $title ===",
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.primary,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        onTextLayout = { if (it.hasVisualOverflow) narrow = true },
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
 /** Titre d'une section de la fiche, façon terminal : « -- Identité -- ». */
 @Composable
-private fun SectionTitle(title: String, color: Color = MaterialTheme.colorScheme.onBackground) {
+internal fun SectionTitle(title: String, color: Color = MaterialTheme.colorScheme.onBackground) {
     Text("-- $title --", style = MaterialTheme.typography.titleSmall, color = color, modifier = Modifier.padding(bottom = 4.dp))
 }

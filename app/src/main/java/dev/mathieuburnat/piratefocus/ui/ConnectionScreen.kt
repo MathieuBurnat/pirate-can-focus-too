@@ -1,0 +1,203 @@
+package dev.mathieuburnat.piratefocus.ui
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.mathieuburnat.piratefocus.account.AccountQuotes
+import dev.mathieuburnat.piratefocus.account.AccountViewModel
+
+/**
+ * « Informations de connexion » (#18) : tout ce qui touche au compte, à part de la fiche du matelot.
+ * Email, sécurité (mot de passe, code secret, Google), visibilité, déconnexion et suppression. Sans compte : de quoi en créer un.
+ */
+@Composable
+fun ConnectionScreen(viewModel: AccountViewModel, backLabel: String, onBack: () -> Unit, onSignedOut: () -> Unit) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val account = state.account
+    var confirmDelete by remember { mutableStateOf(false) }
+    var confirmNewCode by remember { mutableStateOf(false) }
+    var changingPassword by rememberSaveable { mutableStateOf(false) }
+    var currentPassword by rememberSaveable { mutableStateOf("") }
+    var newPassword by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+
+    // Mot de passe changé : on replie le formulaire.
+    LaunchedEffect(state.passwordChanged) {
+        if (state.passwordChanged) {
+            changingPassword = false
+            currentPassword = ""
+            newPassword = ""
+            confirmPassword = ""
+        }
+    }
+
+    state.recoveryCode?.let { RecoveryCodeDialog(it, onNoted = viewModel::recoveryCodeNoted, freshAccount = state.freshAccount) }
+
+    if (confirmNewCode) {
+        AlertDialog(
+            onDismissRequest = { confirmNewCode = false },
+            shape = RectangleShape,
+            title = { Text("☠ NOUVEAU CODE SECRET ? ☠") },
+            text = { Text("L'ancien code ne marchera plus. Le nouveau ne sera montré qu'une fois.", style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmNewCode = false
+                    viewModel.newRecoveryCode()
+                }) { Text("NOUVEAU CODE") }
+            },
+            dismissButton = { TextButton(onClick = { confirmNewCode = false }) { Text("GARDER L'ANCIEN") } },
+        )
+    }
+
+    if (confirmDelete) {
+        ReallySureDialog(
+            message = "T'es vraiment sûr ? ${AccountQuotes.DELETE_WARNING}",
+            onConfirm = {
+                confirmDelete = false
+                // Compte coulé : retour à l'accueil (matelot anonyme ou compte gratuit).
+                viewModel.deleteAccount(onDeleted = onSignedOut)
+            },
+            onCancel = { confirmDelete = false },
+        )
+    }
+
+    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .safeDrawingPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(
+                backLabel,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),
+            )
+            ScreenTitle(if (account.signedIn) "CONNEXION" else "COMPTE GRATUIT")
+            Spacer(Modifier.height(12.dp))
+
+            if (!account.signedIn) {
+                NoAccountInfo()
+                SectionTitle("Compte gratuit")
+                FreeAccountForm(
+                    state = state,
+                    onMode = viewModel::setAuthMode,
+                    onRegister = viewModel::register,
+                    onLogin = viewModel::login,
+                    onRecover = viewModel::recover,
+                    onGoogle = rememberGoogleSignIn(viewModel),
+                )
+                return@Column
+            }
+
+            SectionTitle("Compte")
+            when {
+                account.login != null -> Text("Email (privé) : ${account.login}", style = MaterialTheme.typography.bodyMedium)
+                account.kind == "google" -> Text("Connecté par Google${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
+                else -> Text("Connecté par email${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
+            }
+            Spacer(Modifier.height(16.dp))
+
+            if (account.kind == "password") {
+                SectionTitle("Sécurité")
+                MenuItem("NOUVEAU CODE SECRET", onClick = { confirmNewCode = true }, dimmed = state.busy)
+                MenuItem("CHANGER MON MOT DE PASSE", onClick = { changingPassword = !changingPassword })
+                if (changingPassword) {
+                    PasswordField(currentPassword, { currentPassword = it }, "> mot de passe actuel")
+                    val confirmed = NewPasswordFields(
+                        newPassword,
+                        { newPassword = it },
+                        confirmPassword,
+                        { confirmPassword = it },
+                        "> nouveau mot de passe (8 min.)",
+                        email = account.login.orEmpty(),
+                    )
+                    val ready = currentPassword.isNotEmpty() && newPassword.length >= 8 && confirmed
+                    MenuItem(
+                        "VALIDER LE NOUVEAU MOT DE PASSE",
+                        onClick = { if (ready) viewModel.changePassword(currentPassword, newPassword) },
+                        dimmed = state.busy || !ready,
+                    )
+                }
+                if (state.passwordChanged) {
+                    Text("Mot de passe changé, matelot !", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                }
+                if (GOOGLE_SIGN_IN_READY) {
+                    if (account.google) {
+                        // Google lié : on peut aussi monter à bord par là ; le délier reste possible (le mot de passe demeure).
+                        Text("Google lié${account.email?.let { " : $it" }.orEmpty()}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
+                        Text(
+                            "délier Google",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.clickable(enabled = !state.busy, onClick = viewModel::unlinkGoogle).padding(vertical = 6.dp),
+                        )
+                    } else {
+                        MenuItem("LIER MON COMPTE GOOGLE", onClick = rememberGoogleLink(viewModel), dimmed = state.busy)
+                        Text(AccountQuotes.GOOGLE_LINK_EXPLAINED, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
+            SectionTitle("Visibilité")
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = !state.busy) { viewModel.setPublic(!account.public) }
+                    .padding(vertical = 8.dp),
+            ) {
+                Text(
+                    if (account.public) "[x] " else "[ ] ",
+                    color = if (account.public) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text("Afficher mes données publiquement", style = MaterialTheme.typography.bodyLarge)
+            }
+            Text(
+                if (account.public) AccountQuotes.PUBLIC_EXPLAINED else AccountQuotes.PRIVATE_EXPLAINED,
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            BusyAndError(state)
+
+            // Tout en bas, bien à l'écart : ce qui fait quitter le navire.
+            Spacer(Modifier.height(32.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+            Spacer(Modifier.height(8.dp))
+            SectionTitle("Zone dangereuse", color = MaterialTheme.colorScheme.error)
+            MenuItem("SE DÉCONNECTER", onClick = { viewModel.logout(onSignedOut) }, dimmed = state.busy)
+            Text(AccountQuotes.LOGOUT_EXPLAINED, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(8.dp))
+            MenuItem("SUPPRIMER MON COMPTE", onClick = { confirmDelete = true }, dimmed = state.busy, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}

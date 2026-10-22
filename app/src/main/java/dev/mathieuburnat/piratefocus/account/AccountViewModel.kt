@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.mathieuburnat.piratefocus.journal.CrewMate
 import dev.mathieuburnat.piratefocus.journal.LogEntry
+import dev.mathieuburnat.piratefocus.player.PirateLevel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -130,7 +131,16 @@ class AccountViewModel(
 
     /** Ce que le Worker sait du pirate, rangé sur le téléphone. */
     private fun saveMe(me: Me) = save(
-        account.copy(pirateName = me.name, public = me.public, email = me.email, login = me.login, kind = me.kind, google = me.google),
+        account.copy(
+            pirateName = me.name,
+            public = me.public,
+            email = me.email,
+            login = me.login,
+            kind = me.kind,
+            google = me.google,
+            head = me.head ?: account.head,
+            heads = me.heads ?: account.heads,
+        ),
     )
 
     /** Relit le compte chez le Worker (pseudo, visibilité) ; un jeton refusé déconnecte en douceur. */
@@ -154,9 +164,32 @@ class AccountViewModel(
         val token = account.token
         if (token == null) {
             save(account.copy(pirateName = clean))
+            _uiState.update { it.copy(toast = AccountQuotes.renamed(clean)) }
             return
         }
-        launchBusy { save(account.copy(pirateName = api.updateMe(token, name = clean).name)) }
+        launchBusy {
+            val renamed = api.updateMe(token, name = clean).name
+            save(account.copy(pirateName = renamed))
+            _uiState.update { it.copy(toast = AccountQuotes.renamed(renamed)) }
+        }
+    }
+
+    /**
+     * Porter la tête [head] (#18). Le niveau vient des [doubloons] du coffre : niveau 5, 3 têtes au choix ; niveau 10, toutes.
+     * Avec un compte, le Worker tranche (il connaît le coffre synchronisé) ; sans compte, le téléphone.
+     */
+    fun chooseHead(head: Int, doubloons: Int) {
+        val unlocked = PirateLevel.choose(head, account.heads, PirateLevel.of(doubloons))
+        if (unlocked == null) {
+            _uiState.update { it.copy(error = AccountQuotes.headLocked(PirateLevel.of(doubloons))) }
+            return
+        }
+        val token = account.token
+        if (token == null) {
+            save(account.copy(head = head, heads = unlocked))
+            return
+        }
+        launchBusy { saveMe(api.chooseHead(token, head)) }
     }
 
     fun setPublic(public: Boolean) {

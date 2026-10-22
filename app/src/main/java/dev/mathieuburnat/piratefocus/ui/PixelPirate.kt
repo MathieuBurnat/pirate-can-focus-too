@@ -1,6 +1,10 @@
 package dev.mathieuburnat.piratefocus.ui
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -133,11 +137,47 @@ fun PixelPirate(
     }
 }
 
+/** La main du capitaine qui salue, avec le bout de sa manche rouge. */
+private val wavingHand = listOf(
+    ".S.S.S..",
+    ".S.S.S.S",
+    ".SSSSSSS",
+    "SSSSSSSS",
+    "SSSSSSS.",
+    ".SSSSS..",
+    "..RRRR..",
+    "..RRRR..",
+)
+
+/** Le capitaine salue (#17) : la main s'agite [waves] fois depuis le poignet, puis se repose. */
+@Composable
+fun PixelWavingHand(modifier: Modifier = Modifier, size: Dp = 56.dp, waves: Int = 3) {
+    val angle = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        repeat(waves) {
+            angle.animateTo(-25f, tween(160))
+            angle.animateTo(15f, tween(160))
+        }
+        angle.animateTo(0f, tween(120))
+    }
+    Canvas(
+        modifier
+            .size(size)
+            .graphicsLayer {
+                rotationZ = angle.value
+                transformOrigin = TransformOrigin(0.5f, 1f)
+            },
+    ) {
+        val pixel = this.size.minDimension / wavingHand.size
+        drawSprite(wavingHand, pixel, Offset.Zero)
+    }
+}
+
 /** Dessine une grille de caractères, un carré par pixel. */
-internal fun DrawScope.drawSprite(sprite: List<String>, pixel: Float, origin: Offset) {
+internal fun DrawScope.drawSprite(sprite: List<String>, pixel: Float, origin: Offset, colors: Map<Char, Color> = palette) {
     sprite.forEachIndexed { y, line ->
         line.forEachIndexed { x, char ->
-            val color = palette[char] ?: return@forEachIndexed
+            val color = colors[char] ?: return@forEachIndexed
             drawRect(
                 color = color,
                 topLeft = Offset(origin.x + x * pixel, origin.y + y * pixel),

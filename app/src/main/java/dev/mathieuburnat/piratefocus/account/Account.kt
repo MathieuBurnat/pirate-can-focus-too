@@ -16,6 +16,10 @@ data class Account(
     val google: Boolean = false,
     /** Visible dans les statistiques de l'équipage. */
     val public: Boolean = true,
+    /** La tête portée (numéro dans PirateHeads, 0 = celle du capitaine). */
+    val head: Int = 0,
+    /** Les têtes débloquées au niveau 5 (3 au choix). */
+    val heads: List<Int> = emptyList(),
 ) {
     /** Sans compte, rien ne quitte le téléphone. */
     val signedIn: Boolean get() = token != null

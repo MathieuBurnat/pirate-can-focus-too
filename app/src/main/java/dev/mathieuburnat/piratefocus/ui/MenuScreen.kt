@@ -38,11 +38,16 @@ import androidx.compose.ui.unit.dp
 import dev.mathieuburnat.piratefocus.account.AccountQuotes
 import dev.mathieuburnat.piratefocus.account.AuthMode
 import dev.mathieuburnat.piratefocus.focus.Phase
+import dev.mathieuburnat.piratefocus.player.CaptainHello
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @Composable
 fun MenuScreen(
     phase: Phase,
     signedIn: Boolean,
+    pirateName: String,
     devMode: Boolean,
     onFocus: () -> Unit,
     onJournal: () -> Unit,
@@ -89,7 +94,16 @@ fun MenuScreen(
                     LocalAccountTag(onClick = { showNoAccount = true })
                 }
                 Spacer(Modifier.height(24.dp))
-                PixelPirate(phase = Phase.IDLE)
+                // Environ une fois sur 5, le capitaine salue le matelot par son pseudo (tiré à chaque retour au menu).
+                val greeting = rememberSaveable { if (CaptainHello.shouldGreet(pirateName)) CaptainHello.greeting(pirateName) else "" }
+                    .ifEmpty { null }
+                Box {
+                    PixelPirate(phase = Phase.IDLE, happy = greeting != null, lookingAtYou = greeting != null)
+                    if (greeting != null) PixelWavingHand(Modifier.align(Alignment.CenterEnd).offset(x = 28.dp, y = 16.dp))
+                }
+                if (greeting != null) {
+                    TypewriterText("« $greeting »", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, charDelayMs = 40)
+                }
                 Spacer(Modifier.height(32.dp))
 
                 val focusLabel = if (phase == Phase.FOCUS) "1. FOCUS  (traversée en cours)" else "1. FOCUS"
